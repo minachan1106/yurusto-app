@@ -26,14 +26,15 @@
     {"date":"YYYY-MM-DD","type":"weight","kg":0.0},
     {"date":"YYYY-MM-DD","type":"meal","label":"料理名","slot":"lunch","kcal":0,"p":0,"f":0,"c":0,"treat":false,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":0,"sets":0,"minutes":null}],"note":"任意"},
-    {"date":"YYYY-MM-DD","type":"beauty","brand":"ブランド名","item":"アイテム名","guess":false,"category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
+    {"date":"YYYY-MM-DD","type":"beauty","brand":"ブランド名","item":"アイテム名","guess":false,"category":"skincare|makeup|hair|tool","part":"base|eye|brow|lip|finish（メイクのみ・任意）","action":"add|note|status","status":"using|stock|rest|done（statusのとき）","mood":"good|repeat|soso|ng（任意）","note":"任意"},
     {"date":"YYYY-MM-DD","type":"condition","note":"髪がパサつく、など体や肌の状態メモ"},
     {"date":"YYYY-MM-DD","type":"body","fatPct":0.0,"waistCm":0.0,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"steps","steps":0,"km":0.0}
   ],
   "updates":[{"id":"既存の記録のid","entry":{直したあとの記録}}],
   "deletes":["既存の記録のid"],
-  "wishes":[{"name":"商品名","brand":"ブランド","size":"S","sizeInfo":"サイズ表の要点","loseKgMin":0,"loseKgMax":0,"basis":"判断の根拠","exercise":"運動の目安"}],
+  "wishes":[{"kind":"服の種類（コート・デニムなど）","name":"商品名（分からなければ空）","brand":"ブランド","size":"S","sizeInfo":"サイズ表の要点","loseKgMin":0,"loseKgMax":0,"basis":"判断の根拠","exercise":"運動の目安"}],
+  "wishUpdates":[{"id":"既存の着たい服のid","name":"","kind":"","brand":"","size":"","loseKgMin":0,"loseKgMax":0}],
   "comment":"Claudeからのコメント（任意）"
 }
 ```
@@ -57,7 +58,8 @@
   workoutPresets: [ { id, name, items: [ { name, reps, sets, minutes } ] } ],   // いつもの運動
   links: { projectUrl },      // claude.ai のチャットのプロジェクト
   exerciseMets: { 種目名: { mets, by: "claude" } },   // 一覧にない種目の強さ（Claudeの推定）
-  wishes: [ { id, name, brand, size, sizeInfo, basis, exercise, loseMin, loseMax, targetLow, targetHigh, addedOn, done } ],   // 着たい服
+  beautyItems: [ { id, name, brand, category, part, status, memo, guess, addedOn, createdAt } ],   // 美容アイテム（status: using/stock/rest/done）
+  wishes: [ { id, kind, name, brand, size, sizeInfo, basis, exercise, loseMin, loseMax, targetLow, targetHigh, addedOn, done } ],   // 着たい服
   settings: {
     weightMin, weightMax,       // 目標体重の範囲（kg）
     fatTarget, waistTarget,     // 目標の体脂肪率（%）・腹囲（cm）
@@ -90,12 +92,23 @@
 - 日付ごと（新しい順）に表示。タップで編集シート、編集・削除可能。
 
 ### 4. 美容
-- 使用中アイテム：使用開始日・使用日数・直近30日の使用回数。
-  - アイテムは名前の完全一致で同一とみなす。
-  - 最後の記録が `finish` でなければ使用中。
-  - 使用開始日は `start` の日付。`start` がない場合は最初の `use` の日付。
-- 使用終了したアイテムの履歴。
-- conditionメモの時系列。
+タブ名は「美容・ファッション」。上の切り替えで「コスメ」「ファッション」。
+
+#### コスメ
+- 美容アイテムを `beautyItems` に登録して持つ（名前の空白・大小文字を無視した一致で同じアイテム）。使用回数は数えない。
+- 状態（status）：使用中 / ストック / お休み / 使い切り。上のチップで絞り込み（件数つき・初期は使用中）。
+- カテゴリ（スキンケア・メイク・ヘア・美容ツール）ごとのカード。メイクは部分（ベース・アイ・眉・リップ・仕上げ）ごとにまとめる。
+- 各行に最新の気持ち（いい感じ / リピしたい / ふつう / 合わないかも）と最新のひと言。
+- タップでアイテムのシート：状態の切り替え（status の記録が残る）、気持ちのワンタップ記録（ひと言は任意）、「ひと言だけ記録」、これまでの記録（タップで編集）、名前・ブランド・カテゴリ・部分・メモの修正、削除。
+- 「＋ アイテムを追加」は手入力用（ふだんは写真や「◯◯を登録」と投げ込む）。
+- 記録（entries の beauty）は継続利用の気持ちのメモと状態の変化だけ。`add` は記録を作らずアイテムを登録。ひと言も気持ちもない `use`/`note` はアイテムの反映だけ。
+- 以前の形式（beautyItems なし）は起動時に変換：beauty の記録からアイテムを作り、「ビューティーデッキに登録」のメモは登録扱い（残りの文はアイテムのメモ）、`start`/`finish` は状態の記録に、ひと言のない `use` は消す。
+- 肌・髪のメモ（condition）の時系列。商品名をチェックは小さく折りたたむ。
+
+#### ファッション
+- 着たい服（未達）と着られた服。表示は「ブランド の 種類「商品名」」（例：ダミーブランド の コート「ダミー ロングコート」）。サイズが分からなければ「サイズ未確認」。
+- タップで詳細：「商品のスクショで詳しくする」（投げ込みに `【着たい服を詳しく】id=…` を入れて開く → Claude が `wishUpdates` で更新、kg の幅があれば目標を出し直す）、名前・サイズの修正、削除、着られた！
+- 以前の着たい服で、名前が種類そのもの（コート・デニムなど）だったものは種類に移す。
 
 ### 5. 設定
 - 目標体重の範囲、1日の目安カロリーとPFC、月のご褒美枠。
@@ -147,7 +160,8 @@
 - ふりかえり（ホームの「ふりかえる？」カード）
   - 各種別とも、前回（初回は最初の記録日）から7日以上たち、記録が溜まっていれば表示。
     - PFCレビュー：食事5件以上 → Claude がレビューを comment で返す（コメント履歴に保存）。
-    - コスメの所感：美容3件以上かつ使用中アイテムあり → Claude が所感を聞く質問を返す。「答えを書く」で投げ込みに「【コスメの所感】アイテム名：」の雛形。所感は condition として記録（使用回数は増やさない）。
+    - コスメの所感：登録から7日以上たった使用中アイテムがある → Claude が所感を聞く質問を返す。「答えを書く」で投げ込みに「【コスメの所感】アイテム名：」の雛形。所感はそのアイテムの beauty の note（気持ち mood つき）として記録。
+    - ふりかえりでは、記録がない日・少ない期間には触れない。
     - 運動のメモ：記録5件以上かつ直近7日に運動の記録なし → 投げ込みに「【運動】」の雛形。
   - 「今はいい」で3日間表示しない。APIキーがない場合は、チャットに貼る文章をコピー。
 - 通知：サーバーがないため、閉じている間の通知は出せない。設定画面に iPhone「リマインダー」での代替手順を表示（ホーム画面版とSafari版は保存場所が別なので、URLで開く方式は使わない）。
