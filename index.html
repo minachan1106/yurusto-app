@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#c98a91">
+<meta name="theme-color" content="#ff5c9d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,39 +15,41 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <style>
   :root {
-    --bg: #faf6f4;
+    --bg: #fff4f8;
     --card: #ffffff;
-    --text: #3d3436;
-    --muted: #8c7f81;
-    --line: #ece3e1;
-    --accent: #c98a91;
-    --accent-strong: #b06c75;
-    --accent-soft: #f6e6e7;
-    --band: rgba(143, 184, 160, 0.20);
-    --dot: #d9a9ae;
+    --text: #4a2a38;
+    --muted: #9a7585;
+    --line: #f8dde8;
+    --accent: #ff5c9d;
+    --accent-strong: #e0337a;
+    --accent-soft: #ffe4ef;
+    --grad: linear-gradient(135deg, #ff8fbd 0%, #ff4f97 100%);
+    --band: rgba(127, 201, 170, 0.20);
+    --dot: #ffa3c7;
     --sage: #7fa58f;
-    --c-weight: #c98a91;
+    --c-weight: #ff6fa8;
     --c-meal: #d6a35c;
     --c-workout: #7fa58f;
     --c-beauty: #a58ac9;
     --c-condition: #8aa7c9;
     --c-comment: #9a8c8e;
-    --shadow: 0 1px 3px rgba(80, 50, 55, 0.06);
+    --shadow: 0 2px 8px rgba(255, 79, 151, 0.08);
     --radius: 14px;
     --tabbar-h: 58px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1f1b1c;
-      --card: #2a2526;
-      --text: #f0e8e9;
-      --muted: #a8999b;
-      --line: #3b3436;
-      --accent: #d99ca3;
-      --accent-strong: #e8b3b9;
-      --accent-soft: #3a2e30;
-      --band: rgba(143, 184, 160, 0.16);
-      --dot: #b07f85;
+      --bg: #24161c;
+      --card: #301e26;
+      --text: #fbe9f1;
+      --muted: #c49aad;
+      --line: #4a2c3a;
+      --accent: #ff7eb3;
+      --accent-strong: #ff9cc6;
+      --accent-soft: #4a2236;
+      --grad: linear-gradient(135deg, #ff7eb3 0%, #e8458a 100%);
+      --band: rgba(127, 201, 170, 0.14);
+      --dot: #c46a90;
       --shadow: none;
     }
   }
@@ -69,6 +71,7 @@
     border-bottom: 1px solid var(--line);
   }
   header.top h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: 0.02em; }
+  header.top h1::after { content: "♡"; color: var(--accent); margin-left: 6px; font-size: 15px; }
   header.top .sub { font-size: 12px; color: var(--muted); }
   main {
     max-width: 560px; margin: 0 auto;
@@ -84,7 +87,7 @@
     box-shadow: var(--shadow);
     border: 1px solid var(--line);
   }
-  .card h2 { font-size: 14px; margin: 0 0 10px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+  .card h2 { font-size: 14px; margin: 0 0 10px; color: var(--accent-strong); font-weight: 600; letter-spacing: 0.04em; }
   .card h2 .right { float: right; font-weight: 400; }
   .muted { color: var(--muted); }
   .small { font-size: 12px; }
@@ -125,7 +128,7 @@
     cursor: pointer;
     background: var(--accent-soft); color: var(--accent-strong); font-weight: 600;
   }
-  button.primary { background: var(--accent); color: #fff; }
+  button.primary { background: var(--grad); color: #fff; box-shadow: 0 2px 8px rgba(255, 79, 151, 0.25); }
   button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
   button.danger { background: transparent; color: #c0646c; border: 1px solid var(--line); }
   button:disabled { opacity: 0.45; }
@@ -163,12 +166,14 @@
   .pfc-row { display: grid; grid-template-columns: 62px 1fr; gap: 8px; align-items: center; margin: 7px 0; font-size: 13px; }
   .pfc-row .name { color: var(--muted); }
   .bar { height: 7px; background: var(--bg); border-radius: 99px; overflow: hidden; border: 1px solid var(--line); }
-  .bar > i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+  .bar > i { display: block; height: 100%; background: var(--grad); border-radius: 99px; }
   .pfc-row .nums { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; margin-top: 2px; }
   .treat-dots { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-  .treat-dots i { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--accent); display: inline-block; }
-  .treat-dots i.on { background: var(--accent); }
-  .treat-dots i.extra { background: var(--c-meal); border-color: var(--c-meal); }
+  .treat-dots { gap: 4px; }
+  .treat-dots i { font-style: normal; color: var(--accent); font-size: 22px; line-height: 1; }
+  .treat-dots i::before { content: "♡"; }
+  .treat-dots i.on::before { content: "♥"; }
+  .treat-dots i.extra { color: var(--c-meal); }
   .comment-card { border-left: 3px solid var(--accent); }
   .comment-text { white-space: pre-wrap; font-size: 14.5px; }
 
@@ -231,6 +236,9 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .err-list { color: #c0646c; font-size: 13px; }
+  .fav-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fav-chip { min-height: 38px; padding: 7px 14px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); font-size: 14px; font-weight: 600; }
+  .fav-chip small { font-weight: 400; color: var(--muted); margin-left: 4px; font-size: 11px; }
   .img-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
   .img-row:empty { display: none; }
   .img-thumb { position: relative; width: 64px; height: 64px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
@@ -272,18 +280,8 @@
   <!-- 投げ込み -->
   <section class="view" id="view-input">
     <div class="card">
-      <h2>体重をさっと記録</h2>
-      <div class="row">
-        <label class="field"><span>体重（kg）</span><input type="number" id="qWeight" inputmode="decimal" step="0.1" min="0" placeholder="00.0"></label>
-        <label class="field"><span>日付</span><input type="date" id="qDate"></label>
-      </div>
-      <button class="primary" id="qSave" style="width:100%">保存</button>
-      <div class="hint" id="qHint"></div>
-    </div>
-
-    <div class="card">
       <h2>投げ込み</h2>
-      <textarea id="dropText" placeholder="食べたもの・運動・使ったコスメなどを自由に。Claudeから受け取ったJSONをそのまま貼ってもOKです。"></textarea>
+      <textarea id="dropText" placeholder="食べたもの・運動・使ったコスメなどを自由に。Uberの注文画面、ごはんの写真、コスメの写真だけでもOKです。"></textarea>
       <div class="img-row" id="imgRow"></div>
       <label class="img-pick"><input type="file" id="imgInput" accept="image/*" multiple>画像（スクショ）を追加</label>
       <div class="btns" style="margin-top:8px">
@@ -295,6 +293,23 @@
     </div>
 
     <div class="card" id="previewCard" style="display:none"></div>
+
+    <div class="card">
+      <h2>よく頼むメニュー</h2>
+      <div class="fav-chips" id="favChips"></div>
+      <div class="row" style="margin-top:10px"><label class="field" style="margin-bottom:0"><span>記録する日</span><input type="date" id="favDate"></label></div>
+    </div>
+
+    <div class="card">
+      <h2>体重をさっと記録</h2>
+      <div class="row">
+        <label class="field"><span>体重（kg）</span><input type="number" id="qWeight" inputmode="decimal" step="0.1" min="0" placeholder="00.0"></label>
+        <label class="field"><span>日付</span><input type="date" id="qDate"></label>
+      </div>
+      <button class="primary" id="qSave" style="width:100%">保存</button>
+      <div class="hint" id="qHint"></div>
+    </div>
+
   </section>
 
   <!-- 記録一覧 -->
@@ -345,9 +360,15 @@
     <div class="card">
       <h2>Claude API</h2>
       <label class="field"><span>APIキー</span><input type="password" id="apiKey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-..."></label>
-      <label class="field"><span>モデル名</span><input type="text" id="apiModel" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：claude-opus-5-5"></label>
       <div class="btns"><button class="danger" id="apiClear">キーを削除</button><button class="primary" id="apiSave">保存</button></div>
-      <div class="hint">キーとモデル名はこの端末のブラウザにだけ保存され、エクスポートには含まれません。利用料金はAnthropicのアカウントに従量でかかります。</div>
+      <div class="hint">モデルは Claude Sonnet 5.5 を使います。キーはこの端末のブラウザにだけ保存され、エクスポートには含まれません。利用料金はAnthropicのアカウントに従量でかかります。</div>
+    </div>
+
+    <div class="card">
+      <h2>よく頼むメニュー</h2>
+      <div id="favList"></div>
+      <button class="ghost" id="favAdd" style="width:100%; margin-top:8px">メニューを追加</button>
+      <div class="hint">記録一覧の食事からも「よく頼むに登録」できます。Claudeで変換するときも、同じメニューはここの値を使います。</div>
     </div>
 
     <div class="card">
@@ -459,7 +480,7 @@ async function copyText(text) {
 function defaultState() {
   const settings = {};
   SETTING_KEYS.forEach((k) => { settings[k] = null; });
-  return { version: 1, entries: [], comments: [], settings };
+  return { version: 1, entries: [], comments: [], favorites: [], settings };
 }
 
 function loadState() {
@@ -472,6 +493,7 @@ function loadState() {
       version: 1,
       entries: Array.isArray(s.entries) ? s.entries : [],
       comments: Array.isArray(s.comments) ? s.comments : [],
+      favorites: Array.isArray(s.favorites) ? s.favorites : [],
       settings: { ...base.settings, ...(s.settings || {}) },
     };
   } catch (e) {
@@ -1143,7 +1165,8 @@ function openEditor(id) {
         <label class="field"><span>C</span><input type="number" inputmode="decimal" id="edC" value="${v(e.c)}"></label>
       </div>
       <label class="check"><input type="checkbox" id="edTreat" ${e.treat ? 'checked' : ''}>ご褒美ごはん</label>
-      <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>`;
+      <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>
+      <button class="ghost" type="button" id="edFav" style="width:100%; margin-bottom:10px">${findFavorite(e.label) ? '♥ よく頼むメニューを更新' : '♡ よく頼むに登録'}</button>`;
   } else if (e.type === 'workout') {
     fields += `<div class="field"><span class="small muted">種目</span><div id="wkList">${(e.items || []).map(wkItemHTML).join('')}</div>
       <button class="ghost" type="button" id="wkAdd" style="width:100%">種目を追加</button></div>
@@ -1162,6 +1185,13 @@ function openEditor(id) {
     <div class="err-list" id="edErr"></div>
     <div class="btns" style="margin-top:8px"><button class="danger" id="edDel">削除</button><button class="ghost" id="edClose">閉じる</button><button class="primary" id="edSave">保存</button></div>`);
 
+  if (e.type === 'meal') {
+    $('#edFav').addEventListener('click', () => {
+      const r = upsertFavorite({ label: $('#edLabel').value, kcal: $('#edKcal').value, p: $('#edP').value, f: $('#edF').value, c: $('#edC').value, treat: $('#edTreat').checked });
+      if (r.error) { $('#edErr').textContent = r.error; return; }
+      if (saveState()) { toast(r.updated ? 'よく頼むメニューを更新しました' : 'よく頼むに登録しました'); $('#edFav').textContent = '♥ よく頼むメニューを更新'; }
+    });
+  }
   if (e.type === 'workout') {
     $('#wkAdd').addEventListener('click', () => $('#wkList').insertAdjacentHTML('beforeend', wkItemHTML()));
     $('#wkList').addEventListener('click', (ev) => { const b = ev.target.closest('.wk-del'); if (b) b.closest('.wk-item').remove(); });
@@ -1269,7 +1299,7 @@ function setupBeauty() {
 function renderSettings() {
   const api = loadApi();
   if (document.activeElement !== $('#apiKey')) $('#apiKey').value = api.key || '';
-  if (document.activeElement !== $('#apiModel')) $('#apiModel').value = api.model || '';
+  renderFavList();
   $$('[data-set]').forEach((el) => {
     const k = el.getAttribute('data-set');
     if (document.activeElement !== el) el.value = state.settings[k] ?? '';
@@ -1319,16 +1349,17 @@ function setupSettings() {
     r.readAsText(f);
   });
   $('#apiSave').addEventListener('click', () => {
-    const key = $('#apiKey').value.trim(), model = $('#apiModel').value.trim();
-    if (saveApi({ key, model })) toast(key && model ? 'APIの設定を保存しました' : 'APIの設定を保存しました（キーとモデル名の両方が必要です）');
+    const key = $('#apiKey').value.trim();
+    if (saveApi({ key })) toast(key ? 'APIキーを保存しました' : 'APIキーを空にしました');
   });
   $('#apiClear').addEventListener('click', () => {
     if (!confirm('この端末に保存したAPIキーを削除しますか？')) return;
-    const api = loadApi();
-    saveApi({ key: '', model: api.model || '' });
+    saveApi({ key: '' });
     $('#apiKey').value = '';
     toast('APIキーを削除しました');
   });
+  $('#favAdd').addEventListener('click', () => openFavEditor(null));
+  $('#favList').addEventListener('click', (ev) => { const a = ev.target.closest('[data-fav]'); if (a) openFavEditor(a.getAttribute('data-fav')); });
   $('#importMerge').addEventListener('click', () => doImport('merge'));
   $('#importReplace').addEventListener('click', () => doImport('replace'));
 }
@@ -1362,7 +1393,9 @@ function parseImport(text) {
     settings = {};
     SETTING_KEYS.forEach((k) => { const n = obj.settings[k]; settings[k] = n === null || n === undefined || n === '' || !isFinite(Number(n)) ? null : Number(n); });
   }
-  return { entries, comments, settings, bad };
+  const favorites = (Array.isArray(obj.favorites) ? obj.favorites : []).map((f) => normalizeFavorite(f)).filter((r) => r.fav)
+    .map((r, i) => ({ ...r.fav, id: obj.favorites[i] && obj.favorites[i].id ? String(obj.favorites[i].id) : uid() }));
+  return { entries, comments, favorites, settings, bad };
 }
 
 function doImport(mode) {
@@ -1371,7 +1404,7 @@ function doImport(mode) {
   if (mode === 'replace') {
     if (!confirm(`今のデータをすべて消して、${data.entries.length}件の記録に置き換えます。よろしいですか？`)) return;
     const base = defaultState();
-    state = { version: 1, entries: [], comments: data.comments, settings: data.settings ? { ...base.settings, ...data.settings } : state.settings };
+    state = { version: 1, entries: [], comments: data.comments, favorites: data.favorites, settings: data.settings ? { ...base.settings, ...data.settings } : state.settings };
     addEntries(data.entries);
     if (saveState()) toast(`置き換えました（${state.entries.length}件）${data.bad.length ? `・除外${data.bad.length}件` : ''}`);
   } else {
@@ -1383,8 +1416,11 @@ function doImport(mode) {
       if (state.comments.some((x) => x.id === c.id)) c.id = uid();
       state.comments.push(c); cSigs.add(c.date + '\n' + c.text); cAdded++;
     });
+    let fAdded = 0;
+    data.favorites.forEach((f) => { if (!findFavorite(f.label)) { state.favorites.push({ ...f, id: uid() }); fAdded++; } });
     if (saveState()) {
       const parts = [`追加${r.added}件`];
+      if (fAdded) parts.push(`よく頼む${fAdded}件`);
       if (r.replaced) parts.push(`体重の上書き${r.replaced}件`);
       if (r.skipped) parts.push(`同じ記録${r.skipped}件はスキップ`);
       if (cAdded) parts.push(`コメント${cAdded}件`);
@@ -1432,10 +1468,11 @@ function buildWeekText() {
 
 
 /* ========== Claude API（フェーズB） ========== */
-// APIキー・モデル名は記録データとは別のキーに保存し、エクスポート／インポートの対象にしない
+// APIキーは記録データとは別のキーに保存し、エクスポート／インポートの対象にしない
 const API_STORAGE_KEY = 'yurusto.api';
 const API_URL = 'https://api.anthropic.com/v1/messages';
-const MAX_IMAGES = 5;
+const MODEL = 'claude-sonnet-5-5';
+const MAX_IMAGES = 10;
 const IMAGE_MAX_EDGE = 1568;
 // サーバー側のリフューザル時フォールバックに対応するモデル
 const FALLBACK_MODELS = ['claude-fable-5-1', 'claude-opus-5-5', 'claude-opus-5', 'claude-sonnet-5-5'];
@@ -1511,6 +1548,9 @@ function buildContext() {
   const { active } = beautyStats(t);
   lines.push(`使用中の美容アイテム: ${active.length ? active.map((a) => `${a.name}（${CATEGORIES[a.category] || a.category}・使用${a.days}日目・直近30日${a.recent}回）`).join('、') : '（なし）'}`);
 
+  const favs = state.favorites || [];
+  lines.push(`よく頼むメニュー: ${favs.length ? favs.map((f) => `${f.label}（${[['kcal', f.kcal], ['P', f.p], ['F', f.f], ['C', f.c]].map(([k, n]) => `${k} ${n ?? '?'}`).join(' / ')}${f.treat ? '・ご褒美' : ''}）`).join('、') : '（なし）'}`);
+
   const conds = state.entries.filter((e) => e.type === 'condition').sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
   if (conds.length) lines.push(`最近の体や肌の状態メモ: ${conds.map((e) => `${e.date} ${e.note}`).join(' / ')}`);
   return lines.join('\n');
@@ -1542,6 +1582,17 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 - 体や肌の状態についての言及は condition にする。
 - 記録にあたる内容がなければ entries は空配列にして、comment だけ返す。
 
+# 画像の読み取り
+- 画像は複数届くことがある。1枚ずつ何の画像かを見分けて、すべて記録にする。
+- フードデリバリー（Uber Eats など）の注文画面・注文履歴：注文した品を1品ずつ meal にする。店名は note に入れる。数量が2以上なら量に合わせて見積もる。画面に日付があればその日付、なければ今日。
+- 食事の写真：写っている料理と量から meal を見積もる。複数の料理が1枚に写っていれば、定食などひとまとまりなら1件、別々の料理なら分けてよい。
+- コスメ・スキンケア・ヘアケア用品の写真：beauty の use にする。商品名が読めればその名前、読めなければ見た目から短く名付ける。使用中のアイテムと同じものに見えれば、その名前に揃える。
+- 体重計やヘルスケアアプリのスクショ：weight にする。
+- 運動アプリ・フィットネス機器のスクショ：workout にする。
+
+# よく頼むメニュー
+- 下の「よく頼むメニュー」と同じ品（名前が一致、またはほぼ同じ）なら、label・kcal・p・f・c・treat はその登録値をそのまま使う。
+
 # commentのトーン
 ${TONE_RULES}
 - 2〜4文程度。今月の枠の中での配分や、次の食事での整え方を具体的に。
@@ -1555,14 +1606,16 @@ function apiErrorMessage(status, body) {
   const msg = body && body.error && body.error.message ? body.error.message : '';
   if (status === 401) return 'APIキーが正しくないようです。設定を確認してください。';
   if (status === 403) return 'このAPIキーでは利用できないようです。';
-  if (status === 404) return `モデル名が見つかりませんでした。設定のモデル名を確認してください。${msg ? `（${msg}）` : ''}`;
+  if (status === 404) return `モデルを利用できませんでした。${msg ? `（${msg}）` : ''}`;
+  if (status === 400 && /workspace/i.test(msg)) return 'このAPIキーはワークスペースに紐づいていません。Consoleでワークスペースを選んでキーを作り直してください。';
   if (status === 413) return '画像が大きすぎるか多すぎるようです。枚数を減らしてください。';
   if (status === 429) return '利用の上限に達したか、混み合っています。少し時間をおいてください。';
   if (status === 529 || status >= 500) return 'Claude側が混み合っています。少し時間をおいてください。';
   return `うまく変換できませんでした（${status}）${msg ? `：${msg}` : ''}`;
 }
 
-async function callClaude({ key, model, text, imgs }) {
+async function callClaude({ key, text, imgs }) {
+  const model = MODEL;
   const content = imgs.map((im) => ({ type: 'image', source: { type: 'base64', media_type: im.mediaType, data: im.data } }));
   content.push({ type: 'text', text: text || '画像の内容を記録してください。' });
   const useFallback = FALLBACK_MODELS.includes(model);
@@ -1593,7 +1646,7 @@ async function callClaude({ key, model, text, imgs }) {
 function setupAI() {
   const updateHint = () => {
     const api = loadApi();
-    $('#aiHint').textContent = api.key && api.model ? '' : '「Claudeで変換」を使うには、設定でAPIキーとモデル名を入れてください。';
+    $('#aiHint').textContent = api.key ? '' : '「Claudeで変換」を使うには、設定でAPIキーを入れてください。';
   };
   updateHint();
   document.addEventListener('visibilitychange', updateHint);
@@ -1617,14 +1670,14 @@ function setupAI() {
 
   $('#dropAI').addEventListener('click', async () => {
     const api = loadApi();
-    if (!api.key || !api.model) { toast('設定でAPIキーとモデル名を入れてください'); return; }
+    if (!api.key) { toast('設定でAPIキーを入れてください'); return; }
     const text = $('#dropText').value.trim();
     if (!text && !images.length) { toast('テキストか画像を入れてください'); return; }
     const btn = $('#dropAI');
     btn.disabled = true;
     btn.innerHTML = '<span class="loading"></span>変換しています…';
     try {
-      const r = await callClaude({ key: api.key, model: api.model, text, imgs: images });
+      const r = await callClaude({ key: api.key, text, imgs: images });
       const payload = extractPayload(r.text);
       if (!payload) showPreviewMessage('記録の形に変換できませんでした。返ってきた内容：', r.text);
       else {
@@ -1637,6 +1690,104 @@ function setupAI() {
       btn.disabled = false;
       btn.textContent = 'Claudeで変換';
     }
+  });
+}
+
+
+/* ========== よく頼むメニュー ========== */
+const favKey = (label) => toStr(label).replace(/\s+/g, '').toLowerCase();
+function findFavorite(label) {
+  const k = favKey(label);
+  return k ? (state.favorites || []).find((f) => favKey(f.label) === k) : null;
+}
+
+function normalizeFavorite(raw) {
+  const errors = [];
+  const o = raw && typeof raw === 'object' ? raw : {};
+  const fav = {
+    label: toStr(o.label),
+    kcal: toNum(o.kcal, 'kcal', errors), p: toNum(o.p, 'P', errors), f: toNum(o.f, 'F', errors), c: toNum(o.c, 'C', errors),
+    treat: toBool(o.treat),
+  };
+  if (!fav.label) errors.push('料理名を入れてください');
+  return errors.length ? { error: errors[0] } : { fav };
+}
+
+// 同じ名前があれば更新、なければ追加
+function upsertFavorite(raw, id = null) {
+  const r = normalizeFavorite(raw);
+  if (r.error) return r;
+  const same = findFavorite(r.fav.label);
+  const target = id ? state.favorites.find((f) => f.id === id) : same;
+  if (id && same && same.id !== id) return { error: '同じ名前のメニューがすでにあります' };
+  if (target) { Object.assign(target, r.fav); return { updated: true }; }
+  state.favorites.push({ ...r.fav, id: uid() });
+  return { updated: false };
+}
+
+function favUseCount(label) {
+  const k = favKey(label);
+  return state.entries.filter((e) => e.type === 'meal' && favKey(e.label) === k).length;
+}
+
+function sortedFavorites() {
+  return (state.favorites || []).map((f) => ({ f, n: favUseCount(f.label) }))
+    .sort((a, b) => b.n - a.n || a.f.label.localeCompare(b.f.label, 'ja')).map((x) => x.f);
+}
+
+function renderFavChips() {
+  const favs = sortedFavorites();
+  $('#favChips').innerHTML = favs.length
+    ? favs.map((f) => `<button class="fav-chip" data-addfav="${esc(f.id)}">${esc(f.label)}${f.kcal != null ? `<small>${fmtNum(f.kcal)}kcal</small>` : ''}</button>`).join('')
+    : '<div class="empty-soft">記録一覧の食事をタップして「よく頼むに登録」すると、ここからワンタップで記録できます。</div>';
+}
+
+function renderFavList() {
+  const favs = sortedFavorites();
+  $('#favList').innerHTML = favs.length
+    ? favs.map((f) => `<div class="entry tap" data-fav="${esc(f.id)}"><span class="chip meal">食事</span><div class="body">${esc(f.label)}${f.treat ? '<span class="treat-mark">ご褒美</span>' : ''}<div class="meta">${esc(pfcText(f))}</div></div></div>`).join('')
+    : '<div class="empty-soft">まだ登録はありません。</div>';
+}
+
+function openFavEditor(id) {
+  const f = id ? state.favorites.find((x) => x.id === id) : { label: '', kcal: null, p: null, f: null, c: null, treat: false };
+  if (!f) return;
+  openSheet(`<h3>${id ? 'よく頼むメニューを編集' : 'よく頼むメニューを追加'}</h3>
+    <label class="field"><span>料理名</span><input type="text" id="fvLabel" value="${v(f.label)}"></label>
+    <div class="grid4">
+      <label class="field"><span>kcal</span><input type="number" inputmode="numeric" id="fvKcal" value="${v(f.kcal)}"></label>
+      <label class="field"><span>P</span><input type="number" inputmode="decimal" id="fvP" value="${v(f.p)}"></label>
+      <label class="field"><span>F</span><input type="number" inputmode="decimal" id="fvF" value="${v(f.f)}"></label>
+      <label class="field"><span>C</span><input type="number" inputmode="decimal" id="fvC" value="${v(f.c)}"></label>
+    </div>
+    <label class="check"><input type="checkbox" id="fvTreat" ${f.treat ? 'checked' : ''}>ご褒美ごはん</label>
+    <div class="err-list" id="fvErr"></div>
+    <div class="btns" style="margin-top:8px">${id ? '<button class="danger" id="fvDel">削除</button>' : ''}<button class="ghost" id="fvClose">閉じる</button><button class="primary" id="fvSave">保存</button></div>`);
+  $('#fvClose').addEventListener('click', closeSheet);
+  if (id) $('#fvDel').addEventListener('click', () => {
+    if (!confirm('このメニューを削除しますか？（これまでの記録は消えません）')) return;
+    state.favorites = state.favorites.filter((x) => x.id !== id);
+    saveState(); closeSheet(); toast('削除しました'); refreshAll();
+  });
+  $('#fvSave').addEventListener('click', () => {
+    const r = upsertFavorite({ label: $('#fvLabel').value, kcal: $('#fvKcal').value, p: $('#fvP').value, f: $('#fvF').value, c: $('#fvC').value, treat: $('#fvTreat').checked }, id);
+    if (r.error) { $('#fvErr').textContent = r.error; return; }
+    saveState(); closeSheet(); toast('保存しました'); refreshAll();
+  });
+}
+
+function setupFavorites() {
+  $('#favDate').value = today();
+  $('#favChips').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-addfav]');
+    if (!b) return;
+    const f = state.favorites.find((x) => x.id === b.getAttribute('data-addfav'));
+    if (!f) return;
+    const date = $('#favDate').value || today();
+    const { entry, errors } = normalizeEntry({ type: 'meal', date, label: f.label, kcal: f.kcal, p: f.p, f: f.f, c: f.c, treat: f.treat });
+    if (errors) { toast(errors[0]); return; }
+    addEntries([entry]);
+    if (saveState()) { toast(`${fmtMD(date)}に「${f.label}」を記録しました`); refreshAll(); }
   });
 }
 
@@ -1660,6 +1811,7 @@ function renderCurrent() {
   if (currentTab === 'list') renderList();
   if (currentTab === 'beauty') renderBeauty();
   if (currentTab === 'settings') renderSettings();
+  if (currentTab === 'input') renderFavChips();
 }
 
 function refreshAll() { renderCurrent(); }
@@ -1675,6 +1827,7 @@ function init() {
   });
   $('#overlay').addEventListener('click', (ev) => { if (ev.target.id === 'overlay') closeSheet(); });
   setupInput();
+  setupFavorites();
   setupList();
   setupBeauty();
   setupSettings();
@@ -1684,6 +1837,7 @@ function init() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       if (!$('#qWeight').value) $('#qDate').value = today();
+      $('#favDate').value = today();
       showTab(currentTab);
     }
   });
