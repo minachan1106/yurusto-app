@@ -1,0 +1,15 @@
+{
+  "name": "ユルスト",
+  "short_name": "ユルスト",
+  "description": "体重・食事・運動・美容をゆるく記録するアプリ",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#faf6f4",
+  "theme_color": "#c98a91",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
