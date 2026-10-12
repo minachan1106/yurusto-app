@@ -270,6 +270,15 @@
   .kcal-box .sub { font-size: 11px; color: var(--muted); }
   .today-line { font-size: 13px; margin-top: 6px; }
   .today-line .k { color: var(--muted); margin-right: 6px; }
+  .remain { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .remain span { font-size: 12.5px; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); }
+  .remain span.over { background: color-mix(in srgb, var(--c-meal) 18%, transparent); color: var(--text); }
+  .plan { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 8px 0; font-size: 13.5px; }
+  .plan .row2 { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+  .plan .row2 .k { color: var(--muted); }
+  .link-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .link-btns a { display: block; text-align: center; padding: 11px 16px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-strong); font-weight: 600; text-decoration: none; font-size: 15px; }
+  .usage { font-size: 13.5px; margin: 8px 0 0; }
   .fav-chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .fav-chip { min-height: 38px; padding: 7px 14px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); font-size: 14px; font-weight: 600; }
   .fav-chip small { font-weight: 400; color: var(--muted); margin-left: 4px; font-size: 11px; }
@@ -440,6 +449,12 @@
     </div>
 
     <div class="card">
+      <h2>目標から目安を計算</h2>
+      <label class="field"><span>減らすペース</span><select data-set="pace"><option value="">ゆるめ（0.25kg/週）</option><option value="0.5">ふつう（0.5kg/週）</option></select></label>
+      <div id="planBox"></div>
+    </div>
+
+    <div class="card">
       <h2>1日の目安</h2>
       <label class="field"><span>カロリー（kcal）</span><input type="number" inputmode="numeric" step="1" data-set="kcal"></label>
       <div class="grid2" style="grid-template-columns:1fr 1fr 1fr">
@@ -460,6 +475,9 @@
       <label class="field"><span>APIキー</span><input type="password" id="apiKey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-..."></label>
       <div class="btns"><button class="danger" id="apiClear">キーを削除</button><button class="primary" id="apiSave">保存</button></div>
       <div class="hint">モデルは Claude Sonnet 5.5 を使います。キーはこの端末のブラウザにだけ保存され、エクスポートには含まれません。利用料金はAnthropicのアカウントに従量でかかります。</div>
+      <div class="usage" id="usageBox"></div>
+      <label class="field" style="margin-top:10px"><span>チャットのプロジェクトのURL</span><input type="text" id="projectUrl" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://claude.ai/project/..."></label>
+      <div class="link-btns" id="linkBtns"></div>
     </div>
 
     <div class="card">
@@ -523,7 +541,7 @@ const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: '�
 const ACTIONS = { use: '使用', start: '使い始め', finish: '使い切り' };
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 const VIEW_TITLES = { home: 'ホーム', input: '投げ込み', list: '記録', beauty: '美容', settings: '設定' };
-const SETTING_KEYS = ['weightMin', 'weightMax', 'fatTarget', 'waistTarget', 'kcal', 'p', 'f', 'c', 'treatPerMonth', 'heightCm', 'age', 'sex', 'activity'];
+const SETTING_KEYS = ['weightMin', 'weightMax', 'fatTarget', 'waistTarget', 'kcal', 'p', 'f', 'c', 'treatPerMonth', 'heightCm', 'age', 'sex', 'activity', 'pace'];
 
 /* ========== ユーティリティ ========== */
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -592,7 +610,7 @@ const clonePrompts = (list) => list.map((x) => ({ ...x, days: [...x.days] }));
 function defaultState() {
   const settings = {};
   SETTING_KEYS.forEach((k) => { settings[k] = null; });
-  return { version: 1, entries: [], comments: [], favorites: [], workoutPresets: [], prompts: clonePrompts(DEFAULT_PROMPTS), promptLog: {}, reviewLog: {}, settings };
+  return { version: 1, entries: [], comments: [], favorites: [], workoutPresets: [], links: {}, prompts: clonePrompts(DEFAULT_PROMPTS), promptLog: {}, reviewLog: {}, settings };
 }
 
 function normalizePrompt(o) {
@@ -621,6 +639,7 @@ function loadState() {
       comments: Array.isArray(s.comments) ? s.comments : [],
       favorites: Array.isArray(s.favorites) ? s.favorites : [],
       workoutPresets: Array.isArray(s.workoutPresets) ? s.workoutPresets : [],
+      links: asObj(s.links),
       prompts: Array.isArray(s.prompts) ? s.prompts.map(normalizePrompt).filter(Boolean) : base.prompts,
       promptLog: asObj(s.promptLog),
       reviewLog: asObj(s.reviewLog),
@@ -1121,7 +1140,9 @@ function renderComment() {
   if (!c) {
     el.innerHTML = '<h2>Claudeからのコメント</h2><div class="empty-soft">JSONに comment があると、ここに表示されます。</div>';
   } else {
-    el.innerHTML = `<h2>Claudeからのコメント <span class="right small">${fmtMDW(c.date)}</span></h2><div class="comment-text">${esc(c.text)}</div>`;
+    const url = projectUrl();
+    el.innerHTML = `<h2>Claudeからのコメント <span class="right small">${fmtMDW(c.date)}</span></h2><div class="comment-text">${esc(c.text)}</div>
+      ${url ? `<div class="link-btns"><a href="${esc(url)}" target="_blank" rel="noopener">チャットのプロジェクトで話す</a></div>` : ''}`;
   }
 }
 
@@ -1499,6 +1520,10 @@ function setupBeauty() {
 function renderSettings() {
   const api = loadApi();
   if (document.activeElement !== $('#apiKey')) $('#apiKey').value = api.key || '';
+  renderUsage();
+  renderLinks();
+  renderPlan();
+  if (document.activeElement !== $('#projectUrl')) $('#projectUrl').value = projectUrl();
   renderFavList();
   renderPresetList();
   renderAskList();
@@ -1561,6 +1586,19 @@ function setupSettings() {
     toast('APIキーを削除しました');
   });
   setupAskSettings();
+  $('#projectUrl').addEventListener('change', () => {
+    const u = $('#projectUrl').value.trim();
+    if (u && !/^https:\/\/claude\.ai\//.test(u)) { toast('claude.ai のURLを入れてください'); $('#projectUrl').value = projectUrl(); return; }
+    state.links = { ...(state.links || {}), projectUrl: u };
+    if (saveState()) { toast('URLを保存しました'); renderLinks(); }
+  });
+  $('#planBox').addEventListener('click', (ev) => {
+    if (!ev.target.closest('[data-apply-plan]')) return;
+    const pl = calcPlan();
+    if (!pl) return;
+    Object.assign(state.settings, { kcal: pl.intake, p: pl.p, f: pl.f, c: pl.c });
+    if (saveState()) { toast('1日の目安に反映しました'); refreshAll(); }
+  });
   $('#favAdd').addEventListener('click', () => openFavEditor(null));
   $('#favList').addEventListener('click', (ev) => { const a = ev.target.closest('[data-fav]'); if (a) openFavEditor(a.getAttribute('data-fav')); });
   $('#importMerge').addEventListener('click', () => doImport('merge'));
@@ -1601,7 +1639,8 @@ function parseImport(text) {
   const prompts = Array.isArray(obj.prompts) ? obj.prompts.map(normalizePrompt).filter((x) => x && x.text) : null;
   const workoutPresets = (Array.isArray(obj.workoutPresets) ? obj.workoutPresets : []).map((x) => ({ x, r: normalizePreset(x) })).filter((o) => o.r.preset)
     .map((o) => ({ ...o.r.preset, id: o.x.id ? String(o.x.id) : uid() }));
-  return { entries, comments, favorites, workoutPresets, prompts, settings, bad };
+  const links = obj.links && typeof obj.links.projectUrl === 'string' && /^https:\/\/claude\.ai\//.test(obj.links.projectUrl) ? { projectUrl: obj.links.projectUrl } : null;
+  return { entries, comments, favorites, workoutPresets, links, prompts, settings, bad };
 }
 
 function doImport(mode) {
@@ -1612,6 +1651,7 @@ function doImport(mode) {
     const base = defaultState();
     state = {
       version: 1, entries: [], comments: data.comments, favorites: data.favorites, workoutPresets: data.workoutPresets,
+      links: data.links || state.links || {},
       prompts: data.prompts || state.prompts, promptLog: {}, reviewLog: {},
       settings: data.settings ? { ...base.settings, ...data.settings } : state.settings,
     };
@@ -1764,6 +1804,10 @@ function buildContext() {
   if (bodies.length) lines.push(`体脂肪率・腹囲の推移: ${bodies.map((e) => `${e.date} ${bodyText(e, true)}`).join(' → ')}`);
   const presets = state.workoutPresets || [];
   if (presets.length) lines.push(`いつもの運動: ${presets.map((p) => `${p.name}（${workoutText(p.items)}）`).join('、')}`);
+  const ef = estimateFat(bodyWeightFor(t));
+  if (ef != null) lines.push(`体脂肪率の推定（BMIからの目安・誤差大）: ${ef.toFixed(1)}%`);
+  const pl = calcPlan();
+  if (pl) lines.push(`目標からの目安: 目標体重 ${pl.goal.toFixed(1)}kg、ペース ${pl.pace}kg/週、おすすめ摂取 ${pl.intake}kcal/日`);
   const td = dayStats(t);
   lines.push(`今日の摂取（概算）: ${Math.round(td.intake.kcal)}kcal、P ${Math.round(td.intake.p)}g、F ${Math.round(td.intake.f)}g、C ${Math.round(td.intake.c)}g${td.burn != null ? `／消費の概算 ${Math.round(td.burn)}kcal（運動 ${Math.round(td.exKcal || 0)}kcal を含む）` : ''}`);
   const favs = state.favorites || [];
@@ -1863,6 +1907,7 @@ async function callClaude({ key, text, imgs }) {
     data = await res.json().catch(() => null);
   }
   if (!res.ok) throw new Error(apiErrorMessage(res.status, data));
+  recordUsage(data.usage);
   if (data.stop_reason === 'refusal') throw new Error('この内容は変換できませんでした。言い回しを変えて試してください。');
   const out = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
   return { text: out, truncated: data.stop_reason === 'max_tokens' };
@@ -2155,6 +2200,7 @@ function renderBodyChart() {
     .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt || 0) - (b.createdAt || 0));
   const wrap = $('#bodyWrap'), stat = $('#bodyStat'), hint = $('#bodyHint');
   const target = state.settings[meta.target];
+  if (bodyMetric === 'fatPct' && estimateFatSeries().length) { renderFatWithEstimate(recs, target); return; }
   if (!recs.length) {
     if (bodyChart) { bodyChart.destroy(); bodyChart = null; }
     wrap.style.display = 'none';
@@ -2193,6 +2239,163 @@ function renderBodyChart() {
   else bodyChart = new Chart($('#bodyChart'), { type: 'line', data, options });
 }
 
+
+
+/* ========== 体脂肪率の推定 ========== */
+// BMIからの推定式（Deurenberg）。誤差が大きいので「目安」として扱う
+function estimateFat(kg) {
+  const { heightCm, age, sex } = state.settings;
+  if (kg == null || heightCm == null || age == null || sex == null) return null;
+  const bmi = kg / ((heightCm / 100) ** 2);
+  return 1.2 * bmi + 0.23 * age - 10.8 * (Number(sex) === 1 ? 1 : 0) - 5.4;
+}
+
+// 直近12週の週ごとの推定値（7日平均の体重から）
+function estimateFatSeries(t = today()) {
+  const map = weightMap();
+  const out = [];
+  for (let w = 11; w >= 0; w--) {
+    const d = addDays(t, -7 * w);
+    const v = estimateFat(movingAvg7(map, d));
+    if (v != null) out.push({ date: d, v });
+  }
+  return out;
+}
+
+function renderFatWithEstimate(recs, target) {
+  const wrap = $('#bodyWrap'), stat = $('#bodyStat'), hint = $('#bodyHint');
+  const est = estimateFatSeries();
+  const from = est[0].date;
+  const measured = recs.filter((r) => r.date >= from);
+  const dates = [...new Set([...est.map((x) => x.date), ...measured.map((r) => r.date)])].sort();
+  const lastEst = est[est.length - 1];
+  const lastMeas = recs[recs.length - 1];
+  const rows = [];
+  if (lastMeas) rows.push(`実測 ${fmtNum(lastMeas.fatPct, 1)}%（${fmtMD(lastMeas.date)}）`);
+  if (est.length > 1) {
+    const d = round1(lastEst.v - est[0].v);
+    const w = est.length - 1;
+    rows.push(d === 0 ? `推定は${w}週前と同じくらい` : `推定は${w}週前から ${d > 0 ? '+' : ''}${d.toFixed(1)}%`);
+  }
+  if (target != null) rows.push(`目標 ${fmtNum(target, 1)}%`);
+  stat.innerHTML = `<div><div class="small muted">推定（体重・身長・年齢から）</div><div class="big">${fmtNum(lastEst.v, 1)}<small>%</small></div>
+    <div class="small muted">${rows.map(esc).join('<br>')}</div></div>`;
+  if (typeof Chart === 'undefined') { wrap.style.display = 'none'; hint.textContent = ''; return; }
+  wrap.style.display = '';
+  hint.textContent = '推定は誤差が大きいので傾向の目安です。体組成計で測った日は実測の点が出ます。' + (target != null ? '点線は目標です。' : '');
+  const estMap = new Map(est.map((x) => [x.date, x.v])), measMap = new Map(measured.map((r) => [r.date, r.fatPct]));
+  const labels = dates.map(fmtMD);
+  const vEst = dates.map((d) => estMap.get(d) ?? null), vMeas = dates.map((d) => measMap.get(d) ?? null);
+  const all = [...vEst, ...vMeas, ...(target != null ? [target] : [])].filter((x) => x != null);
+  const pad = Math.max(0.5, (Math.max(...all) - Math.min(...all)) * 0.15);
+  const accent = cssVar('--c-body'), muted = cssVar('--muted'), line = cssVar('--line'), strong = cssVar('--accent');
+  const datasets = [
+    { label: '推定', data: vEst, borderColor: accent, backgroundColor: accent, borderWidth: 2, borderDash: [2, 3], pointRadius: 2, tension: 0.3, spanGaps: true },
+    { label: '実測', data: vMeas, showLine: false, borderColor: accent, backgroundColor: accent, pointRadius: 5 },
+  ];
+  if (target != null) datasets.push({ label: '目標', data: dates.map(() => target), borderColor: strong, borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0 });
+  const data = { labels, datasets };
+  const options = {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { display: false }, tooltip: { filter: (i) => i.parsed.y != null, callbacks: { label: (c) => `${c.dataset.label} ${c.parsed.y.toFixed(1)}%` } } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: muted, maxRotation: 0, autoSkip: true, maxTicksLimit: 5, font: { size: 11 } }, border: { color: line } },
+      y: { min: Math.floor(Math.min(...all) - pad), max: Math.ceil(Math.max(...all) + pad), grid: { color: line }, ticks: { color: muted, font: { size: 11 }, maxTicksLimit: 5 }, border: { display: false } },
+    },
+  };
+  if (bodyChart) { bodyChart.data = data; bodyChart.options = options; bodyChart.update(); }
+  else bodyChart = new Chart($('#bodyChart'), { type: 'line', data, options });
+}
+
+/* ========== 目標から目安を計算 ========== */
+const KCAL_PER_KG = 7200;
+const bmrFor = (kg) => {
+  const { heightCm, age, sex } = state.settings;
+  if (kg == null || heightCm == null || age == null || sex == null) return null;
+  return 10 * kg + 6.25 * heightCm - 5 * age + (Number(sex) === 1 ? 5 : -161);
+};
+const round5 = (n) => Math.round(n / 5) * 5;
+
+function calcPlan() {
+  const s = state.settings;
+  if (s.weightMin == null || s.weightMax == null || s.activity == null) return null;
+  const lo = Math.min(s.weightMin, s.weightMax), hi = Math.max(s.weightMin, s.weightMax);
+  const goal = (lo + hi) / 2;
+  const now = bodyWeightFor(today());
+  const bNow = bmrFor(now), bGoal = bmrFor(goal);
+  if (bNow == null || bGoal == null) return null;
+  const tdeeNow = bNow * s.activity, tdeeGoal = bGoal * s.activity;
+  const pace = s.pace != null ? s.pace : 0.25;
+  const losing = now > hi;
+  const deficit = losing ? pace * KCAL_PER_KG / 7 : 0;
+  const intake = round5(Math.max(bNow, tdeeNow - deficit));
+  const p = round5(goal * 1.4);
+  const f = round5(intake * 0.25 / 9);
+  const c = Math.max(0, round5((intake - p * 4 - f * 9) / 4));
+  const actual = tdeeNow - intake;
+  const floored = losing && actual < deficit - 5;
+  const weeks = losing && actual > 0 ? Math.round((now - goal) * KCAL_PER_KG / (actual * 7)) : 0;
+  return { goal, now, tdeeNow, tdeeGoal, pace, losing, deficit: actual, floored, intake, p, f, c, weeks };
+}
+
+function renderPlan() {
+  const box = $('#planBox');
+  const pl = calcPlan();
+  if (!pl) { box.innerHTML = '<div class="hint">「目標体重の範囲」と「からだのプロフィール」を入れると、1日の目安を計算します。</div>'; return; }
+  const r = (k, v) => `<div class="row2"><span class="k">${k}</span><span>${v}</span></div>`;
+  box.innerHTML = `<div class="plan">
+    ${r('今の体重（7日平均）', `${fmtNum(pl.now, 1)}kg`)}
+    ${r('目標（範囲の中央）', `${fmtNum(pl.goal, 1)}kg`)}
+    ${r('今の消費（概算・運動除く）', `${fmtNum(pl.tdeeNow)}kcal/日`)}
+    ${r('目標体重での維持', `${fmtNum(pl.tdeeGoal)}kcal/日`)}
+    ${r('おすすめの摂取', `<b>${fmtNum(pl.intake)}kcal/日</b>${pl.deficit > 0 ? `（−${fmtNum(pl.deficit)}）` : ''}`)}
+    ${r('PFC', `P ${pl.p}g ・ F ${pl.f}g ・ C ${pl.c}g`)}
+    ${pl.losing ? r('目標までの目安', pl.weeks ? `約${pl.weeks}週間` : '—') : r('今の状態', '目標範囲の中なので維持の目安です')}
+  </div>
+  ${pl.floored ? '<div class="hint">基礎代謝を下回らないよう、摂取の目安を調整しています。</div>' : ''}
+  <button class="primary" data-apply-plan style="width:100%">この目安を1日の目安に使う</button>
+  <div class="hint">P は目標体重×1.4g、F は摂取の25%、C は残りで計算しています。運動した日はその分が「今日」カードの消費に加わります。</div>`;
+}
+
+/* ========== API利用料とリンク ========== */
+// Claude Sonnet 5.5 の単価（USD / 100万トークン）
+const PRICE = { input: 2, output: 10, cacheRead: 0.2 };
+const USAGE_KEY = 'yurusto.usage';
+
+function loadUsage() { try { return JSON.parse(localStorage.getItem(USAGE_KEY) || '{}') || {}; } catch (e) { return {}; } }
+
+function recordUsage(u) {
+  if (!u) return;
+  const all = loadUsage();
+  const m = today().slice(0, 7);
+  const cur = all[m] || { calls: 0, input: 0, output: 0, usd: 0 };
+  const inTok = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0);
+  const cacheTok = u.cache_read_input_tokens || 0;
+  const outTok = u.output_tokens || 0;
+  cur.calls += 1;
+  cur.input += inTok + cacheTok;
+  cur.output += outTok;
+  cur.usd += (inTok * PRICE.input + cacheTok * PRICE.cacheRead + outTok * PRICE.output) / 1e6;
+  all[m] = cur;
+  try { localStorage.setItem(USAGE_KEY, JSON.stringify(all)); } catch (e) { /* 表示用なので無視 */ }
+}
+
+function renderUsage() {
+  const all = loadUsage();
+  const m = today().slice(0, 7);
+  const prevM = toYMD(new Date(parseYMD(m + '-01').getFullYear(), parseYMD(m + '-01').getMonth() - 1, 1)).slice(0, 7);
+  const line = (label, u) => u ? `${label}：${u.calls}回・約$${u.usd.toFixed(u.usd < 1 ? 3 : 2)}` : `${label}：0回`;
+  $('#usageBox').innerHTML = `<div>${line('今月（この端末）', all[m])}</div>${all[prevM] ? `<div class="muted">${line('先月', all[prevM])}</div>` : ''}
+    <div class="hint">返ってきたトークン数から計算した目安です。正式な請求額は Console で確認できます。</div>`;
+}
+
+function projectUrl() { return (state.links && state.links.projectUrl) || ''; }
+
+function renderLinks() {
+  const url = projectUrl();
+  $('#linkBtns').innerHTML = `<a href="https://platform.claude.com/" target="_blank" rel="noopener">Anthropic Console を開く（利用状況・請求）</a>
+    ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener">チャットのプロジェクトを開く</a>` : ''}`;
+}
 
 /* ========== 今日のダッシュボード ========== */
 // 運動の強さ（METs）の目安。名前に含まれる語で判定し、当てはまらなければ筋トレ相当とする
@@ -2284,6 +2487,11 @@ function renderToday() {
     html += `<div class="today-line"><span class="k">PFC</span>${[['P', 'p'], ['F', 'f'], ['C', 'c']].map(([l, k]) =>
       `${l} ${fmtNum(st.intake[k])}${s[k] != null ? `/${fmtNum(s[k])}` : ''}g`).join('　')}</div>`;
   }
+  const rem = [['kcal', 'kcal', ''], ['P', 'p', 'g'], ['F', 'f', 'g'], ['C', 'c', 'g']].filter(([, k]) => s[k] != null).map(([l, k, u]) => {
+    const d = Math.round(s[k] - st.intake[k]);
+    return d >= 0 ? `<span>${l} あと${fmtNum(d)}${u}</span>` : `<span class="over">${l} 目安より+${fmtNum(-d)}${u}</span>`;
+  });
+  if (rem.length) html += `<div class="remain">${rem.join('')}</div>`;
   if (st.burn != null && st.meals.length) {
     const bal = Math.round(st.intake.kcal - st.burn);
     html += `<div class="today-line"><span class="k">収支（概算）</span>${bal > 0 ? '+' : ''}${fmtNum(bal)} kcal</div>`;
