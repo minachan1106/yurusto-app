@@ -298,6 +298,15 @@
   .wish .w-kg { flex: 0 0 auto; text-align: right; font-size: 13px; font-weight: 700; color: var(--accent-strong); }
   .wish .w-kg small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
   .chip.wish-c { background: var(--c-beauty); }
+  details.review-box > summary { list-style: none; cursor: pointer; font-weight: 700; color: var(--accent-strong); display: flex; justify-content: space-between; }
+  details.review-box > summary::-webkit-details-marker { display: none; }
+  details.review-box > summary::after { content: "＋"; }
+  details.review-box[open] > summary::after { content: "−"; }
+  .au-row { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .au-row input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--accent); flex: 0 0 auto; }
+  .au-row .old { color: var(--muted); text-decoration: line-through; }
+  .conf { font-size: 11px; padding: 1px 6px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); margin-left: 4px; }
+  .conf.low { background: var(--bg); color: var(--muted); }
   .sub-h { font-size: 12px; color: var(--muted); margin: 4px 0 6px; font-weight: 600; }
   .sub-h + .fav-chips { margin-bottom: 12px; }
   .today-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -451,6 +460,15 @@
 
   <!-- 記録一覧 -->
   <section class="view" id="view-list">
+    <details class="card review-box" id="reviewBox">
+      <summary>Claudeにレビューしてもらう</summary>
+      <div class="row" style="margin-top:10px">
+        <label class="field"><span>期間</span><select id="rvPeriod"><option value="7">直近1週間</option><option value="30">直近1か月</option></select></label>
+        <label class="field"><span>観点</span><select id="rvFocus"><option value="all">全体</option><option value="meal">食事</option><option value="workout">運動</option><option value="beauty">美容</option></select></label>
+      </div>
+      <button class="primary" id="rvRun" style="width:100%">レビューしてもらう</button>
+      <div id="rvResult"></div>
+    </details>
     <div class="list-filter" id="listFilter">
       <button data-f="all" class="on">すべて</button><button data-f="meal">食事</button><button data-f="workout">運動</button><button data-f="body">からだ</button><button data-f="beauty">美容</button><button data-f="memo">メモ</button>
     </div>
@@ -460,6 +478,13 @@
 
   <!-- 美容 -->
   <section class="view" id="view-beauty">
+    <div class="card" id="auditCard">
+      <h2>商品名をチェック</h2>
+      <div class="small muted">これまでの美容アイテムと着たい服の名前を Claude が見直し、正式な名前の候補を出します。選んだものだけ、過去の記録もまとめて直します。</div>
+      <label class="check" style="margin-top:8px"><input type="checkbox" id="auWeb">ネットで調べる（精度が上がる・少し料金が増える）</label>
+      <button class="primary" id="auRun" style="width:100%">チェックする</button>
+      <div id="auResult"></div>
+    </div>
     <div class="card" id="beautyActive"></div>
     <div class="card" id="beautyDone"></div>
     <div class="card" id="beautyCondition"></div>
@@ -588,8 +613,8 @@
       <div class="sub-h">① ショートカットを作る（1回だけ）</div>
       <ol class="steps">
         <li>「ショートカット」アプリ → 右上の ＋</li>
-        <li>「ヘルスケアサンプルを検索」を追加 → 種類を「歩数」、条件の「開始日」を「今日」にする</li>
-        <li>「統計を計算」を追加 → 「合計」にする</li>
+        <li>「アクションを検索」で「ヘルスケア」→「ヘルスケアサンプルを検索」を追加 → 種類を「歩数」、条件の「開始日」を「今日」にする</li>
+        <li>「アクションを検索」で「統計」→「統計を計算」を追加 → 「平均」を押して「合計」にする<br><span class="small muted">見つからないときは、2のアクションの「グループ化」を「日」にして、この手順は飛ばす</span></li>
         <li>「クリップボードにコピー」を追加</li>
         <li>名前を「ユルスト歩数」にして完了（初回はヘルスケアへのアクセスを許可）</li>
       </ol>
@@ -662,7 +687,7 @@
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
 // 公開のたびに上げる（CLAUDE.md の「公開のルール」参照）
-const APP_VERSION = '2026.10.12-14';
+const APP_VERSION = '2026.10.12-15';
 const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'condition'];
 const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
 const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: 'ツール' };
@@ -858,6 +883,8 @@ function normalizeEntry(raw) {
     if (!e.items.length && !note) errors.push('itemsとnoteが空です');
   } else if (type === 'beauty') {
     e.item = toStr(raw.item);
+    e.brand = toStr(raw.brand);
+    e.guess = toBool(raw.guess);
     if (!e.item) errors.push('itemが空です');
     e.category = toStr(raw.category) || 'skincare';
     if (!CATEGORIES[e.category]) errors.push(`category「${e.category}」は skincare / makeup / hair / tool のいずれかです`);
@@ -1046,7 +1073,7 @@ function entryBodyHTML(e) {
       const k = kg != null ? workoutKcal(e.items, kg) : 0;
       return `${esc(workoutText(e.items)) || '（運動）'}${k >= 1 ? `<div class="meta">消費の目安 約${fmtNum(k)}kcal</div>` : ''}${note}`;
     }
-    case 'beauty': return `${esc(e.item)} <span class="meta">${esc(CATEGORIES[e.category] || e.category)}・${esc(ACTIONS[e.action] || e.action)}</span>${note}`;
+    case 'beauty': return `${esc(beautyName(e))}${e.guess ? '<span class="meta">（名前は推定）</span>' : ''} <span class="meta">${esc(CATEGORIES[e.category] || e.category)}・${esc(ACTIONS[e.action] || e.action)}</span>${note}`;
     case 'condition': return esc(e.note);
     case 'body': return `${bodyText(e)}${note}`;
     case 'steps': return esc(stepsText(e));
@@ -1063,7 +1090,7 @@ function entryPlain(e) {
       return `食事: ${e.label || '（名称なし）'}${t ? ' ' + t : ''}${e.treat ? ' [ご褒美]' : ''}${e.note ? `（${e.note}）` : ''}`;
     }
     case 'workout': return `運動: ${workoutText(e.items)}${e.note ? `（${e.note}）` : ''}`;
-    case 'beauty': return `美容: ${e.item}（${CATEGORIES[e.category] || e.category}）${ACTIONS[e.action] || e.action}${e.note ? `／${e.note}` : ''}`;
+    case 'beauty': return `美容: ${beautyName(e)}（${CATEGORIES[e.category] || e.category}）${ACTIONS[e.action] || e.action}${e.note ? `／${e.note}` : ''}`;
     case 'condition': return `体調メモ: ${e.note}`;
     case 'body': return `体組成: ${bodyText(e, true)}${e.note ? `（${e.note}）` : ''}`;
     case 'steps': return `歩数: ${stepsText(e)}`;
@@ -1072,6 +1099,11 @@ function entryPlain(e) {
 }
 
 const TYPE_ORDER = { weight: 0, body: 1, steps: 2, meal: 3, workout: 4, beauty: 5, condition: 6 };
+// ブランド名が商品名に含まれていなければ前に付ける
+function beautyName(e) {
+  const b = toStr(e.brand), n = toStr(e.item || e.name);
+  return b && !n.toLowerCase().includes(b.toLowerCase()) ? `${b} ${n}` : n;
+}
 function stepsText(e) {
   return [e.steps != null ? `${fmtNum(e.steps)}歩` : '', e.km != null ? `${fmtNum(e.km, 1)}km` : ''].filter(Boolean).join('・');
 }
@@ -1129,9 +1161,10 @@ function beautyStats(ymd = today()) {
   byItem.forEach((list, name) => {
     let open = null;
     const category = list[list.length - 1].category;
+    const brand = (list.slice().reverse().find((e) => e.brand) || {}).brand || '';
     list.forEach((e) => {
       if (e.action === 'finish') {
-        done.push({ name, category: e.category || category, start: open ? open.start : null, finish: e.date, uses: open ? open.uses : 0 });
+        done.push({ name, brand, category: e.category || category, start: open ? open.start : null, finish: e.date, uses: open ? open.uses : 0 });
         open = null;
       } else {
         if (!open) open = { start: e.date, uses: 0, hasStart: e.action === 'start' };
@@ -1141,7 +1174,7 @@ function beautyStats(ymd = today()) {
     });
     if (open) {
       const recent = list.filter((e) => e.action !== 'finish' && e.date >= from30 && e.date <= ymd && e.date >= open.start).length;
-      active.push({ name, category, start: open.start, days: Math.max(1, dayDiff(open.start, ymd) + 1), recent });
+      active.push({ name, brand, category, start: open.start, days: Math.max(1, dayDiff(open.start, ymd) + 1), recent });
     }
   });
   active.sort((a, b) => a.start.localeCompare(b.start));
@@ -1530,7 +1563,7 @@ function listRowHTML(e) {
     case 'weight': txt = '体重'; val = `${fmtNum(e.kg, 1)}kg`; break;
     case 'body': txt = '体組成'; val = esc(bodyText(e, true)); break;
     case 'steps': txt = '歩数'; val = esc(stepsText(e)); break;
-    case 'beauty': txt = `${esc(e.item)} <span class="muted small">${esc(ACTIONS[e.action] || e.action)}</span>`; val = esc(CATEGORIES[e.category] || ''); break;
+    case 'beauty': txt = `${esc(beautyName(e))} <span class="muted small">${esc(ACTIONS[e.action] || e.action)}</span>`; val = esc(CATEGORIES[e.category] || ''); break;
     case 'condition': txt = esc(e.note); break;
     default: txt = '';
   }
@@ -1593,6 +1626,7 @@ function setupList() {
     if (c) openCommentEditor(c.getAttribute('data-edit-comment'));
   });
   $('#listMore').addEventListener('click', () => { listLimit += 30; renderList(); });
+  $('#rvRun').addEventListener('click', runRecordReview);
   $('#listFilter').addEventListener('click', (ev) => {
     const b = ev.target.closest('button[data-f]');
     if (!b) return;
@@ -1655,7 +1689,8 @@ function openEditor(id, opts = {}) {
       <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>
       <button class="ghost" type="button" id="edPreset" style="width:100%; margin-bottom:10px">♡ いつもの運動に登録</button>`;
   } else if (e.type === 'beauty') {
-    fields += `<label class="field"><span>アイテム名</span><input type="text" id="edItem" value="${v(e.item)}"></label>
+    fields += `<label class="field"><span>ブランド</span><input type="text" id="edBrand" value="${v(e.brand)}"></label>
+      <label class="field"><span>アイテム名</span><input type="text" id="edItem" value="${v(e.item)}"></label>
       <div class="grid2">
         <label class="field"><span>カテゴリ</span><select id="edCat">${Object.entries(CATEGORIES).map(([k, l]) => `<option value="${k}" ${e.category === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
         <label class="field"><span>アクション</span><select id="edAct">${Object.entries(ACTIONS).map(([k, l]) => `<option value="${k}" ${e.action === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
@@ -1723,7 +1758,7 @@ function openEditor(id, opts = {}) {
       raw.items = readWkItems('#wkList');
       raw.note = val('#edNote');
     }
-    if (e.type === 'beauty') Object.assign(raw, { item: val('#edItem'), category: val('#edCat'), action: val('#edAct'), note: val('#edNote') });
+    if (e.type === 'beauty') Object.assign(raw, { item: val('#edItem'), brand: val('#edBrand'), guess: false, category: val('#edCat'), action: val('#edAct'), note: val('#edNote') });
     if (e.type === 'condition') raw.note = val('#edNote');
     if (e.type === 'body') Object.assign(raw, { fatPct: val('#edFat'), waistCm: val('#edWaist'), note: val('#edNote') });
     if (!raw.date) { $('#edErr').textContent = '日付を入れてください'; return; }
@@ -1824,7 +1859,7 @@ function renderBeauty() {
       const list = active.filter((a) => (cat === '_other' ? !CATEGORIES[a.category] : a.category === cat));
       if (!list.length) return;
       html += `<div class="cat-label">${esc(CATEGORIES[cat] || 'その他')}</div>`;
-      html += list.map((a) => `<div class="item-row"><div class="name">${esc(a.name)}</div>
+      html += list.map((a) => `<div class="item-row"><div class="name">${esc(beautyName({ item: a.name, brand: a.brand }))}</div>
         <div class="facts"><span>使用開始 <b>${fmtMD(a.start)}</b></span><span>使用 <b>${a.days}</b>日目</span><span>直近30日 <b>${a.recent}</b>回</span></div></div>`).join('');
     });
   }
@@ -1834,7 +1869,7 @@ function renderBeauty() {
   if (!done.length) {
     html += '<div class="empty-soft">action が finish の記録がここに残ります。</div>';
   } else {
-    html += done.map((d) => `<div class="item-row"><div class="name">${esc(d.name)} <span class="small muted">${esc(CATEGORIES[d.category] || d.category || '')}</span></div>
+    html += done.map((d) => `<div class="item-row"><div class="name">${esc(beautyName({ item: d.name, brand: d.brand }))} <span class="small muted">${esc(CATEGORIES[d.category] || d.category || '')}</span></div>
       <div class="facts">${d.start ? `<span>${fmtMD(d.start)} 〜 ${fmtMD(d.finish)}</span><span><b>${dayDiff(d.start, d.finish) + 1}</b>日間</span>` : `<span>${fmtMD(d.finish)} 使い切り</span>`}</div></div>`).join('');
   }
   $('#beautyDone').innerHTML = html;
@@ -1851,10 +1886,132 @@ function renderBeauty() {
 }
 
 function setupBeauty() {
+  $('#auRun').addEventListener('click', runAudit);
   $('#beautyCondition').addEventListener('click', (ev) => {
     const a = ev.target.closest('[data-edit]');
     if (a) openEditor(a.getAttribute('data-edit'));
   });
+}
+
+
+/* ========== 記録のレビュー ========== */
+const REVIEW_FOCUS = { all: null, meal: ['meal'], workout: ['workout', 'steps'], beauty: ['beauty', 'condition'] };
+const FOCUS_LABEL = { all: '全体', meal: '食事', workout: '運動', beauty: '美容' };
+
+function buildReviewText(days, focus) {
+  const t = today(), from = addDays(t, -(days - 1));
+  const types = REVIEW_FOCUS[focus];
+  const lines = [];
+  for (let d = from; d <= t; d = addDays(d, 1)) {
+    const es = state.entries.filter((e) => e.date === d && (!types || types.includes(e.type))).sort(sortEntriesInDay);
+    if (!es.length) continue;
+    lines.push(`■ ${fmtMDW(d)}`);
+    es.forEach((e) => lines.push(`- ${e.type === 'meal' && e.slot ? `[${SLOTS[e.slot]}] ` : ''}${entryPlain(e)}`));
+  }
+  return { text: lines.join('\n'), count: lines.length, from };
+}
+
+async function runRecordReview() {
+  const days = Number($('#rvPeriod').value), focus = $('#rvFocus').value;
+  const key = loadApi().key;
+  if (!key) { toast('設定でAPIキーを入れてください'); return; }
+  const rv = buildReviewText(days, focus);
+  if (!rv.count) { toast('この期間・観点の記録がまだありません'); return; }
+  const btn = $('#rvRun');
+  btn.disabled = true; btn.innerHTML = '<span class="loading"></span>レビューしています…';
+  try {
+    const text = `【記録のレビュー】今回は記録の追加・修正はしないので entries は空配列にしてください。${fmtMD(rv.from)}〜今日の${FOCUS_LABEL[focus]}の記録をレビューし、comment に評価を書いてください。構成：良かったこと（1〜2つ）／気づいた傾向（1〜2つ）／次の小さな一歩（1つ、具体的に）。全体で5〜7文。数値は目安として扱い、責めない言い方で。\n\n${rv.text}`;
+    const r = await callClaude({ key, text, imgs: [] });
+    const payload = extractPayload(r.text);
+    const comment = (payload && payload.comment) || r.text;
+    addComment(`【${FOCUS_LABEL[focus]}のレビュー・${days === 7 ? '1週間' : '1か月'}】\n${comment}`, today());
+    saveState();
+    $('#rvResult').innerHTML = `<div class="review-result">${esc(comment)}</div>`;
+    renderApiMeter();
+  } catch (e) {
+    toast(e instanceof TypeError ? '通信できませんでした' : e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'レビューしてもらう';
+  }
+}
+
+/* ========== 商品名のチェック ========== */
+let auditItems = null; // [{ kind, from, brand, name, confidence, note, oldBrand }]
+
+function auditTargets() {
+  const map = new Map();
+  state.entries.filter((e) => e.type === 'beauty' && e.item).forEach((e) => {
+    const k = 'beauty:' + e.item;
+    const cur = map.get(k) || { kind: 'beauty', from: e.item, brand: e.brand || '', category: e.category, count: 0 };
+    cur.count++; if (e.brand) cur.brand = e.brand;
+    map.set(k, cur);
+  });
+  (state.wishes || []).forEach((w) => { if (w.name) map.set('wish:' + w.name, { kind: 'wish', from: w.name, brand: w.brand || '', count: 1 }); });
+  return [...map.values()].slice(0, 60);
+}
+
+async function runAudit() {
+  const key = loadApi().key;
+  if (!key) { toast('設定でAPIキーを入れてください'); return; }
+  const targets = auditTargets();
+  if (!targets.length) { toast('チェックする名前がまだありません'); return; }
+  const web = $('#auWeb').checked;
+  const btn = $('#auRun');
+  btn.disabled = true; btn.innerHTML = `<span class="loading"></span>${web ? 'ネットで調べています…' : 'チェックしています…'}`;
+  try {
+    const system = `あなたは日本で売られているコスメ・スキンケア・ヘアケア・美容家電・アパレルの商品名に詳しいアシスタントです。ユーザーが記録した名前（略称・カタカナ・うろ覚えのことがある）から、店頭で見るブランド名と正式な商品名（シリーズ名・種類まで）を推定してください。${web ? 'ネット検索で確かめられるものは確かめてください。' : ''}
+- brand はブランド名（運営会社名ではない）。name は商品名（ブランド名は含めない）。
+- confidence は high（確か）/ medium（たぶん）/ low（分からない）。low のときは name に元の名前をそのまま入れる。
+- note には一言（例：「2023年発売のリニューアル品」「よく似た商品が複数あり」）。
+出力は JSON オブジェクト1つだけ：{"items":[{"kind":"beauty|wish","from":"元の名前","brand":"","name":"","confidence":"high|medium|low","note":""}]}`;
+    const list = targets.map((t) => `- [${t.kind === 'wish' ? '服' : (CATEGORIES[t.category] || '美容')}] ${t.from}${t.brand ? `（ブランド：${t.brand}）` : ''}`).join('\n');
+    const tools = web ? [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }] : null;
+    const r = await callClaude({ key, system, tools, maxTokens: 8000, text: `次の名前をチェックしてください。\n${list}`, imgs: [] });
+    let obj = null;
+    for (const c of findJsonCandidates(r.text)) { const v = tryParse(c.text); if (v && Array.isArray(v.items)) { obj = v; break; } }
+    if (!obj) throw new Error('結果を受け取れませんでした。もう一度試してください。');
+    const byKey = new Map(targets.map((t) => [`${t.kind}:${t.from}`, t]));
+    auditItems = obj.items.map((x) => {
+      const t = byKey.get(`${x.kind === 'wish' ? 'wish' : 'beauty'}:${toStr(x.from)}`);
+      if (!t) return null;
+      const conf = ['high', 'medium', 'low'].includes(x.confidence) ? x.confidence : 'low';
+      return { kind: t.kind, from: t.from, oldBrand: t.brand, brand: toStr(x.brand), name: toStr(x.name) || t.from, confidence: conf, note: toStr(x.note) };
+    }).filter((x) => x && (x.name !== x.from || x.brand !== x.oldBrand));
+    renderAudit();
+    renderApiMeter();
+  } catch (e) {
+    toast(e instanceof TypeError ? '通信できませんでした' : e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'チェックする';
+  }
+}
+
+function renderAudit() {
+  const el = $('#auResult');
+  if (!auditItems) { el.innerHTML = ''; return; }
+  if (!auditItems.length) { el.innerHTML = '<div class="hint">直したほうがよさそうな名前は見つかりませんでした。</div>'; return; }
+  const CONF = { high: '確か', medium: 'たぶん', low: '不明' };
+  el.innerHTML = `<div style="margin-top:10px">${auditItems.map((x, i) => `<label class="au-row"><input type="checkbox" data-au="${i}" ${x.confidence !== 'low' ? 'checked' : ''}>
+    <span><span class="old">${esc(beautyName({ item: x.from, brand: x.oldBrand }))}</span><br>→ <b>${esc(beautyName({ item: x.name, brand: x.brand }))}</b><span class="conf ${x.confidence === 'low' ? 'low' : ''}">${CONF[x.confidence]}</span>${x.kind === 'wish' ? '<span class="conf">着たい服</span>' : ''}
+    ${x.note ? `<br><span class="small muted">${esc(x.note)}</span>` : ''}</span></label>`).join('')}</div>
+    <button class="primary" id="auApply" style="width:100%; margin-top:8px">選んだものを直す</button>`;
+  $('#auApply').addEventListener('click', applyAudit);
+}
+
+function applyAudit() {
+  const picks = $$('#auResult [data-au]').filter((c) => c.checked).map((c) => auditItems[Number(c.getAttribute('data-au'))]);
+  if (!picks.length) { toast('直すものを選んでください'); return; }
+  let n = 0;
+  picks.forEach((x) => {
+    if (x.kind === 'beauty') {
+      state.entries.forEach((e) => {
+        if (e.type === 'beauty' && e.item === x.from) { e.item = x.name; e.brand = x.brand; e.guess = x.confidence !== 'high'; n++; }
+      });
+    } else {
+      (state.wishes || []).forEach((w) => { if (w.name === x.from) { w.name = x.name; w.brand = x.brand; n++; } });
+    }
+  });
+  if (saveState()) { toast(`${n}件の記録の名前を直しました`); auditItems = null; renderAudit(); refreshAll(); }
 }
 
 /* ========== 設定 ========== */
@@ -2144,7 +2301,7 @@ function buildContext() {
   lines.push(`体重の7日平均の推移: ${avgs.length ? avgs.slice().reverse().map((x) => `${x.d ? `${x.d}日前` : '今日'} ${x.v.toFixed(1)}kg`).join(' → ') : '（記録なし）'}`);
 
   const { active } = beautyStats(t);
-  lines.push(`使用中の美容アイテム: ${active.length ? active.map((a) => `${a.name}（${CATEGORIES[a.category] || a.category}・使用${a.days}日目・直近30日${a.recent}回）`).join('、') : '（なし）'}`);
+  lines.push(`使用中の美容アイテム: ${active.length ? active.map((a) => `${beautyName({ item: a.name, brand: a.brand })}（${CATEGORIES[a.category] || a.category}・使用${a.days}日目・直近30日${a.recent}回）`).join('、') : '（なし）'}`);
 
   if (s.fatTarget != null) lines.push(`からだの目標: 体脂肪率 ${s.fatTarget}%`);
   const bodies = state.entries.filter((e) => e.type === 'body').sort((a, b) => a.date.localeCompare(b.date)).slice(-5);
@@ -2183,7 +2340,7 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
     {"date":"YYYY-MM-DD","type":"weight","kg":数値},
     {"date":"YYYY-MM-DD","type":"meal","label":"料理名","slot":"breakfast|lunch|dinner|snack","kcal":数値,"p":数値,"f":数値,"c":数値,"treat":真偽値,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":数値,"sets":数値,"minutes":数値,"mets":一覧にない種目だけ数値}],"note":"任意"},
-    {"date":"YYYY-MM-DD","type":"beauty","item":"アイテム名","category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
+    {"date":"YYYY-MM-DD","type":"beauty","brand":"ブランド名","item":"商品名","guess":真偽値,"category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
     {"date":"YYYY-MM-DD","type":"condition","note":"体や肌の状態メモ"},
     {"date":"YYYY-MM-DD","type":"body","fatPct":体脂肪率の数値,"waistCm":腹囲cmの数値,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"steps","steps":歩数,"km":歩いた距離kmの数値}
@@ -2199,6 +2356,8 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 - 食事のkcal・P・F・C（g）は、量や写真から妥当な概算を入れる。どうしても見当がつかない値だけ null にする。
 - slot は食事の時間帯（breakfast=朝 / lunch=昼 / dinner=夜 / snack=間食）。「朝」「ランチ」などの言葉や、今の時刻・注文時刻から判断する。分からなければ省略する。
 - treat は、ユーザーがご褒美・チートと言っているか、明らかに特別な外食やスイーツのときに true。
+- 美容アイテムやアパレルは、略称・カタカナ・うろ覚えの書き方からでも、ブランド名と正式な商品名（シリーズ名・種類まで）を推定して記録する。例：「ラロッシュのシカ」→ brand「ラ ロッシュ ポゼ」、item「シカプラスト リペアクリーム B5+」。ブランドの運営会社名ではなく、店頭で見るブランド名を brand にする。
+- 名前に確信がないときは guess を true にする。それらしい候補があればそれを使い、まったく分からなければ書かれたとおりにする。
 - 美容アイテムは、すでに使用中のアイテムと同じものなら同じ名前に揃える。新しく使い始めたら start、使い切ったら finish、それ以外は use。
 - 体や肌の状態についての言及は condition にする。
 - 「【コスメの所感】」として書かれた内容は、アイテムごとに condition にする（note は「アイテム名：所感」）。使用回数は増やさない。
@@ -2254,6 +2413,7 @@ function apiErrorMessage(status, body) {
   if (status === 401) return 'APIキーが正しくないようです。設定を確認してください。';
   if (status === 403) return 'このAPIキーでは利用できないようです。';
   if (status === 404) return `モデルを利用できませんでした。${msg ? `（${msg}）` : ''}`;
+  if (status === 400 && /web.?search/i.test(msg)) return 'ネット検索が使えませんでした。Consoleの設定でウェブ検索が有効か確認するか、ネット検索なしで試してください。';
   if (status === 400 && /workspace/i.test(msg)) return 'このAPIキーはワークスペースに紐づいていません。Consoleでワークスペースを選んでキーを作り直してください。';
   if (status === 413) return '画像が大きすぎるか多すぎるようです。枚数を減らしてください。';
   if (status === 429) return '利用の上限に達したか、混み合っています。少し時間をおいてください。';
@@ -2261,11 +2421,12 @@ function apiErrorMessage(status, body) {
   return `うまく変換できませんでした（${status}）${msg ? `：${msg}` : ''}`;
 }
 
-async function callClaude({ key, text, imgs, system = null, maxTokens = 16000 }) {
+async function callClaude({ key, text, imgs, system = null, maxTokens = 16000, tools = null }) {
   const model = MODEL;
   const content = imgs.map((im) => ({ type: 'image', source: { type: 'base64', media_type: im.mediaType, data: im.data } }));
   content.push({ type: 'text', text: text || '画像の内容を記録してください。' });
   const useFallback = FALLBACK_MODELS.includes(model);
+  let extra = []; // ネット検索が途中で一時停止したときに、続きを頼むための直前の応答
   const send = (withFallback) => {
     const headers = {
       'content-type': 'application/json',
@@ -2273,7 +2434,8 @@ async function callClaude({ key, text, imgs, system = null, maxTokens = 16000 })
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true',
     };
-    const body = { model, max_tokens: maxTokens, system: system || buildSystemPrompt(), messages: [{ role: 'user', content }] };
+    const body = { model, max_tokens: maxTokens, system: system || buildSystemPrompt(), messages: [{ role: 'user', content }, ...extra] };
+    if (tools) body.tools = tools;
     if (withFallback) { headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'; body.fallbacks = 'default'; }
     return fetch(API_URL, { method: 'POST', headers, body: JSON.stringify(body) });
   };
@@ -2286,6 +2448,17 @@ async function callClaude({ key, text, imgs, system = null, maxTokens = 16000 })
   }
   if (!res.ok) throw new Error(apiErrorMessage(res.status, data));
   recordUsage(data.usage);
+  // サーバー側のツール（ネット検索）が上限で止まったら、応答を付けて送り直すと続きから再開する
+  const parts = [...(data.content || [])];
+  for (let i = 0; i < 3 && data.stop_reason === 'pause_turn'; i++) {
+    extra = [{ role: 'assistant', content: data.content }];
+    res = await send(false);
+    data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(apiErrorMessage(res.status, data));
+    recordUsage(data.usage);
+    parts.push(...(data.content || []));
+  }
+  data = { ...data, content: parts };
   if (data.stop_reason === 'refusal') throw new Error('この内容は変換できませんでした。言い回しを変えて試してください。');
   const out = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
   return { text: out, truncated: data.stop_reason === 'max_tokens' };
@@ -2779,7 +2952,7 @@ function renderPlan() {
 
 /* ========== API利用料とリンク ========== */
 // Claude Sonnet 5.5 の単価（USD / 100万トークン）
-const PRICE = { input: 2, output: 10, cacheRead: 0.2 };
+const PRICE = { input: 2, output: 10, cacheRead: 0.2, webSearch: 0.01 }; // ネット検索は1回あたり（$10 / 1,000回）
 const USAGE_KEY = 'yurusto.usage';
 
 function loadUsage() { try { return JSON.parse(localStorage.getItem(USAGE_KEY) || '{}') || {}; } catch (e) { return {}; } }
@@ -2795,7 +2968,8 @@ function recordUsage(u) {
   cur.calls += 1;
   cur.input += inTok + cacheTok;
   cur.output += outTok;
-  cur.usd += (inTok * PRICE.input + cacheTok * PRICE.cacheRead + outTok * PRICE.output) / 1e6;
+  const searches = (u.server_tool_use && u.server_tool_use.web_search_requests) || 0;
+  cur.usd += (inTok * PRICE.input + cacheTok * PRICE.cacheRead + outTok * PRICE.output) / 1e6 + searches * PRICE.webSearch;
   all[m] = cur;
   try { localStorage.setItem(USAGE_KEY, JSON.stringify(all)); } catch (e) { /* 表示用なので無視 */ }
 }
