@@ -258,6 +258,18 @@
   details.more summary { padding: 6px 0; }
   .sub-h { font-size: 12px; color: var(--muted); margin: 4px 0 6px; font-weight: 600; }
   .sub-h + .fav-chips { margin-bottom: 12px; }
+  .today-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .today-head h2 { margin: 0; }
+  .today-nav { display: flex; gap: 4px; }
+  .today-nav button { min-height: 32px; width: 36px; padding: 0; border-radius: 9px; font-size: 16px; }
+  .kcal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+  .kcal-box { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+  .kcal-box .lbl { font-size: 11.5px; color: var(--muted); }
+  .kcal-box .num { font-size: 22px; font-weight: 700; line-height: 1.3; }
+  .kcal-box .num small { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+  .kcal-box .sub { font-size: 11px; color: var(--muted); }
+  .today-line { font-size: 13px; margin-top: 6px; }
+  .today-line .k { color: var(--muted); margin-right: 6px; }
   .fav-chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .fav-chip { min-height: 38px; padding: 7px 14px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); font-size: 14px; font-weight: 600; }
   .fav-chip small { font-weight: 400; color: var(--muted); margin-left: 4px; font-size: 11px; }
@@ -287,6 +299,7 @@
   <section class="view" id="view-home">
     <div id="askArea"></div>
     <div id="reviewArea"></div>
+    <div class="card" id="todayCard"></div>
     <div class="card">
       <h2>体重 <span class="right"><span class="seg" id="rangeSeg">
         <button data-r="30" class="on">30日</button><button data-r="90">90日</button><button data-r="all">全期間</button>
@@ -405,6 +418,19 @@
     </div>
 
     <div class="card">
+      <h2>からだのプロフィール</h2>
+      <div class="row">
+        <label class="field"><span>身長（cm）</span><input type="number" inputmode="decimal" step="0.1" data-set="heightCm"></label>
+        <label class="field"><span>年齢</span><input type="number" inputmode="numeric" step="1" data-set="age"></label>
+      </div>
+      <div class="row">
+        <label class="field"><span>性別（計算式用）</span><select data-set="sex"><option value="">—</option><option value="0">女性</option><option value="1">男性</option></select></label>
+        <label class="field"><span>ふだんの活動量</span><select data-set="activity"><option value="">—</option><option value="1.2">座りがち</option><option value="1.375">少し動く</option><option value="1.55">よく動く</option><option value="1.725">かなり動く</option></select></label>
+      </div>
+      <div class="hint">消費カロリーの概算（基礎代謝×ふだんの活動量＋運動）に使います。活動量は運動を除いた日常の動きで選んでください。この端末にだけ保存されます。</div>
+    </div>
+
+    <div class="card">
       <h2>からだの目標</h2>
       <div class="row">
         <label class="field"><span>体脂肪率（%）</span><input type="number" inputmode="decimal" step="0.1" data-set="fatTarget"></label>
@@ -497,7 +523,7 @@ const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: '�
 const ACTIONS = { use: '使用', start: '使い始め', finish: '使い切り' };
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 const VIEW_TITLES = { home: 'ホーム', input: '投げ込み', list: '記録', beauty: '美容', settings: '設定' };
-const SETTING_KEYS = ['weightMin', 'weightMax', 'fatTarget', 'waistTarget', 'kcal', 'p', 'f', 'c', 'treatPerMonth'];
+const SETTING_KEYS = ['weightMin', 'weightMax', 'fatTarget', 'waistTarget', 'kcal', 'p', 'f', 'c', 'treatPerMonth', 'heightCm', 'age', 'sex', 'activity'];
 
 /* ========== ユーティリティ ========== */
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -1102,6 +1128,7 @@ function renderComment() {
 function renderHome() {
   renderAsks();
   renderReview();
+  renderToday();
   renderChart();
   renderBodyChart();
   renderMonth();
@@ -1737,6 +1764,8 @@ function buildContext() {
   if (bodies.length) lines.push(`体脂肪率・腹囲の推移: ${bodies.map((e) => `${e.date} ${bodyText(e, true)}`).join(' → ')}`);
   const presets = state.workoutPresets || [];
   if (presets.length) lines.push(`いつもの運動: ${presets.map((p) => `${p.name}（${workoutText(p.items)}）`).join('、')}`);
+  const td = dayStats(t);
+  lines.push(`今日の摂取（概算）: ${Math.round(td.intake.kcal)}kcal、P ${Math.round(td.intake.p)}g、F ${Math.round(td.intake.f)}g、C ${Math.round(td.intake.c)}g${td.burn != null ? `／消費の概算 ${Math.round(td.burn)}kcal（運動 ${Math.round(td.exKcal || 0)}kcal を含む）` : ''}`);
   const favs = state.favorites || [];
   lines.push(`よく頼むメニュー: ${favs.length ? favs.map((f) => `${f.label}（${[['kcal', f.kcal], ['P', f.p], ['F', f.f], ['C', f.c]].map(([k, n]) => `${k} ${n ?? '?'}`).join(' / ')}${f.treat ? '・ご褒美' : ''}）`).join('、') : '（なし）'}`);
 
@@ -1791,6 +1820,7 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 # commentのトーン
 ${TONE_RULES}
 - 2〜4文程度。今月の枠の中での配分や、次の食事での整え方を具体的に。
+- 消費カロリーの概算は参考情報として扱い、「運動で相殺する」「消費を増やして取り返す」ような提案はしない。
 - 美容アイテムの使用が偏っている（あるアイテムだけ直近の回数が少ない、など）ときや、しばらく状態メモがないときは、ときどき（毎回ではなく）状態を聞く短い質問を最後に1つ入れる。例：「最近、髪のパサつきはどうですか？」
 
 # 現在の状況
@@ -2163,6 +2193,123 @@ function renderBodyChart() {
   else bodyChart = new Chart($('#bodyChart'), { type: 'line', data, options });
 }
 
+
+/* ========== 今日のダッシュボード ========== */
+// 運動の強さ（METs）の目安。名前に含まれる語で判定し、当てはまらなければ筋トレ相当とする
+const METS_RULES = [
+  [/バイク|自転車|エアロ|サイクル/, 6.8],
+  [/ラン|ジョギ|走/, 7.0],
+  [/ウォーキング|歩|散歩/, 3.5],
+  [/水泳|泳/, 6.0],
+  [/ダンス|エアロビ|ズンバ/, 5.0],
+  [/ヨガ|ストレッチ|ピラティス/, 2.5],
+  [/縄跳び|なわとび|バーピー|HIIT/i, 8.0],
+];
+const STRENGTH_METS = 3.5;
+
+function itemMets(name) {
+  const hit = METS_RULES.find(([re]) => re.test(name || ''));
+  return hit ? hit[1] : STRENGTH_METS;
+}
+
+// 時間の記録がない筋トレは「1回3秒＋セット間1分」でおおよその時間を出す
+function itemMinutes(it) {
+  if (it.minutes != null) return Number(it.minutes);
+  const sets = it.sets != null ? Number(it.sets) : (it.reps != null ? 1 : 0);
+  const reps = it.reps != null ? Number(it.reps) : 10;
+  return sets ? sets * (reps * 3 + 60) / 60 : 0;
+}
+
+// 基礎代謝と重複しないよう、安静分（1 MET）を差し引く
+function workoutKcal(items, kg) {
+  return (items || []).reduce((sum, it) => sum + Math.max(0, itemMets(it.name) - 1) * kg * itemMinutes(it) / 60 * 1.05, 0);
+}
+
+function bodyWeightFor(ymd) {
+  const map = weightMap();
+  return movingAvg7(map, ymd) ?? latestWeight();
+}
+
+// Mifflin-St Jeor 式
+function bmr(ymd) {
+  const { heightCm, age, sex } = state.settings;
+  const kg = bodyWeightFor(ymd);
+  if (heightCm == null || age == null || sex == null || kg == null) return null;
+  return 10 * kg + 6.25 * heightCm - 5 * age + (Number(sex) === 1 ? 5 : -161);
+}
+
+function dayStats(ymd) {
+  const es = state.entries.filter((e) => e.date === ymd);
+  const meals = es.filter((e) => e.type === 'meal');
+  const intake = { kcal: 0, p: 0, f: 0, c: 0 };
+  meals.forEach((m) => ['kcal', 'p', 'f', 'c'].forEach((k) => { if (m[k] != null) intake[k] += Number(m[k]); }));
+  const workouts = es.filter((e) => e.type === 'workout');
+  const kg = bodyWeightFor(ymd);
+  const exKcal = kg != null ? workouts.reduce((s, w) => s + workoutKcal(w.items, kg), 0) : null;
+  const base = bmr(ymd);
+  const act = state.settings.activity;
+  const daily = base != null && act != null ? base * act : null;
+  const burn = daily != null ? daily + (exKcal || 0) : null;
+  const weight = es.find((e) => e.type === 'weight');
+  return { meals, intake, workouts, exKcal, base, daily, burn, weight };
+}
+
+let todayDate = null;
+
+function renderToday() {
+  const t = today();
+  if (!todayDate || todayDate > t) todayDate = t;
+  const d = todayDate;
+  const st = dayStats(d);
+  const s = state.settings;
+  const isToday = d === t;
+  const title = isToday ? `今日 <span class="small muted">${fmtMDW(d)}</span>` : fmtMDW(d);
+  let html = `<div class="today-head"><h2>${title}</h2><div class="today-nav">
+    <button class="ghost" data-day-nav="-1" aria-label="前の日">‹</button><button class="ghost" data-day-nav="1" aria-label="次の日" ${isToday ? 'disabled' : ''}>›</button></div></div>`;
+
+  const intakeSub = s.kcal != null ? `目安 ${fmtNum(s.kcal)}kcal` : (st.meals.length ? `食事${st.meals.length}件` : '');
+  const burnNum = st.burn != null ? `${fmtNum(st.burn)}<small>kcal</small>` : '<small>—</small>';
+  const burnSub = st.burn != null
+    ? `ふだん ${fmtNum(st.daily)}${st.exKcal ? ` ＋ 運動 ${fmtNum(st.exKcal)}` : ''}`
+    : '設定のプロフィールで表示';
+  html += `<div class="kcal-grid">
+    <div class="kcal-box"><div class="lbl">摂取</div><div class="num">${fmtNum(st.intake.kcal)}<small>kcal</small></div><div class="sub">${esc(intakeSub)}</div></div>
+    <div class="kcal-box"><div class="lbl">消費（概算）</div><div class="num">${burnNum}</div><div class="sub">${esc(burnSub)}</div></div>
+  </div>`;
+  if (s.kcal != null) {
+    const pct = Math.round((st.intake.kcal / s.kcal) * 100);
+    html += `<div class="bar" style="margin:2px 0 8px"><i style="width:${Math.min(100, pct)}%"></i></div>`;
+  }
+  if (st.meals.length) {
+    html += `<div class="today-line"><span class="k">PFC</span>${[['P', 'p'], ['F', 'f'], ['C', 'c']].map(([l, k]) =>
+      `${l} ${fmtNum(st.intake[k])}${s[k] != null ? `/${fmtNum(s[k])}` : ''}g`).join('　')}</div>`;
+  }
+  if (st.burn != null && st.meals.length) {
+    const bal = Math.round(st.intake.kcal - st.burn);
+    html += `<div class="today-line"><span class="k">収支（概算）</span>${bal > 0 ? '+' : ''}${fmtNum(bal)} kcal</div>`;
+  }
+  if (st.workouts.length) {
+    html += `<div class="today-line"><span class="k">運動</span>${esc(st.workouts.map((w) => workoutText(w.items)).join(' / '))}</div>`;
+  }
+  const avg = movingAvg7(weightMap(), d);
+  if (st.weight || avg != null) {
+    html += `<div class="today-line"><span class="k">体重</span>${st.weight ? `${fmtNum(st.weight.kg, 1)}kg　` : ''}${avg != null ? `<span class="muted">7日平均 ${fmtNum(avg, 1)}kg</span>` : ''}</div>`;
+  }
+  html += '<div class="hint">消費は基礎代謝の推定式と運動の強さの目安から出した概算です。</div>';
+  $('#todayCard').innerHTML = html;
+}
+
+function setupToday() {
+  $('#todayCard').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-day-nav]');
+    if (!b) return;
+    const next = addDays(todayDate || today(), Number(b.getAttribute('data-day-nav')));
+    if (next > today()) return;
+    todayDate = next;
+    renderToday();
+  });
+}
+
 /* ========== 問いかけ ========== */
 const nowHM = (d = new Date()) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
@@ -2393,6 +2540,7 @@ function init() {
   setupFavorites();
   setupPresets();
   setupHomeCards();
+  setupToday();
   setupList();
   setupBeauty();
   setupSettings();
@@ -2403,6 +2551,7 @@ function init() {
     if (document.visibilityState === 'visible') {
       if (!$('#qWeight').value) $('#qDate').value = today();
       $('#favDate').value = today();
+      todayDate = null;
       showTab(currentTab);
     }
   });
