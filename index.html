@@ -2292,16 +2292,6 @@ function renderBeauty() {
   }
   $('#itemList').innerHTML = html;
 
-  const wkMeals = state.entries.filter((e) => e.type === 'meal' && e.date >= addDays(t, -6));
-  const bySrc = Object.entries(MEAL_SRC).map(([k, l]) => [l, wkMeals.filter((e) => e.src === k).length]).filter(([, n]) => n);
-  if (bySrc.length) lines.push(`直近7日のごはんの出どころ: ${bySrc.map(([l, n]) => `${l}${n}回`).join('、')}`);
-  const cares = state.entries.filter((e) => e.type === 'care' && e.date >= addDays(t, -6));
-  if (cares.length) lines.push(`直近7日のスキンケア: ${cares.map((e) => `${e.date.slice(5)} ${CARE_LEVEL[e.level]}`).join('、')}`);
-  const good = weekGood(t);
-  if (good.items.length) lines.push(`今週のいいこと（ほめる材料）: ${good.items.join('、')}`);
-  const ow = oshiWish();
-  if (ow) lines.push(`推し服（いちばんの目標）: ${wishLabel(ow)}（あと約${fmtKgRange(...wishRemaining(ow))}）`);
-  if (isEasyDay(t)) lines.push('今日はユーザーが「がんばらない日」にしている。目安との比較や改善の提案はせず、ねぎらいだけ1〜2文にする。');
   const conds = state.entries.filter((e) => e.type === 'condition')
     .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 20);
   $('#beautyCondition').innerHTML = '<h2>肌・髪のメモ</h2>' + (conds.length
@@ -2889,6 +2879,16 @@ function buildContext() {
   const favs = state.favorites || [];
   lines.push(`いつものメニュー: ${favs.length ? favs.map((f) => `${f.label}（${[['kcal', f.kcal], ['P', f.p], ['F', f.f], ['C', f.c]].map(([k, n]) => `${k} ${n ?? '?'}`).join(' / ')}${f.treat ? '・ご褒美' : ''}）`).join('、') : '（なし）'}`);
 
+  const wkMeals = state.entries.filter((e) => e.type === 'meal' && e.date >= addDays(t, -6));
+  const bySrc = Object.entries(MEAL_SRC).map(([k, l]) => [l, wkMeals.filter((e) => e.src === k).length]).filter(([, n]) => n);
+  if (bySrc.length) lines.push(`直近7日のごはんの出どころ: ${bySrc.map(([l, n]) => `${l}${n}回`).join('、')}`);
+  const cares = state.entries.filter((e) => e.type === 'care' && e.date >= addDays(t, -6));
+  if (cares.length) lines.push(`直近7日のスキンケア: ${cares.map((e) => `${e.date.slice(5)} ${CARE_LEVEL[e.level]}`).join('、')}`);
+  const good = weekGood(t);
+  if (good.items.length) lines.push(`今週のいいこと（ほめる材料）: ${good.items.join('、')}`);
+  const ow = oshiWish();
+  if (ow) lines.push(`推し服（いちばんの目標）: ${wishLabel(ow)}（あと約${fmtKgRange(...wishRemaining(ow))}）`);
+  if (isEasyDay(t)) lines.push('今日はユーザーが「がんばらない日」にしている。目安との比較や改善の提案はせず、ねぎらいだけ1〜2文にする。');
   const conds = state.entries.filter((e) => e.type === 'condition').sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
   if (conds.length) lines.push(`最近の体や肌の状態メモ: ${conds.map((e) => `${e.date} ${e.note}`).join(' / ')}`);
   return lines.join('\n');
@@ -4170,14 +4170,14 @@ const SNACKS = [
   { label: '唐揚げ5個', kcal: 300, p: 18, f: 20, c: 10 },
   { label: 'ケーキ1個', kcal: 350, p: 5, f: 20, c: 38 },
 ];
-function recordQuickMeal(m, opts = {}) {
+function recordQuickMeal(m, opts = {}, snack = false) {
   const n = normalizeEntry({ type: 'meal', date: today(), slot: slotByTime(), ...m, ...opts });
   if (n.errors) { toast(n.errors[0]); return; }
   const snap = snapshot();
   addEntries([n.entry]);
   if (!saveState()) return;
   closeSheet(); refreshAll();
-  toastSaved(opts.treat ? `「${m.label}」ご褒美として記録したよ。おいしく楽しんでね` : `「${m.label}」記録したよ`, today(), ['meal'], snap);
+  toastSaved(opts.treat ? `「${m.label}」ご褒美として記録したよ。おいしく楽しんでね` : snack ? `「${m.label}」記録できてえらい！次のごはんで整えればOK` : `「${m.label}」記録したよ`, today(), ['meal'], snap);
 }
 function openEatSheet() {
   const t = today(), st = dayStats(t), s = state.settings;
@@ -4185,18 +4185,18 @@ function openEatSheet() {
   const easy = isEasyDay();
   const favs = sortedFavorites().filter((f) => f.kcal != null && (rest == null || f.kcal <= Math.max(rest, 300))).slice(0, 4);
   const pick = (list, key) => list.map((m, i) => `<button class="fav-chip" data-${key}="${i}">${esc(m.label)}<small>約${fmtNum(m.kcal)}kcal</small></button>`).join('');
-  openSheet(`<h3>今なに食べよう？</h3>
+  openSheet(`<div id="eatBody"><h3>今なに食べよう？</h3>
     <div class="small muted">今日 約${fmtNum(st.intake.kcal)}kcal${rest != null && !easy ? (rest >= 0 ? `・目安まであと約${fmtNum(rest)}kcal` : '・次のごはんを軽めにすればOK') : ''}</div>
+    <div class="eat-sec"><button class="primary" id="eatAsk" style="width:100%">Claudeに3つ考えてもらう</button><div id="eatIdeas"></div></div>
     ${favs.length ? `<div class="eat-sec"><div class="sub-h">いつものメニューから</div><div class="fav-chips">${favs.map(favChipHTML).join('')}</div></div>` : ''}
     <div class="eat-sec"><div class="sub-h">コンビニで軽めにするなら</div><div class="fav-chips">${pick(LIGHT_PICKS, 'light')}</div></div>
     <div class="eat-sec"><div class="sub-h">食べちゃった！をさっと記録</div><div class="fav-chips">${pick(SNACKS, 'snack')}</div>
       <label class="check"><input type="checkbox" id="eatTreat">ご褒美の枠にする（今月の予定として数えるよ）</label></div>
-    <div class="eat-sec"><button class="primary" id="eatAsk" style="width:100%">Claudeに3つ考えてもらう</button><div id="eatIdeas"></div></div>
-    <div class="hint">kcalは一般的な1人前の目安だよ。</div>`);
-  $('#sheet').addEventListener('click', (ev) => {
+    <div class="hint">kcalは一般的な1人前の目安だよ。</div></div>`);
+  $('#eatBody').addEventListener('click', (ev) => {
     const f = ev.target.closest('[data-addfav]'); if (f) { closeSheet(); recordFavorite(f.dataset.addfav, today()); return; }
     const l = ev.target.closest('[data-light]'); if (l) { recordQuickMeal(LIGHT_PICKS[l.dataset.light], { src: 'conveni' }); return; }
-    const sn = ev.target.closest('[data-snack]'); if (sn) { recordQuickMeal(SNACKS[sn.dataset.snack], { treat: $('#eatTreat').checked }); return; }
+    const sn = ev.target.closest('[data-snack]'); if (sn) { recordQuickMeal(SNACKS[sn.dataset.snack], { treat: $('#eatTreat').checked }, true); return; }
     const id = ev.target.closest('[data-idea]'); if (id && eatIdeas) { const x = eatIdeas[id.dataset.idea]; recordQuickMeal({ label: x.title, kcal: x.kcal, p: x.p, f: x.f, c: x.c }, { src: MEAL_SRC[x.kind] ? x.kind : '' }); }
   });
   $('#eatAsk').addEventListener('click', askEatIdeas);
