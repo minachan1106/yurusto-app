@@ -3794,7 +3794,7 @@ function renderTargetsMode() {
   const now = [s.kcal != null ? `${fmtNum(s.kcal)}kcal` : '', ...[['P', s.p], ['F', s.f], ['C', s.c]].filter(([, v]) => v != null).map(([k, v]) => `${k} ${fmtNum(v)}g`)].filter(Boolean).join('・');
   $('#targetsMode').innerHTML = s.targetsManual
     ? `手動で調整中：${esc(now || '未設定')}`
-    : pl ? `目標からの計算を自動で使ってるよ：${esc(now)}` : '「目標体重の範囲」と「からだのプロフィール」を入れると、自動で目安が決まります。';
+    : pl ? `目標からの計算を自動で使ってるよ：${esc(now)}` : '「目標体重の範囲」と「からだのプロフィール」を入れると、自動で目安が決まるよ';
 }
 
 /* ========== APIの利用メーター ========== */
