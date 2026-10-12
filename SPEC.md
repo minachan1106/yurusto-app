@@ -26,7 +26,7 @@
     {"date":"YYYY-MM-DD","type":"weight","kg":0.0},
     {"date":"YYYY-MM-DD","type":"meal","label":"料理名","slot":"lunch","kcal":0,"p":0,"f":0,"c":0,"treat":false,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":0,"sets":0,"minutes":null}],"note":"任意"},
-    {"date":"YYYY-MM-DD","type":"beauty","item":"アイテム名","category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
+    {"date":"YYYY-MM-DD","type":"beauty","brand":"ブランド名","item":"アイテム名","guess":false,"category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
     {"date":"YYYY-MM-DD","type":"condition","note":"髪がパサつく、など体や肌の状態メモ"},
     {"date":"YYYY-MM-DD","type":"body","fatPct":0.0,"waistCm":0.0,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"steps","steps":0,"km":0.0}
@@ -229,3 +229,9 @@
 - 一覧にない種目名が出てきたら（運動フォームで「その他」を入れたとき、運動を保存したとき、起動時に過去の記録・いつもの運動にあるとき）、APIキーがあれば Claude に METs をまとめて推定してもらい、`exerciseMets` に保存。過去の記録も自動で再計算される。同じ名前は一度だけ頼む。0.9〜20 以外の値は使わない。
 - 投げ込みでは、一覧にない種目に items[].mets を付けて返すよう指示し、届いた値も `exerciseMets` に覚える。
 - 運動フォームの内訳に「強さ◯・Claudeの推定」／「強さ◯・仮」を表示。設定の「いつもの運動」に推定済みの一覧を表示。
+
+### フェーズG5（商品名の精度・記録のレビュー・商品名のチェック）
+- 美容の記録に `brand`（ブランド名）と `guess`（名前が推定か）を追加。表示は「ブランド＋商品名」（商品名にブランド名が含まれていなければ前に付ける）。Claude には、略称・カタカナ・うろ覚えからでも店頭のブランド名と正式な商品名（シリーズ・種類まで）を推定し、確信がなければ guess を true にするよう指示。着たい服も同じ方針。
+- 記録タブの上に「Claudeにレビューしてもらう」（期間：1週間／1か月、観点：全体／食事／運動／美容）。対象の記録を日付ごとのテキストにして送り、良かったこと・傾向・次の小さな一歩を5〜7文で返してもらう。コメント履歴に「【観点のレビュー・期間】」付きで保存。
+- 美容タブに「商品名をチェック」：美容アイテムの名前（ブランド・カテゴリ付き、最大60件）と着たい服の名前を送り、{from, brand, name, confidence(high/medium/low), note} を受け取る。名前が変わるものだけを一覧にし、確信度が low 以外は最初からチェック。選んだものだけ、過去の記録も含めて名前とブランドを置き換える（同じ商品が別名で記録されていれば1つにまとまる）。
+- 「ネットで調べる」を選ぶと Web検索ツール（`web_search_20260209`、最大5回）を使う。`pause_turn` で止まったら直前の応答を付けて最大3回まで再開。検索1回 $0.01 を利用料の目安に加算。
