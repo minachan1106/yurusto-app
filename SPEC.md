@@ -28,7 +28,8 @@
     {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":0,"sets":0,"minutes":null}],"note":"任意"},
     {"date":"YYYY-MM-DD","type":"beauty","item":"アイテム名","category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
     {"date":"YYYY-MM-DD","type":"condition","note":"髪がパサつく、など体や肌の状態メモ"},
-    {"date":"YYYY-MM-DD","type":"body","fatPct":0.0,"waistCm":0.0,"note":"任意"}
+    {"date":"YYYY-MM-DD","type":"body","fatPct":0.0,"waistCm":0.0,"note":"任意"},
+    {"date":"YYYY-MM-DD","type":"steps","steps":0,"km":0.0}
   ],
   "comment":"Claudeからのコメント（任意）"
 }
@@ -174,3 +175,10 @@
 - API利用料：応答の usage（入力・出力・キャッシュ読み取りのトークン数）を Sonnet 5.5 の単価（$2 / $10 / $0.2 per MTok）で換算し、月ごとに localStorage `yurusto.usage` に記録。設定に今月・先月を表示（この端末の目安）。
 - リンク：Anthropic Console（https://platform.claude.com/）と、設定で登録した claude.ai のプロジェクトURLを開くボタン。コメントカードにもプロジェクトへのボタン。
 - Claude への文脈に、体脂肪率の推定値と目標からの目安を追加。
+
+### フェーズE2（ヘルスケアの歩数）
+- 記録の種類 `steps`（歩数・距離km）。1日1件で、同じ日付は上書き。数値は "8,000" や "5.2 km" のような単位付き文字列も読む（全種類共通）。
+- iPhone「ショートカット」で、ヘルスケアから今日の歩数と「ウォーキング＋ランニングの距離」の合計を取り、`{"entries":[{"type":"steps","steps":"…","km":"…"}]}` をクリップボードにコピー。手順とテンプレートは設定画面に表示。
+- 投げ込みに「クリップボードから貼り付けて解析」ボタン（読めない場合は長押しで貼り付けを案内）。
+- 消費の概算：歩数がある日は「基礎代謝×1.2（座りがち）＋歩行（0.5kcal×体重kg×距離km）＋運動」。距離がなければ歩幅＝身長×0.415で推定。歩数がない日は従来どおり「基礎代謝×活動量＋運動」。
+- Claude：ヘルスケアの歩数スクショは steps にする指示、今日の歩数を文脈に追加。

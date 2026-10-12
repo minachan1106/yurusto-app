@@ -33,6 +33,7 @@
     --c-beauty: #a58ac9;
     --c-condition: #8aa7c9;
     --c-body: #4fb0a8;
+    --c-steps: #6aa3d8;
     --c-comment: #9a8c8e;
     --shadow: 0 2px 8px rgba(255, 79, 151, 0.08);
     --radius: 14px;
@@ -186,6 +187,8 @@
   .chip.beauty { background: var(--c-beauty); }
   .chip.condition { background: var(--c-condition); }
   .chip.body { background: var(--c-body); }
+  .chip.steps { background: var(--c-steps); }
+  pre.tmpl { white-space: pre-wrap; word-break: break-all; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin: 8px 0; }
   .chip.comment { background: var(--c-comment); }
   .chip.error { background: #c0646c; }
   .entry { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-top: 1px solid var(--line); }
@@ -341,6 +344,7 @@
         <button class="ghost" id="dropClear">クリア</button>
         <button id="dropParse">JSONとして解析</button>
       </div>
+      <button class="ghost" id="dropPaste" style="width:100%; margin-top:8px">クリップボードから貼り付けて解析</button>
       <button class="primary" id="dropAI" style="width:100%; margin-top:8px">Claudeで変換</button>
       <div class="hint" id="aiHint"></div>
     </div>
@@ -398,6 +402,23 @@
       <p class="small muted" style="margin:0 0 10px">設定した時間を過ぎてアプリを開くと、ホームに表示されます。</p>
       <div id="askList"></div>
       <button class="ghost" id="askAdd" style="width:100%">問いかけを追加</button>
+    </div>
+
+    <div class="card">
+      <h2>ヘルスケアの歩数を取り込む</h2>
+      <p class="small" style="margin:0 0 8px">iPhoneの「ショートカット」で、今日の歩数と距離をユルストの形式でコピーできます。最初に一度だけ作ってください。</p>
+      <ol class="steps">
+        <li>「ショートカット」アプリで ＋ を押し、新規ショートカットを作る（名前の例：「ユルスト歩数」）</li>
+        <li>「ヘルスケアサンプルを検索」を追加し、種類を「歩数」、開始日を「今日」にする</li>
+        <li>「統計を計算」を追加し、「合計」にする</li>
+        <li>もう一度「ヘルスケアサンプルを検索」を追加し、種類を「ウォーキング＋ランニングの距離」、開始日を「今日」にする</li>
+        <li>「統計を計算」を追加し、「合計」にする</li>
+        <li>「テキスト」を追加して下の文をコピーして貼り、空の "" の間に、3・5の「統計」をそれぞれ変数として入れる</li>
+        <li>「クリップボードにコピー」を追加する</li>
+      </ol>
+      <pre class="tmpl" id="stepsTmpl">{"entries":[{"type":"steps","steps":"","km":""}]}</pre>
+      <button class="ghost" id="copyStepsTmpl" style="width:100%">この文をコピー</button>
+      <div class="hint">使うとき：ショートカットを実行 → ユルストの投げ込みで「クリップボードから貼り付けて解析」→ 保存。日付は自動で今日になります。歩数がある日は、消費の概算が「座りがち＋歩いた分」で計算されます。</div>
     </div>
 
     <div class="card">
@@ -535,8 +556,8 @@
 
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
-const TYPES = ['weight', 'body', 'meal', 'workout', 'beauty', 'condition'];
-const TYPE_LABEL = { weight: '体重', body: '体組成', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
+const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'condition'];
+const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
 const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: 'ツール' };
 const ACTIONS = { use: '使用', start: '使い始め', finish: '使い切り' };
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -670,7 +691,11 @@ function toNum(v, field, errors, { required = false } = {}) {
     if (required) errors.push(`${field}が空です`);
     return null;
   }
-  const n = typeof v === 'number' ? v : Number(String(v).replace(/[,，]/g, '').trim());
+  let n = typeof v === 'number' ? v : Number(String(v).replace(/[,，]/g, '').trim());
+  if (typeof v === 'string' && !isFinite(n)) {
+    const m = String(v).replace(/[,，]/g, '').match(/^\s*(-?\d+(?:\.\d+)?)\s*[^\d\s]*\s*$/);
+    if (m) n = Number(m[1]);
+  }
   if (!isFinite(n)) { errors.push(`${field}が数値ではありません`); return null; }
   if (n < 0) { errors.push(`${field}がマイナスです`); return null; }
   return n;
@@ -728,6 +753,12 @@ function normalizeEntry(raw) {
   } else if (type === 'condition') {
     e.note = note;
     if (!note) errors.push('noteが空です');
+  } else if (type === 'steps') {
+    e.steps = toNum(raw.steps, 'steps', errors);
+    e.km = toNum(raw.km, 'km', errors);
+    if (e.steps === null && e.km === null) errors.push('steps と km がどちらも空です');
+    if (e.steps !== null) e.steps = Math.round(e.steps);
+    if (e.km !== null) e.km = Math.round(e.km * 100) / 100;
   } else if (type === 'body') {
     e.fatPct = toNum(raw.fatPct, 'fatPct', errors);
     e.waistCm = toNum(raw.waistCm, 'waistCm', errors);
@@ -761,6 +792,14 @@ function addEntries(list, { dedupe = false } = {}) {
         if (e.waistCm != null) ex.waistCm = e.waistCm;
         if (e.note) ex.note = e.note;
         ex.createdAt = now + i;
+        replaced++;
+        return;
+      }
+    }
+    if (e.type === 'steps') {
+      const idx = state.entries.findIndex((x) => x.type === 'steps' && x.date === e.date);
+      if (idx >= 0) {
+        state.entries[idx] = { ...state.entries[idx], steps: e.steps, km: e.km, createdAt: now + i };
         replaced++;
         return;
       }
@@ -888,6 +927,7 @@ function entryBodyHTML(e) {
     case 'beauty': return `${esc(e.item)} <span class="meta">${esc(CATEGORIES[e.category] || e.category)}・${esc(ACTIONS[e.action] || e.action)}</span>${note}`;
     case 'condition': return esc(e.note);
     case 'body': return `${bodyText(e)}${note}`;
+    case 'steps': return esc(stepsText(e));
     default: return '';
   }
 }
@@ -904,11 +944,15 @@ function entryPlain(e) {
     case 'beauty': return `美容: ${e.item}（${CATEGORIES[e.category] || e.category}）${ACTIONS[e.action] || e.action}${e.note ? `／${e.note}` : ''}`;
     case 'condition': return `体調メモ: ${e.note}`;
     case 'body': return `体組成: ${bodyText(e, true)}${e.note ? `（${e.note}）` : ''}`;
+    case 'steps': return `歩数: ${stepsText(e)}`;
     default: return '';
   }
 }
 
-const TYPE_ORDER = { weight: 0, body: 1, meal: 2, workout: 3, beauty: 4, condition: 5 };
+const TYPE_ORDER = { weight: 0, body: 1, steps: 2, meal: 3, workout: 4, beauty: 5, condition: 6 };
+function stepsText(e) {
+  return [e.steps != null ? `${fmtNum(e.steps)}歩` : '', e.km != null ? `${fmtNum(e.km, 1)}km` : ''].filter(Boolean).join('・');
+}
 function bodyText(e, plain = false) {
   const b = (x) => (plain ? x : `<b>${x}</b>`);
   const parts = [];
@@ -1207,6 +1251,13 @@ function setupInput() {
   $('#qWeight').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') save(); });
 
   $('#dropParse').addEventListener('click', parseDrop);
+  $('#dropPaste').addEventListener('click', async () => {
+    let text = '';
+    try { text = await navigator.clipboard.readText(); } catch (e) { text = ''; }
+    if (!text) { toast('クリップボードを読めませんでした。入力欄に長押しで貼り付けてください'); return; }
+    $('#dropText').value = text;
+    parseDrop();
+  });
   $('#dropClear').addEventListener('click', () => { $('#dropText').value = ''; clearImages(); pending = null; renderPreview(); });
   setupAI();
   updateHint();
@@ -1358,6 +1409,11 @@ function openEditor(id) {
   let fields = `<label class="field"><span>日付</span><input type="date" id="edDate" value="${v(e.date)}"></label>`;
   if (e.type === 'weight') {
     fields += `<label class="field"><span>体重（kg）</span><input type="number" inputmode="decimal" step="0.1" id="edKg" value="${v(e.kg)}"></label>`;
+  } else if (e.type === 'steps') {
+    fields += `<div class="row">
+        <label class="field"><span>歩数</span><input type="number" inputmode="numeric" step="1" id="edSteps" value="${v(e.steps)}"></label>
+        <label class="field"><span>距離（km）</span><input type="number" inputmode="decimal" step="0.01" id="edKm" value="${v(e.km)}"></label>
+      </div>`;
   } else if (e.type === 'meal') {
     fields += `<label class="field"><span>料理名</span><input type="text" id="edLabel" value="${v(e.label)}"></label>
       <div class="grid4">
@@ -1426,6 +1482,7 @@ function openEditor(id) {
     const raw = { type: e.type, date: $('#edDate').value };
     const val = (sel) => { const el = $(sel); return el ? el.value : undefined; };
     if (e.type === 'weight') raw.kg = val('#edKg');
+    if (e.type === 'steps') Object.assign(raw, { steps: val('#edSteps'), km: val('#edKm') });
     if (e.type === 'meal') Object.assign(raw, { label: val('#edLabel'), kcal: val('#edKcal'), p: val('#edP'), f: val('#edF'), c: val('#edC'), treat: $('#edTreat').checked, note: val('#edNote') });
     if (e.type === 'workout') {
       raw.items = readWkItems('#wkList');
@@ -1437,9 +1494,9 @@ function openEditor(id) {
     if (!raw.date) { $('#edErr').textContent = '日付を入れてください'; return; }
     const r = normalizeEntry(raw);
     if (r.errors) { $('#edErr').innerHTML = r.errors.map(esc).join('<br>'); return; }
-    if (e.type === 'weight' && state.entries.some((x) => x.id !== id && x.type === 'weight' && x.date === r.entry.date)) {
-      if (!confirm(`${fmtMD(r.entry.date)}の体重はすでにあります。上書きしますか？`)) return;
-      state.entries = state.entries.filter((x) => !(x.id !== id && x.type === 'weight' && x.date === r.entry.date));
+    if ((e.type === 'weight' || e.type === 'steps') && state.entries.some((x) => x.id !== id && x.type === e.type && x.date === r.entry.date)) {
+      if (!confirm(`${fmtMD(r.entry.date)}の${TYPE_LABEL[e.type]}はすでにあります。上書きしますか？`)) return;
+      state.entries = state.entries.filter((x) => !(x.id !== id && x.type === e.type && x.date === r.entry.date));
     }
     const idx = state.entries.findIndex((x) => x.id === id);
     state.entries[idx] = { ...r.entry, id, createdAt: e.createdAt };
@@ -1586,6 +1643,10 @@ function setupSettings() {
     toast('APIキーを削除しました');
   });
   setupAskSettings();
+  $('#copyStepsTmpl').addEventListener('click', async () => {
+    const ok = await copyText($('#stepsTmpl').textContent);
+    toast(ok ? 'コピーしました' : 'コピーできませんでした');
+  });
   $('#projectUrl').addEventListener('change', () => {
     const u = $('#projectUrl').value.trim();
     if (u && !/^https:\/\/claude\.ai\//.test(u)) { toast('claude.ai のURLを入れてください'); $('#projectUrl').value = projectUrl(); return; }
@@ -1809,6 +1870,7 @@ function buildContext() {
   const pl = calcPlan();
   if (pl) lines.push(`目標からの目安: 目標体重 ${pl.goal.toFixed(1)}kg、ペース ${pl.pace}kg/週、おすすめ摂取 ${pl.intake}kcal/日`);
   const td = dayStats(t);
+  if (td.steps) lines.push(`今日の歩数: ${stepsText(td.steps)}`);
   lines.push(`今日の摂取（概算）: ${Math.round(td.intake.kcal)}kcal、P ${Math.round(td.intake.p)}g、F ${Math.round(td.intake.f)}g、C ${Math.round(td.intake.c)}g${td.burn != null ? `／消費の概算 ${Math.round(td.burn)}kcal（運動 ${Math.round(td.exKcal || 0)}kcal を含む）` : ''}`);
   const favs = state.favorites || [];
   lines.push(`よく頼むメニュー: ${favs.length ? favs.map((f) => `${f.label}（${[['kcal', f.kcal], ['P', f.p], ['F', f.f], ['C', f.c]].map(([k, n]) => `${k} ${n ?? '?'}`).join(' / ')}${f.treat ? '・ご褒美' : ''}）`).join('、') : '（なし）'}`);
@@ -1832,7 +1894,8 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
     {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":数値,"sets":数値,"minutes":数値}],"note":"任意"},
     {"date":"YYYY-MM-DD","type":"beauty","item":"アイテム名","category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
     {"date":"YYYY-MM-DD","type":"condition","note":"体や肌の状態メモ"},
-    {"date":"YYYY-MM-DD","type":"body","fatPct":体脂肪率の数値,"waistCm":腹囲cmの数値,"note":"任意"}
+    {"date":"YYYY-MM-DD","type":"body","fatPct":体脂肪率の数値,"waistCm":腹囲cmの数値,"note":"任意"},
+    {"date":"YYYY-MM-DD","type":"steps","steps":歩数,"km":歩いた距離kmの数値}
   ],
   "comment":"提案コメント"
 }
@@ -1854,6 +1917,7 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 - 体重計やヘルスケアアプリのスクショ：weight にする。体脂肪率が写っていれば body も作る。
 - 健康診断の結果（画像でも文章でも）：書かれている日付ごとに weight と body（体脂肪率・腹囲）を作る。過去の日付でもそのまま使う。
 - 運動アプリ・フィットネス機器のスクショ：workout にする。
+- ヘルスケアやスマートウォッチの歩数・距離のスクショ：steps にする（1日1件）。散歩やウォーキングでも、歩数として記録されているものは workout にしない。
 
 # いつもの運動
 - 「いつもの」「いつものセット」や、下の「いつもの運動」の名前で書かれていたら、その種目・回数・セット数を items にそのまま使う。
@@ -2441,6 +2505,20 @@ function bmr(ymd) {
   return 10 * kg + 6.25 * heightCm - 5 * age + (Number(sex) === 1 ? 5 : -161);
 }
 
+const SEDENTARY = 1.2;
+const WALK_KCAL_PER_KG_KM = 0.5; // 歩行の正味のエネルギー（安静分を除く）の目安
+
+// 距離がなければ歩幅（身長×0.415）から出す
+function walkingKm(st) {
+  if (st.km != null) return st.km;
+  const h = state.settings.heightCm;
+  return st.steps != null && h != null ? st.steps * h * 0.415 / 100000 : null;
+}
+function walkingKcal(st, kg) {
+  const km = walkingKm(st);
+  return km != null ? WALK_KCAL_PER_KG_KM * kg * km : null;
+}
+
 function dayStats(ymd) {
   const es = state.entries.filter((e) => e.date === ymd);
   const meals = es.filter((e) => e.type === 'meal');
@@ -2451,10 +2529,13 @@ function dayStats(ymd) {
   const exKcal = kg != null ? workouts.reduce((s, w) => s + workoutKcal(w.items, kg), 0) : null;
   const base = bmr(ymd);
   const act = state.settings.activity;
-  const daily = base != null && act != null ? base * act : null;
+  const steps = es.find((e) => e.type === 'steps') || null;
+  const walkKcal = steps && kg != null ? walkingKcal(steps, kg) : null;
+  // 歩数がある日は「座りがち」を土台にして歩いた分を足す（活動量と二重に数えない）
+  const daily = base != null ? (walkKcal != null ? base * SEDENTARY + walkKcal : (act != null ? base * act : null)) : null;
   const burn = daily != null ? daily + (exKcal || 0) : null;
   const weight = es.find((e) => e.type === 'weight');
-  return { meals, intake, workouts, exKcal, base, daily, burn, weight };
+  return { meals, intake, workouts, exKcal, base, daily, burn, weight, steps, walkKcal };
 }
 
 let todayDate = null;
@@ -2473,7 +2554,9 @@ function renderToday() {
   const intakeSub = s.kcal != null ? `目安 ${fmtNum(s.kcal)}kcal` : (st.meals.length ? `食事${st.meals.length}件` : '');
   const burnNum = st.burn != null ? `${fmtNum(st.burn)}<small>kcal</small>` : '<small>—</small>';
   const burnSub = st.burn != null
-    ? `ふだん ${fmtNum(st.daily)}${st.exKcal ? ` ＋ 運動 ${fmtNum(st.exKcal)}` : ''}`
+    ? (st.walkKcal != null
+      ? `基礎 ${fmtNum(st.base * SEDENTARY)} ＋ 歩行 ${fmtNum(st.walkKcal)}${st.exKcal ? ` ＋ 運動 ${fmtNum(st.exKcal)}` : ''}`
+      : `ふだん ${fmtNum(st.daily)}${st.exKcal ? ` ＋ 運動 ${fmtNum(st.exKcal)}` : ''}`)
     : '設定のプロフィールで表示';
   html += `<div class="kcal-grid">
     <div class="kcal-box"><div class="lbl">摂取</div><div class="num">${fmtNum(st.intake.kcal)}<small>kcal</small></div><div class="sub">${esc(intakeSub)}</div></div>
@@ -2495,6 +2578,9 @@ function renderToday() {
   if (st.burn != null && st.meals.length) {
     const bal = Math.round(st.intake.kcal - st.burn);
     html += `<div class="today-line"><span class="k">収支（概算）</span>${bal > 0 ? '+' : ''}${fmtNum(bal)} kcal</div>`;
+  }
+  if (st.steps) {
+    html += `<div class="today-line"><span class="k">歩数</span>${esc(stepsText(st.steps))}</div>`;
   }
   if (st.workouts.length) {
     html += `<div class="today-line"><span class="k">運動</span>${esc(st.workouts.map((w) => workoutText(w.items)).join(' / '))}</div>`;
