@@ -32,6 +32,7 @@
     --c-workout: #7fa58f;
     --c-beauty: #a58ac9;
     --c-condition: #8aa7c9;
+    --c-care: #e88fb6;
     --c-body: #4fb0a8;
     --c-steps: #6aa3d8;
     --c-comment: #9a8c8e;
@@ -186,6 +187,7 @@
   .chip { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 99px; color: #fff; font-weight: 600; flex: 0 0 auto; margin-top: 2px; }
   .chip.weight { background: var(--c-weight); }
   .chip.meal { background: var(--c-meal); }
+  .chip.care { background: var(--c-care); }
   .chip.workout { background: var(--c-workout); }
   .chip.beauty { background: var(--c-beauty); }
   .chip.condition { background: var(--c-condition); }
@@ -283,7 +285,7 @@
   .lrow .val { flex: 0 0 auto; font-size: 12.5px; color: var(--muted); }
   .dot.weight { background: var(--c-weight); } .dot.body { background: var(--c-body); } .dot.steps { background: var(--c-steps); }
   .dot.meal { background: var(--c-meal); } .dot.workout { background: var(--c-workout); } .dot.beauty { background: var(--c-beauty); }
-  .dot.condition { background: var(--c-condition); } .dot.comment { background: var(--c-comment); }
+  .dot.care { background: var(--c-care); } .dot.condition { background: var(--c-condition); } .dot.comment { background: var(--c-comment); }
   .search { margin-bottom: 8px; }
   .fix-box { border: 1px dashed var(--accent); border-radius: 12px; padding: 10px; margin: 4px 0 12px; background: var(--accent-soft); }
   .fix-box .mini { display: block; margin-bottom: 4px; color: var(--accent-strong); font-weight: 600; font-size: 12px; }
@@ -382,6 +384,26 @@
   .now-act.main .a-s { color: rgba(255,255,255,0.88); }
   .now-act.done { opacity: 0.7; }
   .now-act.done .a-l::after { content: " ✓"; color: var(--sage); }
+  .src-mark { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 99px; font-size: 11px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); vertical-align: 1px; }
+  .good-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .good-pills .gl { width: 100%; font-size: 12px; color: var(--muted); }
+  .good-pills span { font-size: 12.5px; padding: 4px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); font-weight: 600; }
+  .oshi { margin-top: 8px; font-size: 13px; padding: 7px 10px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); }
+  .oshi b { color: var(--accent-strong); }
+  .care-row { margin-top: 10px; }
+  .care-row .sub-h { margin: 0 0 6px; }
+  .care-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .care-btns button { min-height: 52px; padding: 6px 4px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); color: var(--text); font-size: 13.5px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .care-btns button small { font-size: 10.5px; color: var(--muted); font-weight: 500; }
+  .care-btns button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-strong); }
+  .easy-link { display: block; margin: 8px 0 0 auto; }
+  .easy-on { margin-top: 6px; font-size: 12.5px; color: var(--accent-strong); font-weight: 600; }
+  .eat-sec { margin-top: 12px; }
+  .eat-sec .fav-chip small { margin-left: 4px; }
+  .idea { padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; margin: 6px 0; }
+  .idea .k { font-size: 11px; color: var(--muted); }
+  .idea .t { font-weight: 700; }
+  .idea .d { font-size: 12.5px; color: var(--muted); }
   .now-act.busy { opacity: 0.85; pointer-events: none; }
   .now-mini { display: flex; gap: 8px; margin-top: 8px; }
   .now-mini button { flex: 1; min-height: 44px; font-size: 13px; padding: 6px 8px; background: var(--card); border: 1px solid var(--line); color: var(--accent-strong); font-weight: 600; border-radius: 12px; }
@@ -497,6 +519,9 @@
       <div class="now-actions" id="nowActions"></div>
       <div class="now-mini" id="nowMini"></div>
       <div class="now-favs" id="nowFavs"></div>
+      <div id="nowCare"></div>
+      <div id="nowGood"></div>
+      <div id="nowEasy"></div>
       <div id="reviewArea"></div>
     </div>
     <input type="file" id="homeImg" accept="image/*" multiple style="display:none">
@@ -609,6 +634,7 @@
   <section class="view" id="view-beauty">
     <div class="seg-tabs" id="bSeg"><button data-b="cosme" class="on">コスメ</button><button data-b="fashion">ファッション</button></div>
     <div id="bCosme">
+      <div class="card" id="careCard"></div>
       <div class="list-filter" id="itemFilter"></div>
       <div id="itemList"></div>
       <button class="ghost" id="itemAdd" style="width:100%; margin-bottom:12px">＋ アイテムを追加</button>
@@ -784,8 +810,10 @@
 const STORAGE_KEY = 'yurusto.v1';
 // 公開のたびに上げる（CLAUDE.md の「公開のルール」参照）
 const APP_VERSION = '2026.10.12-21';
-const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'condition'];
-const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
+const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'care', 'condition'];
+const MEAL_SRC = { home: '自炊', conveni: 'コンビニ', delivery: 'デリバリー', out: '外食' };
+const CARE_LEVEL = { min: '最低限', full: 'しっかり', special: 'スペシャル' };
+const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', care: 'スキンケア', condition: '体調', comment: 'コメント' };
 const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: '美容ツール' };
 const PARTS = { base: 'ベース', eye: 'アイ', brow: '眉', lip: 'リップ', finish: '仕上げ' };
 // 美容の記録（ログ）の種類。use/start/finish は以前の形式（読み込み時に note/status に置き換える）
@@ -843,7 +871,7 @@ function toast(msg, opts = {}) {
 // 変更の前の状態を覚えておき、「取り消す」でその操作の分だけ戻す（あとから記録したものは残す）
 function snapshot() { return JSON.stringify(state); }
 const UNDO_LISTS = ['entries', 'comments', 'wishes', 'beautyItems', 'favorites', 'workoutPresets'];
-const UNDO_OBJS = ['settings', 'reviewLog', 'exerciseMets', 'links'];
+const UNDO_OBJS = ['settings', 'reviewLog', 'exerciseMets', 'links', 'easyDays'];
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 function makeUndo(beforeSnap, msg = '取り消したよ') {
   const before = JSON.parse(beforeSnap), after = JSON.parse(snapshot());
@@ -948,7 +976,7 @@ function migrateWishes() {
 function defaultState() {
   const settings = {};
   SETTING_KEYS.forEach((k) => { settings[k] = null; });
-  return { version: 1, entries: [], comments: [], favorites: [], workoutPresets: [], wishes: [], beautyItems: [], exerciseMets: {}, links: {}, reviewLog: {}, settings };
+  return { version: 1, entries: [], comments: [], favorites: [], workoutPresets: [], wishes: [], beautyItems: [], exerciseMets: {}, links: {}, reviewLog: {}, easyDays: {}, settings };
 }
 
 const asObj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
@@ -970,6 +998,7 @@ function loadState() {
       beautyItems: Array.isArray(s.beautyItems) ? s.beautyItems : null, // null なら引っ越し前の形式
       links: asObj(s.links),
       reviewLog: asObj(s.reviewLog),
+      easyDays: asObj(s.easyDays),
       settings: { ...base.settings, ...(s.settings || {}) },
     };
   } catch (e) {
@@ -1035,6 +1064,7 @@ function normalizeEntry(raw) {
     e.c = toNum(raw.c, 'c', errors);
     e.treat = toBool(raw.treat);
     e.slot = SLOTS[toStr(raw.slot)] ? toStr(raw.slot) : '';
+    if (MEAL_SRC[toStr(raw.src)]) e.src = toStr(raw.src); // 自炊・コンビニ・デリバリー・外食（分かるときだけ）
     e.note = note;
     if (!e.label && e.kcal === null && !note) errors.push('料理名もkcalも空だよ');
   } else if (type === 'workout') {
@@ -1074,6 +1104,9 @@ function normalizeEntry(raw) {
     if (e.steps === null && e.km === null) errors.push('歩数が空だよ');
     if (e.steps !== null) e.steps = Math.round(e.steps);
     if (e.km !== null) e.km = Math.round(e.km * 100) / 100;
+  } else if (type === 'care') {
+    e.level = CARE_LEVEL[toStr(raw.level)] ? toStr(raw.level) : 'full';
+    e.note = note;
   } else if (type === 'body') {
     e.fatPct = toNum(raw.fatPct, 'fatPct', errors);
     e.waistCm = toNum(raw.waistCm, 'waistCm', errors);
@@ -1123,6 +1156,14 @@ function addEntries(list, { dedupe = false } = {}) {
         if (e.waistCm != null) ex.waistCm = e.waistCm;
         if (e.note) ex.note = e.note;
         ex.createdAt = now + i;
+        replaced++;
+        return;
+      }
+    }
+    if (e.type === 'care') {
+      const idx = state.entries.findIndex((x) => x.type === 'care' && x.date === e.date);
+      if (idx >= 0) {
+        state.entries[idx] = { ...state.entries[idx], level: e.level, note: e.note || state.entries[idx].note, createdAt: now + i };
         replaced++;
         return;
       }
@@ -1258,13 +1299,14 @@ function entryBodyHTML(e) {
   const note = e.note ? `<div class="meta">${esc(e.note)}</div>` : '';
   switch (e.type) {
     case 'weight': return `<b>${fmtNum(e.kg, 1)}</b> kg`;
-    case 'meal': return `${esc(e.label || '（食事）')}${e.treat ? '<span class="treat-mark">ご褒美</span>' : ''}<div class="meta">${esc(pfcText(e))}</div>${note}`;
+    case 'meal': return `${esc(e.label || '（食事）')}${e.treat ? '<span class="treat-mark">ご褒美</span>' : ''}${e.src ? `<span class="src-mark">${MEAL_SRC[e.src]}</span>` : ''}<div class="meta">${esc(pfcText(e))}</div>${note}`;
     case 'workout': {
       const kg = bodyWeightFor(e.date);
       const k = kg != null ? workoutKcal(e.items, kg) : 0;
       return `${esc(workoutText(e.items)) || '（運動）'}${k >= 1 ? `<div class="meta">消費の目安 約${fmtNum(k)}kcal</div>` : ''}${note}`;
     }
     case 'beauty': return `${esc(beautyName(e))}${e.guess ? '<span class="meta">（名前は推定）</span>' : ''} <span class="meta">${esc(beautyLogLabel(e))}</span>${note}`;
+    case 'care': return `スキンケア <b>${CARE_LEVEL[e.level]}</b>${note}`;
     case 'condition': return esc(e.note);
     case 'body': return `${bodyText(e)}${note}`;
     case 'steps': return esc(stepsText(e));
@@ -1278,10 +1320,11 @@ function entryPlain(e) {
     case 'weight': return `体重 ${fmtNum(e.kg, 1)}kg`;
     case 'meal': {
       const t = pfcText(e);
-      return `食事: ${e.label || '（名称なし）'}${t ? ' ' + t : ''}${e.treat ? ' [ご褒美]' : ''}${e.note ? `（${e.note}）` : ''}`;
+      return `食事: ${e.label || '（名称なし）'}${t ? ' ' + t : ''}${e.treat ? ' [ご褒美]' : ''}${e.src ? ` [${MEAL_SRC[e.src]}]` : ''}${e.note ? `（${e.note}）` : ''}`;
     }
     case 'workout': return `運動: ${workoutText(e.items)}${e.note ? `（${e.note}）` : ''}`;
     case 'beauty': return `美容: ${beautyName(e)}　${beautyLogLabel(e)}${e.note ? `／${e.note}` : ''}`;
+    case 'care': return `スキンケア: ${CARE_LEVEL[e.level]}${e.note ? `（${e.note}）` : ''}`;
     case 'condition': return `体調メモ: ${e.note}`;
     case 'body': return `体組成: ${bodyText(e, true)}${e.note ? `（${e.note}）` : ''}`;
     case 'steps': return `歩数: ${stepsText(e)}`;
@@ -1289,7 +1332,7 @@ function entryPlain(e) {
   }
 }
 
-const TYPE_ORDER = { weight: 0, body: 1, steps: 2, meal: 3, workout: 4, beauty: 5, condition: 6 };
+const TYPE_ORDER = { weight: 0, body: 1, steps: 2, meal: 3, workout: 4, beauty: 5, care: 6, condition: 7 };
 // ブランド名が商品名に含まれていなければ前に付ける
 function beautyLogLabel(e) {
   if (e.action === 'add') return 'アイテムに登録';
@@ -1829,7 +1872,7 @@ function savePending(where = 'input') {
 let listLimit = 30;
 let listFilter = 'all';
 const LIST_FILTERS = {
-  all: null, meal: ['meal'], workout: ['workout'], body: ['weight', 'body', 'steps'], beauty: ['beauty'], memo: ['condition'],
+  all: null, meal: ['meal'], workout: ['workout'], body: ['weight', 'body', 'steps'], beauty: ['beauty', 'care'], memo: ['condition'],
 };
 const SLOTS = { breakfast: '朝', lunch: '昼', dinner: '夜', snack: '間食' };
 const SLOT_ORDER = ['breakfast', 'lunch', 'snack', 'dinner', ''];
@@ -1838,7 +1881,7 @@ const SLOT_ORDER = ['breakfast', 'lunch', 'snack', 'dinner', ''];
 function listRowHTML(e) {
   let txt = '', val = '';
   switch (e.type) {
-    case 'meal': txt = `${esc(e.label || '（食事）')}${e.treat ? '<span class="treat-mark">ご褒美</span>' : ''}`; val = e.kcal != null ? `${fmtNum(e.kcal)}kcal` : ''; break;
+    case 'meal': txt = `${esc(e.label || '（食事）')}${e.treat ? '<span class="treat-mark">ご褒美</span>' : ''}${e.src ? `<span class="src-mark">${MEAL_SRC[e.src]}</span>` : ''}`; val = e.kcal != null ? `${fmtNum(e.kcal)}kcal` : ''; break;
     case 'workout': {
       txt = esc(workoutText(e.items) || '（運動）');
       const kg = bodyWeightFor(e.date);
@@ -1850,6 +1893,7 @@ function listRowHTML(e) {
     case 'body': txt = '体組成'; val = esc(bodyText(e, true)); break;
     case 'steps': txt = '歩数'; val = esc(stepsText(e)); break;
     case 'beauty': txt = `${esc(beautyName(e))}${e.note ? ` <span class="muted small">${esc(e.note)}</span>` : ''}`; val = esc(beautyLogLabel(e)); break;
+    case 'care': txt = 'スキンケア'; val = esc(CARE_LEVEL[e.level]); break;
     case 'condition': txt = esc(e.note); break;
     default: txt = '';
   }
@@ -1918,7 +1962,7 @@ function listGroups() {
 let listMode = 'list';
 let calMonth = today().slice(0, 7);
 let calSel = today();
-const DOT_ORDER = ['meal', 'workout', 'weight', 'body', 'steps', 'beauty', 'condition', 'comment'];
+const DOT_ORDER = ['meal', 'workout', 'weight', 'body', 'steps', 'beauty', 'care', 'condition', 'comment'];
 
 function renderCalendar() {
   const groups = listGroups();
@@ -2035,6 +2079,7 @@ function openEditor(id, opts = {}) {
       </div>
       <div class="row"><label class="field"><span>時間帯</span><select id="edSlot"><option value="">—</option>${Object.entries(SLOTS).map(([k, l]) => `<option value="${k}" ${e.slot === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
         <label class="check" style="margin-top:18px"><input type="checkbox" id="edTreat" ${e.treat ? 'checked' : ''}>ご褒美ごはん</label></div>
+      <label class="field"><span>どこのごはん</span><select id="edSrc"><option value="">—</option>${Object.entries(MEAL_SRC).map(([k, l]) => `<option value="${k}" ${e.src === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>
       <button class="ghost" type="button" id="edFav" style="width:100%; margin-bottom:10px">${findFavorite(e.label) ? 'いつものメニューを更新' : 'いつものメニューに登録'}</button>`;
   } else if (e.type === 'workout') {
@@ -2046,6 +2091,9 @@ function openEditor(id, opts = {}) {
     fields += `<label class="field"><span>アイテム</span><input type="text" id="edItem" value="${v(e.item)}"></label>
       ${e.action === 'status' ? `<label class="field"><span>状態</span><select id="edStatus">${Object.entries(ITEM_STATUS).map(([k, l]) => `<option value="${k}" ${e.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`
         : `<label class="field"><span>気持ち</span><select id="edMood"><option value="">—</option>${Object.entries(MOODS).map(([k, l]) => `<option value="${k}" ${e.mood === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`}
+      <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>`;
+  } else if (e.type === 'care') {
+    fields += `<label class="field"><span>スキンケア</span><select id="edLevel">${Object.entries(CARE_LEVEL).map(([k, l]) => `<option value="${k}" ${e.level === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>`;
   } else if (e.type === 'condition') {
     fields += `<label class="field"><span>メモ</span><textarea id="edNote" style="min-height:90px">${v(e.note)}</textarea></label>`;
@@ -2103,12 +2151,13 @@ function openEditor(id, opts = {}) {
     const val = (sel) => { const el = $(sel); return el ? el.value : undefined; };
     if (e.type === 'weight') raw.kg = val('#edKg');
     if (e.type === 'steps') Object.assign(raw, { steps: val('#edSteps'), km: val('#edKm') });
-    if (e.type === 'meal') Object.assign(raw, { label: val('#edLabel'), kcal: val('#edKcal'), p: val('#edP'), f: val('#edF'), c: val('#edC'), treat: $('#edTreat').checked, slot: val('#edSlot'), note: val('#edNote') });
+    if (e.type === 'meal') Object.assign(raw, { label: val('#edLabel'), kcal: val('#edKcal'), p: val('#edP'), f: val('#edF'), c: val('#edC'), treat: $('#edTreat').checked, src: val('#edSrc'), slot: val('#edSlot'), note: val('#edNote') });
     if (e.type === 'workout') {
       raw.items = readWkItems('#wkList');
       raw.note = val('#edNote');
     }
     if (e.type === 'beauty') Object.assign(raw, { item: val('#edItem'), brand: e.brand, guess: e.guess, category: e.category, part: e.part, action: e.action, status: val('#edStatus') || e.status, mood: val('#edMood'), note: val('#edNote') });
+    if (e.type === 'care') Object.assign(raw, { level: val('#edLevel'), note: val('#edNote') });
     if (e.type === 'condition') raw.note = val('#edNote');
     if (e.type === 'body') Object.assign(raw, { fatPct: val('#edFat'), waistCm: e.waistCm, note: val('#edNote') });
     if (!raw.date) { $('#edErr').textContent = '日付を入れてね'; return; }
@@ -2215,6 +2264,7 @@ function renderBeauty() {
   $('#bCosme').style.display = beautyView === 'cosme' ? '' : 'none';
   $('#bFashion').style.display = beautyView === 'fashion' ? '' : 'none';
   if (beautyView === 'fashion') { renderFashion(); return; }
+  $('#careCard').innerHTML = careRowHTML().replace('care-row', 'care-row" style="margin-top:0');
   const items = state.beautyItems || [];
   const counts = Object.fromEntries(Object.keys(ITEM_STATUS).map((k) => [k, items.filter((i) => i.status === k).length]));
   $('#itemFilter').innerHTML = [...Object.entries(ITEM_STATUS), ['all', 'すべて']].map(([k, l]) =>
@@ -2242,6 +2292,16 @@ function renderBeauty() {
   }
   $('#itemList').innerHTML = html;
 
+  const wkMeals = state.entries.filter((e) => e.type === 'meal' && e.date >= addDays(t, -6));
+  const bySrc = Object.entries(MEAL_SRC).map(([k, l]) => [l, wkMeals.filter((e) => e.src === k).length]).filter(([, n]) => n);
+  if (bySrc.length) lines.push(`直近7日のごはんの出どころ: ${bySrc.map(([l, n]) => `${l}${n}回`).join('、')}`);
+  const cares = state.entries.filter((e) => e.type === 'care' && e.date >= addDays(t, -6));
+  if (cares.length) lines.push(`直近7日のスキンケア: ${cares.map((e) => `${e.date.slice(5)} ${CARE_LEVEL[e.level]}`).join('、')}`);
+  const good = weekGood(t);
+  if (good.items.length) lines.push(`今週のいいこと（ほめる材料）: ${good.items.join('、')}`);
+  const ow = oshiWish();
+  if (ow) lines.push(`推し服（いちばんの目標）: ${wishLabel(ow)}（あと約${fmtKgRange(...wishRemaining(ow))}）`);
+  if (isEasyDay(t)) lines.push('今日はユーザーが「がんばらない日」にしている。目安との比較や改善の提案はせず、ねぎらいだけ1〜2文にする。');
   const conds = state.entries.filter((e) => e.type === 'condition')
     .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 20);
   $('#beautyCondition').innerHTML = '<h2>肌・髪のメモ</h2>' + (conds.length
@@ -2335,7 +2395,7 @@ function openItemAdd() {
 function wishRowHTML(w) {
   const [lo, hi] = wishRemaining(w);
   const kg = w.done ? `${fmtMD(w.done)} 着られた！` : hi <= 0 ? '着られそう！' : `あと約${fmtKgRange(lo, hi)}`;
-  return `<div class="wish" data-wish="${esc(w.id)}"><div class="w-main"><div class="w-name">${esc(wishLabel(w))}</div><div class="w-sub">${esc(wishMeta(w) || 'ふつうサイズで目安')}</div></div>
+  return `<div class="wish" data-wish="${esc(w.id)}"><div class="w-main"><div class="w-name">${esc(wishLabel(w))}${w.pin ? '<span class="src-mark">推し服</span>' : ''}</div><div class="w-sub">${esc(wishMeta(w) || 'ふつうサイズで目安')}</div></div>
     <div class="w-kg">${kg}<small>${w.done ? '' : esc(wishWeeks(w))}</small></div></div>`;
 }
 
@@ -2350,6 +2410,7 @@ function renderFashion() {
 }
 
 function setupBeautyTab() {
+  $('#careCard').addEventListener('click', (ev) => { const b = ev.target.closest('[data-care]'); if (b) recordCare(b.dataset.care); });
   $('#bSeg').addEventListener('click', (ev) => { const b = ev.target.closest('[data-b]'); if (b) { beautyView = b.dataset.b; renderBeauty(); } });
   $('#itemFilter').addEventListener('click', (ev) => { const b = ev.target.closest('[data-if]'); if (b) { itemFilter = b.dataset.if; renderBeauty(); } });
   $('#itemList').addEventListener('click', (ev) => { const r = ev.target.closest('[data-item]'); if (r) openItem(r.getAttribute('data-item')); });
@@ -2843,9 +2904,10 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 {
   "entries": [
     {"date":"YYYY-MM-DD","type":"weight","kg":数値},
-    {"date":"YYYY-MM-DD","type":"meal","label":"料理名","slot":"breakfast|lunch|dinner|snack","kcal":数値,"p":数値,"f":数値,"c":数値,"treat":真偽値,"note":"任意"},
+    {"date":"YYYY-MM-DD","type":"meal","label":"料理名","slot":"breakfast|lunch|dinner|snack","kcal":数値,"p":数値,"f":数値,"c":数値,"treat":真偽値,"src":"home|conveni|delivery|out（分かるときだけ）","note":"任意"},
     {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":数値,"sets":数値,"minutes":数値,"mets":一覧にない種目だけ数値}],"note":"任意"},
     {"date":"YYYY-MM-DD","type":"beauty","brand":"ブランド名","item":"商品名","guess":真偽値,"category":"skincare|makeup|hair|tool","part":"base|eye|brow|lip|finish（メイクのみ）","action":"add|note|status","status":"using|stock|rest|done（statusのとき）","mood":"good|repeat|soso|ng（気持ちが分かるとき）","note":"任意"},
+    {"date":"YYYY-MM-DD","type":"care","level":"min|full|special","note":"任意"},
     {"date":"YYYY-MM-DD","type":"condition","note":"体や肌の状態メモ"},
     {"date":"YYYY-MM-DD","type":"body","fatPct":体脂肪率の数値,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"steps","steps":歩数,"km":歩いた距離kmの数値}
@@ -2871,6 +2933,8 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
   - メイクは part（base=ベース / eye=アイ / brow=眉 / lip=リップ / finish=仕上げ）も入れる。
   - 下の「美容アイテム」にあるものと同じなら、その名前に揃える。
 - 体や肌の状態についての言及は condition にする。
+- 「スキンケアした」「洗顔と保湿だけ」「パックした」などは care にする（1日1件）。level は min（落として保湿だけ・オールインワン）／full（いつもの全部）／special（パック・美容液・ツールなど特別なケア）。
+- 食事の src（どこのごはん）：Uber Eats・出前館などの注文画面やテイクアウトは delivery、コンビニ・スーパーの包装や惣菜は conveni、お店の皿・店内は out、家で用意したもの（冷凍・ミールキット・盛るだけ・温めるだけも含む）は home。分からなければ省略。自炊は広めにとる。
 - 「【コスメの所感】」として書かれた内容は、アイテムごとに beauty の note にする（気持ちが読み取れれば mood も）。
 - 記録にあたる内容がなければ entries は空配列にして、comment だけ返す。
 
@@ -3064,6 +3128,7 @@ function normalizeFavorite(raw) {
     kcal: toNum(o.kcal, 'kcal', errors), p: toNum(o.p, 'P', errors), f: toNum(o.f, 'F', errors), c: toNum(o.c, 'C', errors),
     treat: toBool(o.treat),
   };
+  if (MEAL_SRC[toStr(o.src)]) fav.src = toStr(o.src);
   if (!fav.label) errors.push('料理名を入れてね');
   return errors.length ? { error: errors[0] } : { fav };
 }
@@ -3142,6 +3207,7 @@ function openFavEditor(id) {
       <label class="field"><span>F</span><input type="number" inputmode="decimal" id="fvF" value="${v(f.f)}"></label>
       <label class="field"><span>C</span><input type="number" inputmode="decimal" id="fvC" value="${v(f.c)}"></label>
     </div>
+    <label class="field"><span>どこのごはん</span><select id="fvSrc"><option value="">—</option>${Object.entries(MEAL_SRC).map(([k, l]) => `<option value="${k}" ${f.src === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
     <label class="check"><input type="checkbox" id="fvTreat" ${f.treat ? 'checked' : ''}>ご褒美ごはん</label>
     <div class="err-list" id="fvErr"></div>
     <div class="btns" style="margin-top:8px">${id ? '<button class="danger" id="fvDel">削除</button>' : ''}<button class="ghost" id="fvClose">閉じる</button><button class="primary" id="fvSave">保存</button></div>`);
@@ -3152,7 +3218,7 @@ function openFavEditor(id) {
     if (saveState()) { closeSheet(); refreshAll(); toast('消したよ（これまでの記録はそのまま）', { undo: makeUndo(snap, 'もとに戻したよ') }); }
   });
   $('#fvSave').addEventListener('click', () => {
-    const r = upsertFavorite({ label: $('#fvLabel').value, kcal: $('#fvKcal').value, p: $('#fvP').value, f: $('#fvF').value, c: $('#fvC').value, treat: $('#fvTreat').checked }, id);
+    const r = upsertFavorite({ label: $('#fvLabel').value, kcal: $('#fvKcal').value, p: $('#fvP').value, f: $('#fvF').value, c: $('#fvC').value, treat: $('#fvTreat').checked, src: $('#fvSrc').value }, id);
     if (r.error) { $('#fvErr').textContent = r.error; return; }
     saveState(); closeSheet(); toast('保存したよ'); refreshAll();
   });
@@ -3169,7 +3235,7 @@ function setupFavorites() {
 function recordFavorite(id, date = inputDate()) {
   const f = state.favorites.find((x) => x.id === id);
   if (!f) return;
-  const { entry, errors } = normalizeEntry({ type: 'meal', date, label: f.label, kcal: f.kcal, p: f.p, f: f.f, c: f.c, treat: f.treat, slot: date === today() ? slotByTime() : '' });
+  const { entry, errors } = normalizeEntry({ type: 'meal', date, label: f.label, kcal: f.kcal, p: f.p, f: f.f, c: f.c, treat: f.treat, src: f.src, slot: date === today() ? slotByTime() : '' });
   if (errors) { toast(errors[0]); return; }
   const snap = snapshot();
   addEntries([entry]);
@@ -3874,17 +3940,18 @@ function nowActions() {
     weight: { k: 'weight', label: '体重', sub: w ? `${fmtNum(w.kg, 1)}kg` : '選ぶだけでOK', done: !!w },
     steps: { k: 'steps', label: '歩数を取り込む', sub: st ? stepsText(st) : 'ショートカットのあとにタップ', done: !!st },
     write: { k: 'write', label: '文章で記録', sub: '「昼にパスタ」だけでOK' },
+    eat: { k: 'eat', label: '今なに食べよう？', sub: '軽めの案・食べちゃったも' },
   };
   const presets = sortedPresets().slice(0, band === 'night' ? 2 : 1).map((p) => {
     const sig = workoutText(p.items);
     return { k: 'preset', id: p.id, label: p.name, sub: 'いつもの運動', done: es.some((e) => e.type === 'workout' && workoutText(e.items) === sig) };
   });
   const order = band === 'morning' ? [acts.weight, acts.photo, acts.write, ...presets]
-    : band === 'day' ? [acts.photo, acts.weight, acts.write, ...presets]
-    : [acts.photo, ...presets, acts.steps, acts.weight];
+    : band === 'day' ? [acts.photo, acts.eat, acts.weight, acts.write, ...presets]
+    : [acts.photo, acts.eat, ...presets, acts.steps, acts.weight];
   // 主役の写真は先頭、済んだものは後ろへ
   const main = order.filter((a) => a.main), rest = order.filter((a) => !a.main);
-  return [...main, ...rest.filter((a) => !a.done), ...rest.filter((a) => a.done)].slice(0, 5);
+  return [...main, ...rest.filter((a) => !a.done), ...rest.filter((a) => a.done)].slice(0, 6);
 }
 
 function renderNow() {
@@ -3892,12 +3959,19 @@ function renderNow() {
   const avg = movingAvg7(weightMap(), t);
   const st = dayStats(t), kcal = state.settings.kcal;
   const subs = [];
+  const easy = isEasyDay(t);
   if (band === 'morning' && avg != null) subs.push(`7日平均 ${fmtNum(avg, 1)}kg`);
-  if (band !== 'morning' && st.meals.length) subs.push(kcal != null
+  if (band !== 'morning' && st.meals.length) subs.push(kcal != null && !easy
     ? (kcal - st.intake.kcal >= 0 ? `今日は約${fmtNum(st.intake.kcal)}kcal・目安まであと約${fmtNum(kcal - st.intake.kcal)}kcalだよ` : `今日は約${fmtNum(st.intake.kcal)}kcal・次のごはんをちょっと軽めにすれば大丈夫だよ`)
     : `今日は約${fmtNum(st.intake.kcal)}kcal`);
   if (band !== 'morning' && !st.meals.length && avg != null) subs.push(`7日平均 ${fmtNum(avg, 1)}kg`);
-  $('#nowHead').innerHTML = `<div class="now-greet">${pickDaily(GREETS[band], band)}</div>${subs.length ? `<div class="now-sub">${esc(subs.join('　'))}</div>` : ''}`;
+  const ow = oshiWish();
+  let oshi = '';
+  if (ow) {
+    const [lo, hi] = wishRemaining(ow);
+    oshi = `<div class="oshi">推し服 <b>${esc(wishLabel(ow))}</b>　${hi <= 0 ? 'そろそろ着られそう！試着してみよ' : `あと約${esc(fmtKgRange(lo, hi))}`}</div>`;
+  }
+  $('#nowHead').innerHTML = `<div class="now-greet">${easy ? '今日はがんばらない日！写真ポンだけでいいからね' : pickDaily(GREETS[band], band)}</div>${subs.length ? `<div class="now-sub">${esc(subs.join('　'))}</div>` : ''}${oshi}`;
   const weighed = state.entries.some((e) => e.type === 'weight' && e.date === t);
   const c = weightCenter();
   $('#nowWeight').innerHTML = band === 'morning' && !weighed && c != null
@@ -3911,6 +3985,10 @@ function renderNow() {
     return `<button type="button" class="now-act ${a.main ? 'main' : ''} ${a.done ? 'done' : ''} ${busy ? 'busy' : ''}" data-now="${a.k}" ${a.id ? `data-id="${esc(a.id)}"` : ''}><span class="a-l">${busy ? '<span class="loading"></span>読み取り中…' : esc(a.label)}</span><span class="a-s">${busy ? 'そのまま記録するね。待たずにほかを見てもOK' : esc(a.sub)}</span></button>`;
   }).join('');
   $('#nowMini').innerHTML = `<button type="button" data-now="camera">カメラで撮る</button>${canReadClipImage() ? '<button type="button" data-now="paste">コピーした画像を貼る</button>' : ''}`;
+  const good = weekGood(t);
+  $('#nowGood').innerHTML = good.items.length ? `<div class="good-pills"><div class="gl">今週のいいこと</div>${good.items.map((x) => `<span>${esc(x)}</span>`).join('')}</div>` : '';
+  $('#nowCare').innerHTML = band !== 'day' || state.entries.some((e) => e.type === 'care' && e.date === t) ? careRowHTML() : '';
+  $('#nowEasy').innerHTML = `<button type="button" class="linkish easy-link" data-easy>${easy ? 'がんばらない日をやめる' : '今日はがんばらない日にする'}</button>`;
   const favs = slotFavorites();
   $('#nowFavs').innerHTML = favs.length ? `<div class="sub-h">いつものメニュー（タップで記録）</div><div class="fav-chips">${favs.map(favChipHTML).join('')}${(state.favorites || []).length > favs.length ? '<button class="fav-chip" data-fav-search style="background:var(--card);border:1px dashed var(--accent)">ほか</button>' : ''}</div>` : '';
   const r = homeResult;
@@ -3968,6 +4046,7 @@ function setupNow() {
     else if (k === 'steps') pasteSteps(today());
     else if (k === 'write') { $('#inDate').value = today(); $('#inDate').dispatchEvent(new Event('change')); goInput('input'); }
     else if (k === 'preset') recordPresetNow(b.dataset.id);
+    else if (k === 'eat') openEatSheet();
   });
   ['#homeImg', '#homeCam'].forEach((sel) => $(sel).addEventListener('change', async (ev) => {
     const files = Array.from(ev.target.files || []);
@@ -3986,6 +4065,14 @@ function setupNow() {
     const b = ev.target.closest('[data-kg]');
     if (b) { saveWeightToday(b.dataset.kg); return; }
     if (ev.target.closest('[data-now=weight]')) openWeightSheet();
+  });
+  $('#nowCare').addEventListener('click', (ev) => { const b = ev.target.closest('[data-care]'); if (b) recordCare(b.dataset.care); });
+  $('#nowEasy').addEventListener('click', (ev) => {
+    if (!ev.target.closest('[data-easy]')) return;
+    const t = today();
+    if (!state.easyDays) state.easyDays = {};
+    if (state.easyDays[t]) delete state.easyDays[t]; else state.easyDays[t] = 1;
+    if (saveState()) { refreshAll(); toast(state.easyDays[t] ? '今日はがんばらない日！比べるのはお休みね' : 'いつもの表示に戻したよ'); }
   });
   $('#nowFavs').addEventListener('click', (ev) => {
     if (ev.target.closest('[data-fav-search]')) { openFavSearch(today()); return; }
@@ -4011,6 +4098,139 @@ function renderMetric() {
   $('#bPane').style.display = metric === 'weight' ? 'none' : '';
   if (metric === 'weight') renderChart();
   else { bodyMetric = metric; renderBodyChart(); }
+}
+
+/* ---- かわいくなるための小さな仕組み ---- */
+const isEasyDay = (d = today()) => !!(state.easyDays || {})[d];
+
+// 推し服：決めた1着、なければ「あと」がいちばん小さい服
+function oshiWish() {
+  const open = (state.wishes || []).filter((w) => !w.done);
+  if (!open.length) return null;
+  return open.find((w) => w.pin) || open.slice().sort((a, b) => wishRemaining(a)[1] - wishRemaining(b)[1])[0];
+}
+
+// 月曜〜今日の「できたこと」（0のものは出さない・週の途中で減らない）
+function weekGood(t = today()) {
+  const d = parseYMD(t);
+  const from = addDays(t, -((d.getDay() + 6) % 7));
+  const es = state.entries.filter((e) => e.date >= from && e.date <= t);
+  const s = state.settings;
+  const out = [];
+  const home = es.filter((e) => e.type === 'meal' && e.src === 'home').length;
+  if (home) out.push(`自炊 ${home}回`);
+  const care = new Set(es.filter((e) => e.type === 'care').map((e) => e.date)).size;
+  if (care) out.push(`スキンケア ${care}日`);
+  const wk = es.filter((e) => e.type === 'workout').length;
+  if (wk) out.push(`運動 ${wk}回`);
+  if (s.p != null) {
+    let pd = 0;
+    for (let x = from; x <= t; x = addDays(x, 1)) { const st = dayStats(x); if (st.meals.length && st.intake.p >= s.p * 0.9) pd++; }
+    if (pd) out.push(`たんぱく質しっかり ${pd}日`);
+  }
+  const map = weightMap(), now = movingAvg7(map, t), prev = movingAvg7(map, addDays(t, -7));
+  if (now != null && prev != null) {
+    const diff = round1(prev - now);
+    if (diff >= 0.1) out.push(`7日平均 約${fmtNum(diff, 1)}kg 軽い方向`);
+    else if (diff > -0.1) out.push('7日平均 キープ');
+  }
+  return { from, items: out };
+}
+
+// スキンケアのワンタップ
+const CARE_SUB = { min: '落として保湿', full: 'いつもの全部', special: 'パック・美容液' };
+const CARE_PRAISE = { min: '落として保湿、それだけでえらい！', full: 'しっかりケアえらい！お肌よろこんでるよ', special: 'スペシャルケア！明日の肌が楽しみだね' };
+function careRowHTML() {
+  const cur = state.entries.find((e) => e.type === 'care' && e.date === today());
+  return `<div class="care-row"><div class="sub-h">今日のスキンケア（タップで記録）</div><div class="care-btns">${Object.entries(CARE_LEVEL).map(([k, l]) =>
+    `<button type="button" data-care="${k}" class="${cur && cur.level === k ? 'on' : ''}">${l}<small>${CARE_SUB[k]}</small></button>`).join('')}</div></div>`;
+}
+function recordCare(level) {
+  const n = normalizeEntry({ type: 'care', date: today(), level });
+  if (n.errors) { toast(n.errors[0]); return; }
+  const snap = snapshot();
+  addEntries([n.entry]);
+  if (saveState()) { refreshAll(); toast(CARE_PRAISE[level], { undo: makeUndo(snap) }); }
+}
+
+/* ---- 今なに食べよう？ ---- */
+const LIGHT_PICKS = [
+  { label: 'サラダチキン＋おにぎり', kcal: 300, p: 28, f: 4, c: 40 },
+  { label: 'ゆで卵2個＋サラダ', kcal: 200, p: 14, f: 11, c: 6 },
+  { label: '具だくさん味噌汁＋おにぎり', kcal: 280, p: 9, f: 4, c: 50 },
+  { label: 'ギリシャヨーグルト', kcal: 100, p: 10, f: 0, c: 12 },
+  { label: '春雨スープ', kcal: 100, p: 2, f: 2, c: 18 },
+  { label: '高カカオチョコ3枚', kcal: 80, p: 1, f: 6, c: 5 },
+];
+const SNACKS = [
+  { label: 'ポテトチップス1袋', kcal: 330, p: 3, f: 21, c: 32 },
+  { label: '菓子パン1個', kcal: 400, p: 7, f: 16, c: 55 },
+  { label: 'カップ麺1個', kcal: 350, p: 8, f: 15, c: 45 },
+  { label: 'アイス1個', kcal: 250, p: 4, f: 14, c: 27 },
+  { label: '唐揚げ5個', kcal: 300, p: 18, f: 20, c: 10 },
+  { label: 'ケーキ1個', kcal: 350, p: 5, f: 20, c: 38 },
+];
+function recordQuickMeal(m, opts = {}) {
+  const n = normalizeEntry({ type: 'meal', date: today(), slot: slotByTime(), ...m, ...opts });
+  if (n.errors) { toast(n.errors[0]); return; }
+  const snap = snapshot();
+  addEntries([n.entry]);
+  if (!saveState()) return;
+  closeSheet(); refreshAll();
+  toastSaved(opts.treat ? `「${m.label}」ご褒美として記録したよ。おいしく楽しんでね` : `「${m.label}」記録したよ`, today(), ['meal'], snap);
+}
+function openEatSheet() {
+  const t = today(), st = dayStats(t), s = state.settings;
+  const rest = s.kcal != null ? Math.round(s.kcal - st.intake.kcal) : null;
+  const easy = isEasyDay();
+  const favs = sortedFavorites().filter((f) => f.kcal != null && (rest == null || f.kcal <= Math.max(rest, 300))).slice(0, 4);
+  const pick = (list, key) => list.map((m, i) => `<button class="fav-chip" data-${key}="${i}">${esc(m.label)}<small>約${fmtNum(m.kcal)}kcal</small></button>`).join('');
+  openSheet(`<h3>今なに食べよう？</h3>
+    <div class="small muted">今日 約${fmtNum(st.intake.kcal)}kcal${rest != null && !easy ? (rest >= 0 ? `・目安まであと約${fmtNum(rest)}kcal` : '・次のごはんを軽めにすればOK') : ''}</div>
+    ${favs.length ? `<div class="eat-sec"><div class="sub-h">いつものメニューから</div><div class="fav-chips">${favs.map(favChipHTML).join('')}</div></div>` : ''}
+    <div class="eat-sec"><div class="sub-h">コンビニで軽めにするなら</div><div class="fav-chips">${pick(LIGHT_PICKS, 'light')}</div></div>
+    <div class="eat-sec"><div class="sub-h">食べちゃった！をさっと記録</div><div class="fav-chips">${pick(SNACKS, 'snack')}</div>
+      <label class="check"><input type="checkbox" id="eatTreat">ご褒美の枠にする（今月の予定として数えるよ）</label></div>
+    <div class="eat-sec"><button class="primary" id="eatAsk" style="width:100%">Claudeに3つ考えてもらう</button><div id="eatIdeas"></div></div>
+    <div class="hint">kcalは一般的な1人前の目安だよ。</div>`);
+  $('#sheet').addEventListener('click', (ev) => {
+    const f = ev.target.closest('[data-addfav]'); if (f) { closeSheet(); recordFavorite(f.dataset.addfav, today()); return; }
+    const l = ev.target.closest('[data-light]'); if (l) { recordQuickMeal(LIGHT_PICKS[l.dataset.light], { src: 'conveni' }); return; }
+    const sn = ev.target.closest('[data-snack]'); if (sn) { recordQuickMeal(SNACKS[sn.dataset.snack], { treat: $('#eatTreat').checked }); return; }
+    const id = ev.target.closest('[data-idea]'); if (id && eatIdeas) { const x = eatIdeas[id.dataset.idea]; recordQuickMeal({ label: x.title, kcal: x.kcal, p: x.p, f: x.f, c: x.c }, { src: MEAL_SRC[x.kind] ? x.kind : '' }); }
+  });
+  $('#eatAsk').addEventListener('click', askEatIdeas);
+}
+let eatIdeas = null;
+async function askEatIdeas() {
+  const key = loadApi().key;
+  if (!key) { toast('設定でAPIキーを入れると、Claudeが考えてくれるよ'); return; }
+  const btn = $('#eatAsk');
+  btn.disabled = true; btn.innerHTML = '<span class="loading"></span>考え中…ちょっと待ってね';
+  const t = today(), st = dayStats(t), s = state.settings;
+  const recent = state.entries.filter((e) => e.type === 'meal' && e.date >= addDays(t, -6)).slice(-15).map((e) => `${e.label}${e.src ? `（${MEAL_SRC[e.src]}）` : ''}`).join('、');
+  const system = `あなたは忙しい人の「次のごはん」を一緒に考えるアシスタントです。元気でかわいいアイドルが応援するような明るいタメ口で、絵文字は使いません。
+${USER_PROFILE}
+- 案は3つ。kind は conveni（コンビニ・スーパーで買える組み合わせ。特定の商品名は出さない）／delivery（デリバリーや外食で選びやすい軽めの頼み方）／home（5分でできる自炊。冷凍・缶詰・レンジOK）を1つずつ。
+- 今日の残りの目安とPFCのバランスに合わせる（たんぱく質が足りなければ足す）。kcal・p・f・c は一般的な1人前の概算。
+- comment はひとこと（2文まで）。責めない。食べすぎた日は「次のごはんで整えればOK」。
+出力は JSON オブジェクト1つだけ：{"ideas":[{"kind":"conveni|delivery|home","title":"","detail":"組み合わせと一工夫","kcal":数値,"p":数値,"f":数値,"c":数値}],"comment":""}`;
+  const text = `今の時刻 ${nowHM()}。今日の摂取 約${Math.round(st.intake.kcal)}kcal（P${Math.round(st.intake.p)} F${Math.round(st.intake.f)} C${Math.round(st.intake.c)}）。${s.kcal != null ? `1日の目安 ${s.kcal}kcal（P${s.p ?? '?'} F${s.f ?? '?'} C${s.c ?? '?'}）。` : ''}${isEasyDay() ? '今日はがんばらない日。' : ''}最近のごはん：${recent || 'なし'}`;
+  try {
+    const r = await callClaude({ key, system, text, imgs: [], maxTokens: 1500 });
+    let obj = null;
+    for (const c of findJsonCandidates(r.text)) { const v = tryParse(c.text); if (v && Array.isArray(v.ideas)) { obj = v; break; } }
+    if (!obj) throw new Error('うまく受け取れなかったみたい。もう一回ね');
+    eatIdeas = obj.ideas.slice(0, 3).map((x) => ({ kind: toStr(x.kind), title: toStr(x.title), detail: toStr(x.detail), kcal: Number(x.kcal) || null, p: Number(x.p) || null, f: Number(x.f) || null, c: Number(x.c) || null })).filter((x) => x.title);
+    const KIND = { conveni: 'コンビニ', delivery: 'デリバリー・外食', home: '5分自炊' };
+    $('#eatIdeas').innerHTML = eatIdeas.map((x, i) => `<div class="idea"><div class="k">${esc(KIND[x.kind] || '')}${x.kcal ? `・約${fmtNum(x.kcal)}kcal` : ''}</div><div class="t">${esc(x.title)}</div>${x.detail ? `<div class="d">${esc(x.detail)}</div>` : ''}
+      <button class="ghost" type="button" data-idea="${i}" style="width:100%; margin-top:6px; min-height:40px">これにする（記録）</button></div>`).join('') + (obj.comment ? `<div class="comment-text" style="margin-top:6px">${esc(toStr(obj.comment))}</div>` : '');
+    renderApiMeter();
+  } catch (e) {
+    toast(e instanceof TypeError ? '通信できなかったみたい。電波のいいところでもう一回ね' : e.message);
+  } finally {
+    if ($('#eatAsk')) { btn.disabled = false; btn.textContent = 'Claudeに3つ考えてもらう'; }
+  }
 }
 
 let homeBusy = false;   // ホームから送った写真を読み取り中
@@ -4116,7 +4336,8 @@ function renderToday() {
 
   // 摂取：リング＋PFCのミニバー
   let rest = '';
-  if (s.kcal != null) {
+  const easyDay = isEasyDay(d);
+  if (s.kcal != null && !easyDay) {
     const r = Math.round(s.kcal - st.intake.kcal);
     rest = r >= 0 ? `<span class="rest">あと${fmtNum(r)}</span>` : `<span class="rest over">目安より+${fmtNum(-r)}</span>`;
   }
@@ -4124,7 +4345,7 @@ function renderToday() {
   const bars = [['P', 'p'], ['F', 'f'], ['C', 'c']].map(([l, k]) => {
     const v = st.intake[k], tg = s[k];
     const pct = tg ? Math.min(100, Math.round(v / tg * 100)) : 0;
-    const diff = tg != null ? Math.round(tg - v) : null;
+    const diff = tg != null && !easyDay ? Math.round(tg - v) : null;
     return `<div class="pm"><div class="pb"><i style="width:${tg ? pct : 0}%; background:var(--c-${k})"></i></div>
       <div class="v"><span>${l} ${fmtNum(v)}${tg != null ? `/${fmtNum(tg)}` : ''}g</span>${diff != null && (st.meals.length || diff < tg) ? (diff >= 0 ? `<span>あと${fmtNum(diff)}g</span>` : `<span class="over">目安より+${fmtNum(-diff)}g</span>`) : ''}</div></div>`;
   }).join('');
@@ -4327,7 +4548,8 @@ function openWish(id) {
       ${w.exercise ? `<div class="row2"><span class="k">運動の目安</span><span>${esc(w.exercise)}</span></div>` : ''}
     </div>
     ${w.basis ? `<div class="hint">${esc(w.basis)}</div>` : ''}
-    ${w.done ? '' : '<button class="ghost" id="wsShot" style="width:100%; margin-top:10px">商品のスクショで詳しくする</button>'}
+    ${w.done ? '' : `<button class="${w.pin ? 'primary' : 'ghost'}" id="wsPin" style="width:100%; margin-top:10px">${w.pin ? '推し服にしてるよ（タップでやめる）' : '推し服にする（ホームに出るよ）'}</button>`}
+    ${w.done ? '' : '<button class="ghost" id="wsShot" style="width:100%; margin-top:8px">商品のスクショで詳しくする</button>'}
     <details class="more" style="margin-top:8px"><summary>名前・サイズを直す</summary>
       <div class="row" style="margin-top:6px"><label class="field"><span>ブランド</span><input type="text" id="wsBrand" value="${v(w.brand)}"></label>
         <label class="field"><span>種類</span><input type="text" id="wsKind" list="wishKinds" value="${v(w.kind)}"></label></div>
@@ -4350,6 +4572,12 @@ function openWish(id) {
   if ($('#wsDone')) $('#wsDone').addEventListener('click', () => {
     w.done = today();
     saveState(); closeSheet(); toast('やったね！着られたね、おめでとう！すっごくかわいいよ'); refreshAll();
+  });
+  if ($('#wsPin')) $('#wsPin').addEventListener('click', () => {
+    const on = !w.pin;
+    state.wishes.forEach((x) => { delete x.pin; });
+    if (on) w.pin = true;
+    if (saveState()) { toast(on ? '推し服に決めたよ！毎朝ホームで応援するね' : '推し服をやめたよ'); refreshAll(); openWish(id); }
   });
   if ($('#wsShot')) $('#wsShot').addEventListener('click', () => {
     closeSheet();
