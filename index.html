@@ -307,6 +307,23 @@
   .au-row .old { color: var(--muted); text-decoration: line-through; }
   .conf { font-size: 11px; padding: 1px 6px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); margin-left: 4px; }
   .conf.low { background: var(--bg); color: var(--muted); }
+  .seg-tabs { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 3px; margin-bottom: 12px; }
+  .seg-tabs button { flex: 1; min-height: 38px; background: transparent; color: var(--muted); font-weight: 600; border-radius: 9px; }
+  .seg-tabs button.on { background: var(--grad); color: #fff; }
+  .item-card { display: flex; gap: 8px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
+  .card h2 + .item-card, .slot-h + .item-card { border-top: none; }
+  .item-card .ic-main { flex: 1; min-width: 0; }
+  .item-card .ic-name { font-size: 14.5px; font-weight: 600; }
+  .item-card .ic-sub { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item-card .ic-side { flex: 0 0 auto; display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+  .mood { display: inline-block; font-size: 11.5px; padding: 2px 9px; border-radius: 99px; font-weight: 600; }
+  .m-good { background: #e3f4ea; color: #2f7a52; } .m-repeat { background: var(--accent-soft); color: var(--accent-strong); }
+  .m-soso { background: var(--bg); color: var(--muted); border: 1px solid var(--line); } .m-ng { background: #f3ece4; color: #8a6a4a; }
+  .st { font-size: 11px; color: var(--muted); }
+  .st-btns, .mood-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .st-btns button { flex: 1; min-height: 38px; padding: 6px 4px; font-size: 13px; background: var(--bg); color: var(--muted); border: 1px solid var(--line); font-weight: 500; }
+  .st-btns button.on { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); font-weight: 700; }
+  .mood-btns button.mood { min-height: 40px; padding: 8px 14px; font-size: 13.5px; border: none; }
   .sub-h { font-size: 12px; color: var(--muted); margin: 4px 0 6px; font-weight: 600; }
   .sub-h + .fav-chips { margin-bottom: 12px; }
   .today-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -478,16 +495,24 @@
 
   <!-- 美容 -->
   <section class="view" id="view-beauty">
-    <div class="card" id="auditCard">
-      <h2>商品名をチェック</h2>
+    <div class="seg-tabs" id="bSeg"><button data-b="cosme" class="on">コスメ</button><button data-b="fashion">ファッション</button></div>
+    <div id="bCosme">
+      <div class="list-filter" id="itemFilter"></div>
+      <div id="itemList"></div>
+      <button class="ghost" id="itemAdd" style="width:100%; margin-bottom:12px">＋ アイテムを追加</button>
+      <div class="card" id="beautyCondition"></div>
+    <details class="card review-box" id="auditCard">
+      <summary>商品名をチェック</summary>
       <div class="small muted">これまでの美容アイテムと着たい服の名前を Claude が見直し、正式な名前の候補を出します。選んだものだけ、過去の記録もまとめて直します。</div>
       <label class="check" style="margin-top:8px"><input type="checkbox" id="auWeb">ネットで調べる（精度が上がる・少し料金が増える）</label>
       <button class="primary" id="auRun" style="width:100%">チェックする</button>
       <div id="auResult"></div>
+    </details>
     </div>
-    <div class="card" id="beautyActive"></div>
-    <div class="card" id="beautyDone"></div>
-    <div class="card" id="beautyCondition"></div>
+    <div id="bFashion" style="display:none">
+      <div class="card" id="fashionList"></div>
+      <div class="card" id="fashionDone" style="display:none"></div>
+    </div>
   </section>
 
   <!-- 設定 -->
@@ -687,13 +712,19 @@
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
 // 公開のたびに上げる（CLAUDE.md の「公開のルール」参照）
-const APP_VERSION = '2026.10.12-15';
+const APP_VERSION = '2026.10.12-16';
 const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'condition'];
 const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
-const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: 'ツール' };
-const ACTIONS = { use: '使用', start: '使い始め', finish: '使い切り' };
+const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: '美容ツール' };
+const PARTS = { base: 'ベース', eye: 'アイ', brow: '眉', lip: 'リップ', finish: '仕上げ' };
+// 美容の記録（ログ）の種類。use/start/finish は以前の形式（読み込み時に note/status に置き換える）
+const ACTIONS = { add: '登録', note: 'メモ', status: '状態', use: '使用', start: '使い始め', finish: '使い切り' };
+const ITEM_STATUS = { using: '使用中', stock: 'ストック', rest: 'お休み', done: '使い切り' };
+const MOODS = { good: 'いい感じ', repeat: 'リピしたい', soso: 'ふつう', ng: '合わないかも' };
+const WISH_KINDS = ['コート', 'ジャケット', 'デニム', 'パンツ', 'スカート', 'ワンピース', 'ニット', 'カーディガン', 'シャツ', 'ブラウス', 'トップス', 'ブーツ', 'パンプス', 'スニーカー', 'サンダル', 'バッグ', '水着'];
+const DECK_RE = /ビューティーデッキ(として)?(に)?登録[。、]?\s*/;
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
-const VIEW_TITLES = { home: 'ホーム', input: '投げ込み', list: '記録', beauty: '美容', settings: '設定' };
+const VIEW_TITLES = { home: 'ホーム', input: '投げ込み', list: '記録', beauty: '美容・ファッション', settings: '設定' };
 const SETTING_KEYS = ['weightMin', 'weightMax', 'fatTarget', 'kcal', 'p', 'f', 'c', 'targetsManual', 'heightCm', 'age', 'sex', 'activity', 'pace', 'apiBudget'];
 
 /* ========== ユーティリティ ========== */
@@ -752,6 +783,62 @@ async function copyText(text) {
   return ok;
 }
 
+
+/* ========== 美容アイテム ========== */
+const itemKey = (n) => toStr(n).replace(/\s+/g, '').toLowerCase();
+function findItem(name) {
+  const k = itemKey(name);
+  return k ? (state.beautyItems || []).find((x) => itemKey(x.name) === k) : null;
+}
+function upsertItem(src) {
+  let it = findItem(src.name);
+  if (!it) {
+    it = { id: uid(), name: toStr(src.name), brand: toStr(src.brand), category: CATEGORIES[src.category] ? src.category : 'skincare', part: PARTS[src.part] ? src.part : '',
+      status: ITEM_STATUS[src.status] ? src.status : 'using', memo: toStr(src.memo), guess: !!src.guess, addedOn: src.date || today(), createdAt: Date.now() };
+    state.beautyItems.push(it);
+    return { it, created: true };
+  }
+  if (src.brand && !it.brand) it.brand = toStr(src.brand);
+  if (src.part && !it.part && PARTS[src.part]) it.part = src.part;
+  if (src.memo && !it.memo) it.memo = toStr(src.memo);
+  return { it, created: false };
+}
+// アイテムの記録（メモ・状態）を新しい順に
+function itemLogs(it) {
+  const k = itemKey(it.name);
+  return state.entries.filter((e) => e.type === 'beauty' && itemKey(e.item) === k)
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
+}
+function latestMood(it) { return (itemLogs(it).find((e) => e.mood || e.note) || null); }
+
+// 以前の形式のデータを今の形に直す（起動時に1回）
+function migrateData() {
+  let changed = false;
+  if (!Array.isArray(state.beautyItems)) {
+    state.beautyItems = [];
+    const old = state.entries.filter((e) => e.type === 'beauty')
+      .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt || 0) - (b.createdAt || 0));
+    state.entries = state.entries.filter((e) => e.type !== 'beauty');
+    addEntries(old.map((e) => ({ ...e, action: e.action || 'use' })));
+    changed = true;
+  }
+  if (migrateWishes()) changed = true;
+  if (changed) saveState();
+}
+// 着たい服：名前に種類（コート・デニムなど）だけが入っていたら種類に移す
+function migrateWishes() {
+  let changed = false;
+  (state.wishes || []).forEach((w) => {
+    if (w.kind === undefined) {
+      const k = WISH_KINDS.find((x) => toStr(w.name) === x);
+      w.kind = k || '';
+      if (k) w.name = '';
+      changed = true;
+    }
+  });
+  return changed;
+}
+
 /* ========== ストア ========== */
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 const DEFAULT_PROMPTS = [
@@ -764,7 +851,7 @@ const clonePrompts = (list) => list.map((x) => ({ ...x, days: [...x.days] }));
 function defaultState() {
   const settings = {};
   SETTING_KEYS.forEach((k) => { settings[k] = null; });
-  return { version: 1, entries: [], comments: [], favorites: [], workoutPresets: [], wishes: [], exerciseMets: {}, links: {}, prompts: clonePrompts(DEFAULT_PROMPTS), promptLog: {}, reviewLog: {}, settings };
+  return { version: 1, entries: [], comments: [], favorites: [], workoutPresets: [], wishes: [], beautyItems: [], exerciseMets: {}, links: {}, prompts: clonePrompts(DEFAULT_PROMPTS), promptLog: {}, reviewLog: {}, settings };
 }
 
 function normalizePrompt(o) {
@@ -795,6 +882,7 @@ function loadState() {
       workoutPresets: Array.isArray(s.workoutPresets) ? s.workoutPresets : [],
       exerciseMets: asObj(s.exerciseMets),
       wishes: Array.isArray(s.wishes) ? s.wishes : [],
+      beautyItems: Array.isArray(s.beautyItems) ? s.beautyItems : null, // null なら引っ越し前の形式
       links: asObj(s.links),
       prompts: Array.isArray(s.prompts)
         ? [...s.prompts.map(normalizePrompt).filter(Boolean), ...(s.prompts.some((x) => x && x.id === 'p-steps') ? [] : clonePrompts(DEFAULT_PROMPTS.filter((x) => x.id === 'p-steps')))]
@@ -810,6 +898,7 @@ function loadState() {
 }
 
 let state = loadState();
+migrateData();
 
 function saveState() {
   try {
@@ -888,8 +977,12 @@ function normalizeEntry(raw) {
     if (!e.item) errors.push('itemが空です');
     e.category = toStr(raw.category) || 'skincare';
     if (!CATEGORIES[e.category]) errors.push(`category「${e.category}」は skincare / makeup / hair / tool のいずれかです`);
-    e.action = toStr(raw.action) || 'use';
-    if (!ACTIONS[e.action]) errors.push(`action「${e.action}」は use / start / finish のいずれかです`);
+    e.part = PARTS[toStr(raw.part)] ? toStr(raw.part) : '';
+    e.action = toStr(raw.action) || 'note';
+    if (!ACTIONS[e.action]) errors.push(`action「${e.action}」は add / note / status のいずれかです`);
+    e.status = ITEM_STATUS[toStr(raw.status)] ? toStr(raw.status) : '';
+    if (e.action === 'status' && !e.status) errors.push('status が空です');
+    e.mood = MOODS[toStr(raw.mood)] ? toStr(raw.mood) : '';
     e.note = note;
   } else if (type === 'condition') {
     e.note = note;
@@ -922,10 +1015,23 @@ function signature(e) {
 function addEntries(list, { dedupe = false } = {}) {
   const now = Date.now();
   const sigs = dedupe ? new Set(state.entries.map(signature)) : null;
-  let added = 0, replaced = 0, skipped = 0;
+  let added = 0, replaced = 0, skipped = 0, itemized = 0;
   list.forEach((src, i) => {
     const e = { ...src };
     if (dedupe && sigs.has(signature(e))) { skipped++; return; }
+    if (e.type === 'beauty') {
+      // 「ビューティーデッキに登録」はアイテムの登録として扱う（メモの残りはアイテムのメモへ）
+      if (e.note && DECK_RE.test(e.note) && (e.action === 'use' || e.action === 'note')) { e.action = 'add'; e.note = e.note.replace(DECK_RE, '').trim(); }
+      const st = e.action === 'finish' ? 'done' : e.action === 'start' ? 'using' : e.action === 'status' ? e.status : '';
+      const { it, created } = upsertItem({ name: e.item, brand: e.brand, category: e.category, part: e.part, guess: e.guess,
+        status: e.action === 'add' ? (e.status || 'using') : (st || 'using'), memo: e.action === 'add' ? e.note : '', date: e.date });
+      if (st && !created) it.status = st;
+      if (e.action === 'add') { itemized++; return; }
+      if ((e.action === 'use' || e.action === 'note') && !e.note && !e.mood) { itemized++; return; }
+      if (e.action === 'use') e.action = 'note';
+      if (e.action === 'start' || e.action === 'finish') { e.status = st; e.action = 'status'; }
+      e.item = it.name;
+    }
     if (e.type === 'body') {
       const ex = state.entries.find((x) => x.type === 'body' && x.date === e.date);
       if (ex) {
@@ -959,7 +1065,7 @@ function addEntries(list, { dedupe = false } = {}) {
     if (sigs) sigs.add(signature(e));
     added++;
   });
-  return { added, replaced, skipped };
+  return { added, replaced, skipped, itemized };
 }
 
 function addComment(text, date) {
@@ -1017,11 +1123,12 @@ function extractPayload(text) {
     if (v === undefined) continue;
     parsed.push({ start: c.start, end: c.end, value: v });
   }
-  const entries = [], updates = [], deletes = [], wishes = [];
+  const entries = [], updates = [], deletes = [], wishes = [], wishUpdates = [];
   let comment = null;
   for (const p of parsed) {
     const v = p.value;
     if (v && typeof v === 'object' && !Array.isArray(v)) {
+      if (Array.isArray(v.wishUpdates)) wishUpdates.push(...v.wishUpdates.filter((w) => w && typeof w === 'object' && w.id));
       if (Array.isArray(v.wishes)) wishes.push(...v.wishes.filter((w) => w && typeof w === 'object'));
       if (Array.isArray(v.updates)) updates.push(...v.updates.filter((u) => u && typeof u === 'object' && u.id));
       if (Array.isArray(v.deletes)) deletes.push(...v.deletes.map(String));
@@ -1030,16 +1137,16 @@ function extractPayload(text) {
         if (typeof v.comment === 'string' && v.comment.trim()) comment = comment ? comment + '\n' + v.comment.trim() : v.comment.trim();
       } else if (v.type) {
         entries.push(v);
-      } else if (typeof v.comment === 'string' && !Array.isArray(v.wishes)) {
+      } else if (typeof v.comment === 'string' && !Array.isArray(v.wishes) && !Array.isArray(v.wishUpdates)) {
         comment = comment ? comment + '\n' + v.comment.trim() : v.comment.trim();
       }
-      if (!Array.isArray(v.entries) && (v.updates || v.deletes || v.wishes) && typeof v.comment === 'string' && !comment) comment = v.comment.trim();
+      if (!Array.isArray(v.entries) && (v.updates || v.deletes || v.wishes || v.wishUpdates) && typeof v.comment === 'string' && !comment) comment = v.comment.trim();
     } else if (Array.isArray(v) && v.some((x) => x && typeof x === 'object' && x.type)) {
       entries.push(...v);
     }
   }
-  if (!entries.length && !comment && !updates.length && !deletes.length && !wishes.length) return null;
-  return { entries, comment, updates, deletes, wishes };
+  if (!entries.length && !comment && !updates.length && !deletes.length && !wishes.length && !wishUpdates.length) return null;
+  return { entries, comment, updates, deletes, wishes, wishUpdates };
 }
 
 /* ========== 表示用テキスト ========== */
@@ -1073,7 +1180,7 @@ function entryBodyHTML(e) {
       const k = kg != null ? workoutKcal(e.items, kg) : 0;
       return `${esc(workoutText(e.items)) || '（運動）'}${k >= 1 ? `<div class="meta">消費の目安 約${fmtNum(k)}kcal</div>` : ''}${note}`;
     }
-    case 'beauty': return `${esc(beautyName(e))}${e.guess ? '<span class="meta">（名前は推定）</span>' : ''} <span class="meta">${esc(CATEGORIES[e.category] || e.category)}・${esc(ACTIONS[e.action] || e.action)}</span>${note}`;
+    case 'beauty': return `${esc(beautyName(e))}${e.guess ? '<span class="meta">（名前は推定）</span>' : ''} <span class="meta">${esc(beautyLogLabel(e))}</span>${note}`;
     case 'condition': return esc(e.note);
     case 'body': return `${bodyText(e)}${note}`;
     case 'steps': return esc(stepsText(e));
@@ -1090,7 +1197,7 @@ function entryPlain(e) {
       return `食事: ${e.label || '（名称なし）'}${t ? ' ' + t : ''}${e.treat ? ' [ご褒美]' : ''}${e.note ? `（${e.note}）` : ''}`;
     }
     case 'workout': return `運動: ${workoutText(e.items)}${e.note ? `（${e.note}）` : ''}`;
-    case 'beauty': return `美容: ${beautyName(e)}（${CATEGORIES[e.category] || e.category}）${ACTIONS[e.action] || e.action}${e.note ? `／${e.note}` : ''}`;
+    case 'beauty': return `美容: ${beautyName(e)}　${beautyLogLabel(e)}${e.note ? `／${e.note}` : ''}`;
     case 'condition': return `体調メモ: ${e.note}`;
     case 'body': return `体組成: ${bodyText(e, true)}${e.note ? `（${e.note}）` : ''}`;
     case 'steps': return `歩数: ${stepsText(e)}`;
@@ -1100,6 +1207,11 @@ function entryPlain(e) {
 
 const TYPE_ORDER = { weight: 0, body: 1, steps: 2, meal: 3, workout: 4, beauty: 5, condition: 6 };
 // ブランド名が商品名に含まれていなければ前に付ける
+function beautyLogLabel(e) {
+  if (e.action === 'add') return 'アイテムに登録';
+  if (e.action === 'status' || e.action === 'start' || e.action === 'finish') return `→ ${ITEM_STATUS[e.status] || (e.action === 'finish' ? '使い切り' : '使用中')}`;
+  return e.mood ? MOODS[e.mood] : 'メモ';
+}
 function beautyName(e) {
   const b = toStr(e.brand), n = toStr(e.item || e.name);
   return b && !n.toLowerCase().includes(b.toLowerCase()) ? `${b} ${n}` : n;
@@ -1148,38 +1260,9 @@ function monthStats(ymd = today()) {
   return { sum, days, mealCount: meals.length, treats };
 }
 
-function beautyStats(ymd = today()) {
-  const byItem = new Map();
-  state.entries.filter((e) => e.type === 'beauty')
-    .slice().sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt || 0) - (b.createdAt || 0))
-    .forEach((e) => {
-      if (!byItem.has(e.item)) byItem.set(e.item, []);
-      byItem.get(e.item).push(e);
-    });
-  const active = [], done = [];
-  const from30 = addDays(ymd, -29);
-  byItem.forEach((list, name) => {
-    let open = null;
-    const category = list[list.length - 1].category;
-    const brand = (list.slice().reverse().find((e) => e.brand) || {}).brand || '';
-    list.forEach((e) => {
-      if (e.action === 'finish') {
-        done.push({ name, brand, category: e.category || category, start: open ? open.start : null, finish: e.date, uses: open ? open.uses : 0 });
-        open = null;
-      } else {
-        if (!open) open = { start: e.date, uses: 0, hasStart: e.action === 'start' };
-        else if (e.action === 'start' && !open.hasStart) { open.start = e.date; open.hasStart = true; }
-        open.uses++;
-      }
-    });
-    if (open) {
-      const recent = list.filter((e) => e.action !== 'finish' && e.date >= from30 && e.date <= ymd && e.date >= open.start).length;
-      active.push({ name, brand, category, start: open.start, days: Math.max(1, dayDiff(open.start, ymd) + 1), recent });
-    }
-  });
-  active.sort((a, b) => a.start.localeCompare(b.start));
-  done.sort((a, b) => b.finish.localeCompare(a.finish));
-  return { active, done };
+function beautyStats() {
+  const items = state.beautyItems || [];
+  return { active: items.filter((i) => i.status === 'using'), items };
 }
 
 /* ========== ホーム ========== */
@@ -1448,7 +1531,12 @@ function setPendingFromPayload(payload) {
   }).filter(Boolean);
   const deletes = [...new Set(payload.deletes || [])].map((id) => state.entries.find((x) => x.id === id)).filter(Boolean);
   const wishes = (payload.wishes || []).map(normalizeWish).filter(Boolean);
-  pending = { items, comment: payload.comment, updates, deletes, wishes };
+  const wishUps = (payload.wishUpdates || []).map((u) => {
+    const before = (state.wishes || []).find((w) => w.id === String(u.id));
+    const n = before ? normalizeWish({ ...before, loseKgMin: undefined, loseKgMax: undefined, ...u }) : null;
+    return n ? { before, after: n } : null;
+  }).filter(Boolean);
+  pending = { items, comment: payload.comment, updates, deletes, wishes, wishUps };
   renderPreview();
 }
 
@@ -1481,14 +1569,20 @@ function renderPreview() {
   (pending.deletes || []).forEach((d) => {
     html += `<div class="entry"><span class="chip error">削除</span><div class="body">${fmtMDW(d.date)} ${entryBodyHTML(d)}</div></div>`;
   });
+  (pending.wishUps || []).forEach((u) => {
+    const ch = [['名前', wishLabel(u.before), wishLabel(u.after)], ['サイズ', wishMeta(u.before) || '—', wishMeta(u.after) || '—']]
+      .filter(([, a, b]) => a !== b).map(([k, a, b]) => `${k}：<span class="old">${esc(a)}</span> → <b>${esc(b)}</b>`);
+    if (u.after.hasLose) ch.push(`目安：あと約${fmtKgRange(u.after.loseMin, u.after.loseMax)}`);
+    html += `<div class="entry"><span class="chip fix">着たい服</span><div class="body">${esc(wishLabel(u.before))}<div class="diff">${ch.join('<br>') || '変更なし'}</div></div></div>`;
+  });
   (pending.wishes || []).forEach((w) => {
-    html += `<div class="entry"><span class="chip wish-c">着たい服</span><div class="body">${esc(w.name)}<div class="meta">${esc(wishMeta(w))}</div>
+    html += `<div class="entry"><span class="chip wish-c">着たい服</span><div class="body">${esc(wishLabel(w))}<div class="meta">${esc(wishMeta(w))}</div>
       <div class="meta">今からの目安：あと約${fmtKgRange(w.loseMin, w.loseMax)}</div>${w.basis ? `<div class="meta">${esc(w.basis)}</div>` : ''}${w.exercise ? `<div class="meta">運動の目安：${esc(w.exercise)}</div>` : ''}</div></div>`;
   });
   if (pending.comment) {
     html += `<div class="entry"><span class="chip comment">コメント</span><div class="body comment-text">${esc(pending.comment)}</div></div>`;
   }
-  const nChange = ok.length + ups.length + (pending.deletes || []).length + (pending.wishes || []).length;
+  const nChange = ok.length + ups.length + (pending.deletes || []).length + (pending.wishes || []).length + (pending.wishUps || []).length;
   const canSave = nChange > 0 || !!pending.comment;
   html += `<div class="btns" style="margin-top:12px"><button class="ghost" id="pvCancel">やめる</button>
     <button class="primary" id="pvSave" ${canSave ? '' : 'disabled'}>${nChange ? `${nChange}件を反映` : 'コメントを保存'}</button></div>`;
@@ -1515,9 +1609,15 @@ function savePending() {
   let wished = 0;
   (pending.wishes || []).forEach((w) => {
     // 「あと何kg」は保存した時点の体重から目標体重に直して持つ（体重が変わると自動で減っていく）
-    state.wishes.push({ id: uid(), name: w.name, brand: w.brand, size: w.size, sizeInfo: w.sizeInfo, basis: w.basis, exercise: w.exercise,
+    state.wishes.push({ id: uid(), name: w.name, kind: w.kind, brand: w.brand, size: w.size, sizeInfo: w.sizeInfo, basis: w.basis, exercise: w.exercise,
       targetLow: nowKg != null ? round1(nowKg - w.loseMax) : null, targetHigh: nowKg != null ? round1(nowKg - w.loseMin) : null,
       loseMin: w.loseMin, loseMax: w.loseMax, addedOn: today(), createdAt: Date.now() });
+    wished++;
+  });
+  (pending.wishUps || []).forEach((u) => {
+    const w = u.before, a = u.after;
+    Object.assign(w, { name: a.name, kind: a.kind, brand: a.brand, size: a.size, sizeInfo: a.sizeInfo || w.sizeInfo, basis: a.basis || w.basis, exercise: a.exercise || w.exercise });
+    if (a.hasLose && nowKg != null) Object.assign(w, { loseMin: a.loseMin, loseMax: a.loseMax, targetLow: round1(nowKg - a.loseMax), targetHigh: round1(nowKg - a.loseMin), addedOn: today() });
     wished++;
   });
   const hasComment = pending.comment ? addComment(pending.comment, today()) : false;
@@ -1525,9 +1625,10 @@ function savePending() {
     const parts = [];
     if (r.added) parts.push(`${r.added}件を保存`);
     if (r.replaced) parts.push(`${r.replaced}件を更新`);
+    if (r.itemized) parts.push(`アイテム${r.itemized}件を反映`);
     if (fixed) parts.push(`${fixed}件を修正`);
     if (removed) parts.push(`${removed}件を削除`);
-    if (wished) parts.push(`着たい服を${wished}件登録`);
+    if (wished) parts.push(`着たい服を${wished}件反映`);
     if (hasComment) parts.push('コメントを保存');
     toast(parts.join('・') + 'しました');
     pending = null;
@@ -1563,7 +1664,7 @@ function listRowHTML(e) {
     case 'weight': txt = '体重'; val = `${fmtNum(e.kg, 1)}kg`; break;
     case 'body': txt = '体組成'; val = esc(bodyText(e, true)); break;
     case 'steps': txt = '歩数'; val = esc(stepsText(e)); break;
-    case 'beauty': txt = `${esc(beautyName(e))} <span class="muted small">${esc(ACTIONS[e.action] || e.action)}</span>`; val = esc(CATEGORIES[e.category] || ''); break;
+    case 'beauty': txt = `${esc(beautyName(e))}${e.note ? ` <span class="muted small">${esc(e.note)}</span>` : ''}`; val = esc(beautyLogLabel(e)); break;
     case 'condition': txt = esc(e.note); break;
     default: txt = '';
   }
@@ -1689,12 +1790,9 @@ function openEditor(id, opts = {}) {
       <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>
       <button class="ghost" type="button" id="edPreset" style="width:100%; margin-bottom:10px">♡ いつもの運動に登録</button>`;
   } else if (e.type === 'beauty') {
-    fields += `<label class="field"><span>ブランド</span><input type="text" id="edBrand" value="${v(e.brand)}"></label>
-      <label class="field"><span>アイテム名</span><input type="text" id="edItem" value="${v(e.item)}"></label>
-      <div class="grid2">
-        <label class="field"><span>カテゴリ</span><select id="edCat">${Object.entries(CATEGORIES).map(([k, l]) => `<option value="${k}" ${e.category === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-        <label class="field"><span>アクション</span><select id="edAct">${Object.entries(ACTIONS).map(([k, l]) => `<option value="${k}" ${e.action === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-      </div>
+    fields += `<label class="field"><span>アイテム</span><input type="text" id="edItem" value="${v(e.item)}"></label>
+      ${e.action === 'status' ? `<label class="field"><span>状態</span><select id="edStatus">${Object.entries(ITEM_STATUS).map(([k, l]) => `<option value="${k}" ${e.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`
+        : `<label class="field"><span>気持ち</span><select id="edMood"><option value="">—</option>${Object.entries(MOODS).map(([k, l]) => `<option value="${k}" ${e.mood === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`}
       <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>`;
   } else if (e.type === 'condition') {
     fields += `<label class="field"><span>メモ</span><textarea id="edNote" style="min-height:90px">${v(e.note)}</textarea></label>`;
@@ -1758,7 +1856,7 @@ function openEditor(id, opts = {}) {
       raw.items = readWkItems('#wkList');
       raw.note = val('#edNote');
     }
-    if (e.type === 'beauty') Object.assign(raw, { item: val('#edItem'), brand: val('#edBrand'), guess: false, category: val('#edCat'), action: val('#edAct'), note: val('#edNote') });
+    if (e.type === 'beauty') Object.assign(raw, { item: val('#edItem'), brand: e.brand, guess: e.guess, category: e.category, part: e.part, action: e.action, status: val('#edStatus') || e.status, mood: val('#edMood'), note: val('#edNote') });
     if (e.type === 'condition') raw.note = val('#edNote');
     if (e.type === 'body') Object.assign(raw, { fatPct: val('#edFat'), waistCm: val('#edWaist'), note: val('#edNote') });
     if (!raw.date) { $('#edErr').textContent = '日付を入れてください'; return; }
@@ -1847,45 +1945,168 @@ async function fixWithClaude(id) {
 }
 
 /* ========== 美容 ========== */
-function renderBeauty() {
-  const t = today();
-  const { active, done } = beautyStats(t);
+let beautyView = 'cosme';
+let itemFilter = 'using';
+const CAT_ORDER = ['skincare', 'makeup', 'hair', 'tool'];
+const PART_ORDER = ['base', 'eye', 'brow', 'lip', 'finish', ''];
 
-  let html = '<h2>使用中のアイテム</h2>';
-  if (!active.length) {
-    html += '<div class="empty-soft">beauty の記録を入れると、使用中のアイテムがここに並びます。</div>';
+function itemRowHTML(it) {
+  const l = latestMood(it);
+  const mood = l && l.mood ? `<span class="mood m-${l.mood}">${MOODS[l.mood]}</span>` : '';
+  const sub = [it.memo, l && l.note ? `「${l.note}」` : ''].filter(Boolean).join('　');
+  return `<div class="item-card" data-item="${esc(it.id)}"><div class="ic-main"><div class="ic-name">${esc(beautyName(it))}${it.guess ? '<span class="small muted">（推定）</span>' : ''}</div>
+    ${sub ? `<div class="ic-sub">${esc(sub)}</div>` : ''}</div><div class="ic-side">${mood}${itemFilter === 'all' ? `<span class="st st-${it.status}">${ITEM_STATUS[it.status]}</span>` : ''}</div></div>`;
+}
+
+function renderBeauty() {
+  $$('#bSeg button').forEach((b) => b.classList.toggle('on', b.dataset.b === beautyView));
+  $('#bCosme').style.display = beautyView === 'cosme' ? '' : 'none';
+  $('#bFashion').style.display = beautyView === 'fashion' ? '' : 'none';
+  if (beautyView === 'fashion') { renderFashion(); return; }
+  const items = state.beautyItems || [];
+  const counts = Object.fromEntries(Object.keys(ITEM_STATUS).map((k) => [k, items.filter((i) => i.status === k).length]));
+  $('#itemFilter').innerHTML = [...Object.entries(ITEM_STATUS), ['all', 'すべて']].map(([k, l]) =>
+    `<button data-if="${k}" class="${itemFilter === k ? 'on' : ''}">${l}${k === 'all' ? '' : ` ${counts[k]}`}</button>`).join('');
+  const list = items.filter((i) => itemFilter === 'all' || i.status === itemFilter);
+  let html = '';
+  if (!items.length) {
+    html = '<div class="card"><div class="empty-soft">投げ込みに「◯◯をアイテムに登録」と書くか、コスメの写真を入れると、ここに並びます。</div></div>';
+  } else if (!list.length) {
+    html = `<div class="card"><div class="empty-soft">「${ITEM_STATUS[itemFilter]}」のアイテムはありません。</div></div>`;
   } else {
-    Object.keys(CATEGORIES).concat(['_other']).forEach((cat) => {
-      const list = active.filter((a) => (cat === '_other' ? !CATEGORIES[a.category] : a.category === cat));
-      if (!list.length) return;
-      html += `<div class="cat-label">${esc(CATEGORIES[cat] || 'その他')}</div>`;
-      html += list.map((a) => `<div class="item-row"><div class="name">${esc(beautyName({ item: a.name, brand: a.brand }))}</div>
-        <div class="facts"><span>使用開始 <b>${fmtMD(a.start)}</b></span><span>使用 <b>${a.days}</b>日目</span><span>直近30日 <b>${a.recent}</b>回</span></div></div>`).join('');
+    CAT_ORDER.forEach((cat) => {
+      const inCat = list.filter((i) => i.category === cat);
+      if (!inCat.length) return;
+      let body = '';
+      if (cat === 'makeup') {
+        PART_ORDER.forEach((pt) => {
+          const g = inCat.filter((i) => (i.part || '') === pt);
+          if (!g.length) return;
+          body += `<div class="slot-h">${pt ? PARTS[pt] : 'そのほか'}</div>` + g.map(itemRowHTML).join('');
+        });
+      } else body = inCat.map(itemRowHTML).join('');
+      html += `<div class="card"><h2>${CATEGORIES[cat]} <span class="right small">${inCat.length}</span></h2>${body}</div>`;
     });
   }
-  $('#beautyActive').innerHTML = html;
-
-  html = '<h2>使い終わったアイテム</h2>';
-  if (!done.length) {
-    html += '<div class="empty-soft">action が finish の記録がここに残ります。</div>';
-  } else {
-    html += done.map((d) => `<div class="item-row"><div class="name">${esc(beautyName({ item: d.name, brand: d.brand }))} <span class="small muted">${esc(CATEGORIES[d.category] || d.category || '')}</span></div>
-      <div class="facts">${d.start ? `<span>${fmtMD(d.start)} 〜 ${fmtMD(d.finish)}</span><span><b>${dayDiff(d.start, d.finish) + 1}</b>日間</span>` : `<span>${fmtMD(d.finish)} 使い切り</span>`}</div></div>`).join('');
-  }
-  $('#beautyDone').innerHTML = html;
+  $('#itemList').innerHTML = html;
 
   const conds = state.entries.filter((e) => e.type === 'condition')
-    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
-  html = '<h2>体や肌の状態メモ</h2>';
-  if (!conds.length) {
-    html += '<div class="empty-soft">condition の記録が時系列でここに並びます。</div>';
-  } else {
-    html += conds.map((e) => `<div class="entry tap" data-edit="${esc(e.id)}"><span class="small muted" style="flex:0 0 64px">${fmtMDW(e.date)}</span><div class="body">${esc(e.note)}</div></div>`).join('');
-  }
-  $('#beautyCondition').innerHTML = html;
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 20);
+  $('#beautyCondition').innerHTML = '<h2>肌・髪のメモ</h2>' + (conds.length
+    ? conds.map((e) => `<div class="entry tap" data-edit="${esc(e.id)}"><span class="small muted" style="flex:0 0 64px">${fmtMDW(e.date)}</span><div class="body">${esc(e.note)}</div></div>`).join('')
+    : '<div class="empty-soft">投げ込みに「髪がパサつく」などと書くと、ここに並びます。</div>');
+}
+
+function openItem(id) {
+  const it = (state.beautyItems || []).find((x) => x.id === id);
+  if (!it) return;
+  const logs = itemLogs(it);
+  openSheet(`<h3>${esc(beautyName(it))}</h3>
+    <div class="small muted">${esc(CATEGORIES[it.category] || '')}${it.part ? '・' + esc(PARTS[it.part]) : ''}${it.memo ? '・' + esc(it.memo) : ''}　登録 ${fmtMD(it.addedOn || today())}</div>
+    <div class="sub-h" style="margin-top:12px">状態</div>
+    <div class="st-btns">${Object.entries(ITEM_STATUS).map(([k, l]) => `<button type="button" data-st="${k}" class="${it.status === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="sub-h" style="margin-top:12px">今の気持ち（タップで記録）</div>
+    <input type="text" id="itNote" placeholder="ひと言（任意）：しっとりした、香りが好き など">
+    <div class="mood-btns">${Object.entries(MOODS).map(([k, l]) => `<button type="button" data-mood="${k}" class="mood m-${k}">${l}</button>`).join('')}</div>
+    <button class="ghost" type="button" id="itNoteOnly" style="width:100%; margin-top:6px">ひと言だけ記録</button>
+    <div class="sub-h" style="margin-top:12px">これまでの記録</div>
+    <div id="itLogs">${logs.length ? logs.slice(0, 30).map((e) => `<div class="lrow" data-log="${esc(e.id)}"><span class="small muted" style="flex:0 0 56px">${fmtMD(e.date)}</span><span class="txt">${e.mood ? `<span class="mood m-${e.mood}">${MOODS[e.mood]}</span> ` : ''}${e.action === 'status' ? `→ ${esc(ITEM_STATUS[e.status] || '')} ` : ''}${esc(e.note || '')}</span></div>`).join('') : '<div class="empty-soft">気持ちを記録すると、ここに並びます。</div>'}</div>
+    <details class="more" style="margin-top:10px"><summary>名前・カテゴリを直す</summary>
+      <div class="row" style="margin-top:6px"><label class="field"><span>ブランド</span><input type="text" id="itBrand" value="${v(it.brand)}"></label></div>
+      <label class="field"><span>商品名</span><input type="text" id="itName" value="${v(it.name)}"></label>
+      <div class="row"><label class="field"><span>カテゴリ</span><select id="itCat">${Object.entries(CATEGORIES).map(([k, l]) => `<option value="${k}" ${it.category === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label class="field"><span>メイクの部分</span><select id="itPart"><option value="">—</option>${Object.entries(PARTS).map(([k, l]) => `<option value="${k}" ${it.part === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
+      <label class="field"><span>メモ（家用・外出用・お気に入りなど）</span><input type="text" id="itMemo" value="${v(it.memo)}"></label>
+      <div class="btns"><button class="danger" type="button" id="itDel">削除</button><button class="ghost" type="button" id="itSave">保存</button></div>
+    </details>
+    <div class="btns" style="margin-top:12px"><button class="ghost" id="itClose">閉じる</button></div>`);
+  const log = (fields) => {
+    const r = normalizeEntry({ type: 'beauty', date: today(), item: it.name, brand: it.brand, category: it.category, part: it.part, ...fields });
+    if (r.errors) { toast(r.errors[0]); return; }
+    addEntries([r.entry]);
+    saveState(); refreshAll(); openItem(id);
+  };
+  $('#itClose').addEventListener('click', closeSheet);
+  $$('#sheet [data-st]').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.st === it.status) return;
+    log({ action: 'status', status: b.dataset.st });
+    toast(`「${ITEM_STATUS[b.dataset.st]}」にしました`);
+  }));
+  $$('#sheet [data-mood]').forEach((b) => b.addEventListener('click', () => {
+    log({ action: 'note', mood: b.dataset.mood, note: $('#itNote').value.trim() });
+    toast(`「${MOODS[b.dataset.mood]}」を記録しました`);
+  }));
+  $('#itNoteOnly').addEventListener('click', () => {
+    const t = $('#itNote').value.trim();
+    if (!t) { toast('ひと言を書いてください'); return; }
+    log({ action: 'note', note: t });
+    toast('記録しました');
+  });
+  $('#itLogs').addEventListener('click', (ev) => { const r = ev.target.closest('[data-log]'); if (r) openEditor(r.getAttribute('data-log')); });
+  $('#itSave').addEventListener('click', () => {
+    const name = $('#itName').value.trim();
+    if (!name) { toast('商品名を入れてください'); return; }
+    const dup = findItem(name);
+    if (dup && dup.id !== it.id) { toast('同じ名前のアイテムがすでにあります'); return; }
+    const old = it.name;
+    Object.assign(it, { name, brand: $('#itBrand').value.trim(), category: $('#itCat').value, part: $('#itPart').value, memo: $('#itMemo').value.trim(), guess: false });
+    state.entries.forEach((e) => { if (e.type === 'beauty' && e.item === old) { e.item = name; e.brand = it.brand; } });
+    saveState(); toast('保存しました'); refreshAll(); openItem(id);
+  });
+  $('#itDel').addEventListener('click', () => {
+    if (!confirm('このアイテムを削除しますか？（これまでの気持ちの記録も消えます）')) return;
+    const k = itemKey(it.name);
+    state.beautyItems = state.beautyItems.filter((x) => x.id !== id);
+    state.entries = state.entries.filter((e) => !(e.type === 'beauty' && itemKey(e.item) === k));
+    saveState(); closeSheet(); toast('削除しました'); refreshAll();
+  });
+}
+
+function openItemAdd() {
+  openSheet(`<h3>アイテムを追加</h3>
+    <div class="hint" style="margin-top:0">写真や「◯◯を登録」と投げ込みに書くと、Claude が正式な名前で登録します。</div>
+    <label class="field"><span>ブランド</span><input type="text" id="iaBrand"></label>
+    <label class="field"><span>商品名</span><input type="text" id="iaName"></label>
+    <div class="row"><label class="field"><span>カテゴリ</span><select id="iaCat">${Object.entries(CATEGORIES).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label>
+      <label class="field"><span>状態</span><select id="iaSt">${Object.entries(ITEM_STATUS).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label></div>
+    <div class="btns"><button class="ghost" id="iaClose">閉じる</button><button class="primary" id="iaSave">追加</button></div>`);
+  $('#iaClose').addEventListener('click', closeSheet);
+  $('#iaSave').addEventListener('click', () => {
+    const name = $('#iaName').value.trim();
+    if (!name) { toast('商品名を入れてください'); return; }
+    if (findItem(name)) { toast('同じ名前のアイテムがすでにあります'); return; }
+    upsertItem({ name, brand: $('#iaBrand').value.trim(), category: $('#iaCat').value, status: $('#iaSt').value, date: today() });
+    saveState(); closeSheet(); toast('追加しました'); refreshAll();
+  });
+}
+
+function wishRowHTML(w) {
+  const [lo, hi] = wishRemaining(w);
+  const kg = w.done ? `${fmtMD(w.done)} 着られた` : hi <= 0 ? '着られそう' : `あと約${fmtKgRange(lo, hi)}`;
+  return `<div class="wish" data-wish="${esc(w.id)}"><div class="w-main"><div class="w-name">${esc(wishLabel(w))}</div><div class="w-sub">${esc(wishMeta(w) || 'サイズ未確認')}</div></div>
+    <div class="w-kg">${kg}<small>${w.done ? '' : esc(wishWeeks(w))}</small></div></div>`;
+}
+
+function renderFashion() {
+  const open = (state.wishes || []).filter((w) => !w.done);
+  const done = (state.wishes || []).filter((w) => w.done);
+  $('#fashionList').innerHTML = '<h2>着たい服</h2>' + (open.length ? open.map(wishRowHTML).join('')
+    : '<div class="empty-soft">ZOZOなどの商品ページやサイズ表のスクショを、投げ込みの「記録する」に入れると追加されます。「◯◯のコートが着たい」と書くだけでもOKです。</div>')
+    + '<div class="hint">タップで詳細。商品が決まったら「商品のスクショで詳しくする」で目安を出し直せます。</div>';
+  $('#fashionDone').style.display = done.length ? '' : 'none';
+  $('#fashionDone').innerHTML = '<h2>着られた服</h2>' + done.map(wishRowHTML).join('');
+}
+
+function setupBeautyTab() {
+  $('#bSeg').addEventListener('click', (ev) => { const b = ev.target.closest('[data-b]'); if (b) { beautyView = b.dataset.b; renderBeauty(); } });
+  $('#itemFilter').addEventListener('click', (ev) => { const b = ev.target.closest('[data-if]'); if (b) { itemFilter = b.dataset.if; renderBeauty(); } });
+  $('#itemList').addEventListener('click', (ev) => { const r = ev.target.closest('[data-item]'); if (r) openItem(r.getAttribute('data-item')); });
+  $('#itemAdd').addEventListener('click', openItemAdd);
+  ['#fashionList', '#fashionDone'].forEach((sel) => $(sel).addEventListener('click', (ev) => { const r = ev.target.closest('[data-wish]'); if (r) openWish(r.getAttribute('data-wish')); }));
 }
 
 function setupBeauty() {
+  setupBeautyTab();
   $('#auRun').addEventListener('click', runAudit);
   $('#beautyCondition').addEventListener('click', (ev) => {
     const a = ev.target.closest('[data-edit]');
@@ -1940,13 +2161,8 @@ let auditItems = null; // [{ kind, from, brand, name, confidence, note, oldBrand
 
 function auditTargets() {
   const map = new Map();
-  state.entries.filter((e) => e.type === 'beauty' && e.item).forEach((e) => {
-    const k = 'beauty:' + e.item;
-    const cur = map.get(k) || { kind: 'beauty', from: e.item, brand: e.brand || '', category: e.category, count: 0 };
-    cur.count++; if (e.brand) cur.brand = e.brand;
-    map.set(k, cur);
-  });
-  (state.wishes || []).forEach((w) => { if (w.name) map.set('wish:' + w.name, { kind: 'wish', from: w.name, brand: w.brand || '', count: 1 }); });
+  (state.beautyItems || []).forEach((it) => map.set('beauty:' + it.name, { kind: 'beauty', from: it.name, brand: it.brand || '', category: it.category, part: it.part || '', memo: it.memo || '' }));
+  (state.wishes || []).filter((w) => !w.done).forEach((w) => { const f = wishKey(w); map.set('wish:' + f, { kind: 'wish', from: f, brand: w.brand || '', wkind: w.kind || '', wname: w.name || '' }); });
   return [...map.values()].slice(0, 60);
 }
 
@@ -1962,9 +2178,11 @@ async function runAudit() {
     const system = `あなたは日本で売られているコスメ・スキンケア・ヘアケア・美容家電・アパレルの商品名に詳しいアシスタントです。ユーザーが記録した名前（略称・カタカナ・うろ覚えのことがある）から、店頭で見るブランド名と正式な商品名（シリーズ名・種類まで）を推定してください。${web ? 'ネット検索で確かめられるものは確かめてください。' : ''}
 - brand はブランド名（運営会社名ではない）。name は商品名（ブランド名は含めない）。
 - confidence は high（確か）/ medium（たぶん）/ low（分からない）。low のときは name に元の名前をそのまま入れる。
+- 美容アイテムは category（skincare / makeup / hair / tool）も、メイクなら part（base / eye / brow / lip / finish）も入れる。
+- 服（kind が wish）は、wkind に服の種類（コート・デニム・ブーツなど）を入れる。商品名が分からなければ name は空でよい。
 - note には一言（例：「2023年発売のリニューアル品」「よく似た商品が複数あり」）。
-出力は JSON オブジェクト1つだけ：{"items":[{"kind":"beauty|wish","from":"元の名前","brand":"","name":"","confidence":"high|medium|low","note":""}]}`;
-    const list = targets.map((t) => `- [${t.kind === 'wish' ? '服' : (CATEGORIES[t.category] || '美容')}] ${t.from}${t.brand ? `（ブランド：${t.brand}）` : ''}`).join('\n');
+出力は JSON オブジェクト1つだけ：{"items":[{"kind":"beauty|wish","from":"元の名前","brand":"","name":"","category":"","part":"","wkind":"","confidence":"high|medium|low","note":""}]}`;
+    const list = targets.map((t) => `- [${t.kind === 'wish' ? 'ファッション' : (CATEGORIES[t.category] || '美容')}] ${t.from}${t.brand ? `（ブランド：${t.brand}）` : ''}${t.memo ? `（メモ：${t.memo}）` : ''}`).join('\n');
     const tools = web ? [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5 }] : null;
     const r = await callClaude({ key, system, tools, maxTokens: 8000, text: `次の名前をチェックしてください。\n${list}`, imgs: [] });
     let obj = null;
@@ -1975,8 +2193,14 @@ async function runAudit() {
       const t = byKey.get(`${x.kind === 'wish' ? 'wish' : 'beauty'}:${toStr(x.from)}`);
       if (!t) return null;
       const conf = ['high', 'medium', 'low'].includes(x.confidence) ? x.confidence : 'low';
-      return { kind: t.kind, from: t.from, oldBrand: t.brand, brand: toStr(x.brand), name: toStr(x.name) || t.from, confidence: conf, note: toStr(x.note) };
-    }).filter((x) => x && (x.name !== x.from || x.brand !== x.oldBrand));
+      if (t.kind === 'wish') {
+        return { kind: 'wish', from: t.from, oldBrand: t.brand, brand: toStr(x.brand) || t.brand, name: toStr(x.name), wkind: toStr(x.wkind) || t.wkind, oldKind: t.wkind, oldName: t.wname, confidence: conf, note: toStr(x.note) };
+      }
+      return { kind: t.kind, from: t.from, oldBrand: t.brand, brand: toStr(x.brand), name: toStr(x.name) || t.from, category: CATEGORIES[x.category] ? x.category : t.category,
+        part: PARTS[x.part] ? x.part : t.part, oldCategory: t.category, oldPart: t.part, confidence: conf, note: toStr(x.note) };
+    }).filter((x) => x && (x.kind === 'wish'
+      ? (x.brand !== x.oldBrand || x.wkind !== x.oldKind || (x.name && x.name !== x.oldName))
+      : (x.name !== x.from || x.brand !== x.oldBrand || x.category !== x.oldCategory || x.part !== x.oldPart)));
     renderAudit();
     renderApiMeter();
   } catch (e) {
@@ -1992,7 +2216,7 @@ function renderAudit() {
   if (!auditItems.length) { el.innerHTML = '<div class="hint">直したほうがよさそうな名前は見つかりませんでした。</div>'; return; }
   const CONF = { high: '確か', medium: 'たぶん', low: '不明' };
   el.innerHTML = `<div style="margin-top:10px">${auditItems.map((x, i) => `<label class="au-row"><input type="checkbox" data-au="${i}" ${x.confidence !== 'low' ? 'checked' : ''}>
-    <span><span class="old">${esc(beautyName({ item: x.from, brand: x.oldBrand }))}</span><br>→ <b>${esc(beautyName({ item: x.name, brand: x.brand }))}</b><span class="conf ${x.confidence === 'low' ? 'low' : ''}">${CONF[x.confidence]}</span>${x.kind === 'wish' ? '<span class="conf">着たい服</span>' : ''}
+    <span><span class="old">${esc(x.kind === 'wish' ? x.from : beautyName({ item: x.from, brand: x.oldBrand }))}</span><br>→ <b>${esc(x.kind === 'wish' ? wishLabel({ brand: x.brand, kind: x.wkind, name: x.name }) : beautyName({ item: x.name, brand: x.brand }))}</b>${x.kind === 'beauty' ? `<span class="small muted"> ${esc(CATEGORIES[x.category] || '')}${x.part ? '・' + esc(PARTS[x.part]) : ''}</span>` : ''}<span class="conf ${x.confidence === 'low' ? 'low' : ''}">${CONF[x.confidence]}</span>${x.kind === 'wish' ? '<span class="conf">着たい服</span>' : ''}
     ${x.note ? `<br><span class="small muted">${esc(x.note)}</span>` : ''}</span></label>`).join('')}</div>
     <button class="primary" id="auApply" style="width:100%; margin-top:8px">選んだものを直す</button>`;
   $('#auApply').addEventListener('click', applyAudit);
@@ -2004,14 +2228,23 @@ function applyAudit() {
   let n = 0;
   picks.forEach((x) => {
     if (x.kind === 'beauty') {
-      state.entries.forEach((e) => {
-        if (e.type === 'beauty' && e.item === x.from) { e.item = x.name; e.brand = x.brand; e.guess = x.confidence !== 'high'; n++; }
-      });
+      const it = (state.beautyItems || []).find((i) => i.name === x.from);
+      const same = findItem(x.name);
+      if (it && same && same.id !== it.id) {
+        // 同じ商品だった → 1つにまとめる（使用中を優先）
+        if (it.status === 'using') same.status = 'using';
+        if (!same.memo && it.memo) same.memo = it.memo;
+        if (it.addedOn && (!same.addedOn || it.addedOn < same.addedOn)) same.addedOn = it.addedOn;
+        Object.assign(same, { brand: x.brand, category: x.category, part: x.part, guess: x.confidence !== 'high' });
+        state.beautyItems = state.beautyItems.filter((i) => i.id !== it.id);
+        n++;
+      } else if (it) { Object.assign(it, { name: x.name, brand: x.brand, category: x.category, part: x.part, guess: x.confidence !== 'high' }); n++; }
+      state.entries.forEach((e) => { if (e.type === 'beauty' && e.item === x.from) { e.item = x.name; e.brand = x.brand; } });
     } else {
-      (state.wishes || []).forEach((w) => { if (w.name === x.from) { w.name = x.name; w.brand = x.brand; n++; } });
+      (state.wishes || []).forEach((w) => { if (wishKey(w) === x.from) { w.brand = x.brand; w.kind = x.wkind; if (x.name) w.name = x.name; n++; } });
     }
   });
-  if (saveState()) { toast(`${n}件の記録の名前を直しました`); auditItems = null; renderAudit(); refreshAll(); }
+  if (saveState()) { toast(`${n}件の名前を直しました`); auditItems = null; renderAudit(); refreshAll(); }
 }
 
 /* ========== 設定 ========== */
@@ -2138,11 +2371,12 @@ function parseImport(text) {
   const workoutPresets = (Array.isArray(obj.workoutPresets) ? obj.workoutPresets : []).map((x) => ({ x, r: normalizePreset(x) })).filter((o) => o.r.preset)
     .map((o) => ({ ...o.r.preset, id: o.x.id ? String(o.x.id) : uid() }));
   const links = obj.links && typeof obj.links.projectUrl === 'string' && /^https:\/\/claude\.ai\//.test(obj.links.projectUrl) ? { projectUrl: obj.links.projectUrl } : null;
-  const wishes = (Array.isArray(obj.wishes) ? obj.wishes : []).filter((w) => w && typeof w === 'object' && toStr(w.name))
+  const beautyItems = Array.isArray(obj.beautyItems) ? obj.beautyItems.filter((x) => x && typeof x === 'object' && toStr(x.name)).map((x) => ({ ...x, id: x.id ? String(x.id) : uid() })) : null;
+  const wishes = (Array.isArray(obj.wishes) ? obj.wishes : []).filter((w) => w && typeof w === 'object' && (toStr(w.name) || toStr(w.kind)))
     .map((w) => ({ ...w, id: w.id ? String(w.id) : uid() }));
   const exerciseMets = {};
   Object.entries(asObj(obj.exerciseMets)).forEach(([k, v]) => { const m = validMets(v && v.mets != null ? v.mets : v); if (toStr(k) && m) exerciseMets[toStr(k)] = { mets: m, by: 'claude' }; });
-  return { entries, comments, favorites, workoutPresets, wishes, exerciseMets, links, prompts, settings, bad };
+  return { entries, comments, favorites, workoutPresets, wishes, beautyItems, exerciseMets, links, prompts, settings, bad };
 }
 
 function doImport(mode) {
@@ -2154,11 +2388,13 @@ function doImport(mode) {
     state = {
       version: 1, entries: [], comments: data.comments, favorites: data.favorites, workoutPresets: data.workoutPresets, wishes: data.wishes,
       exerciseMets: data.exerciseMets || state.exerciseMets || {},
+      beautyItems: data.beautyItems || [],
       links: data.links || state.links || {},
       prompts: data.prompts || state.prompts, promptLog: {}, reviewLog: {},
       settings: data.settings ? { ...base.settings, ...data.settings } : state.settings,
     };
     addEntries(data.entries);
+    migrateWishes();
     if (saveState()) toast(`置き換えました（${state.entries.length}件）${data.bad.length ? `・除外${data.bad.length}件` : ''}`);
   } else {
     const r = addEntries(data.entries, { dedupe: true });
@@ -2210,7 +2446,7 @@ function buildWeekText() {
   lines.push(monthLine.join(' / '));
 
   const { active } = beautyStats(t);
-  if (active.length) lines.push(`使用中の美容アイテム: ${active.map((a) => `${a.name}（${a.days}日目・直近30日${a.recent}回）`).join('、')}`);
+  if (active.length) lines.push(`使用中の美容アイテム: ${active.map((a) => beautyName(a)).join('、')}`);
 
   for (let d = from; d <= t; d = addDays(d, 1)) {
     const es = state.entries.filter((e) => e.date === d).sort(sortEntriesInDay);
@@ -2301,14 +2537,18 @@ function buildContext() {
   lines.push(`体重の7日平均の推移: ${avgs.length ? avgs.slice().reverse().map((x) => `${x.d ? `${x.d}日前` : '今日'} ${x.v.toFixed(1)}kg`).join(' → ') : '（記録なし）'}`);
 
   const { active } = beautyStats(t);
-  lines.push(`使用中の美容アイテム: ${active.length ? active.map((a) => `${beautyName({ item: a.name, brand: a.brand })}（${CATEGORIES[a.category] || a.category}・使用${a.days}日目・直近30日${a.recent}回）`).join('、') : '（なし）'}`);
+  const items = state.beautyItems || [];
+  const moodOf = (it) => { const l = latestMood(it); return l ? `${l.mood ? MOODS[l.mood] : ''}${l.note ? `「${l.note}」` : ''}` : ''; };
+  lines.push(`美容アイテム（使用中）: ${active.length ? active.map((a) => `${beautyName(a)}［${CATEGORIES[a.category] || a.category}${a.part ? '・' + PARTS[a.part] : ''}］${a.memo ? `（${a.memo}）` : ''}${moodOf(a) ? ` 最近の気持ち：${moodOf(a)}` : ''}`).join('、') : '（なし）'}`);
+  const others = items.filter((i) => i.status !== 'using');
+  if (others.length) lines.push(`美容アイテム（ストック・お休み・使い切り）: ${others.map((i) => `${beautyName(i)}（${ITEM_STATUS[i.status]}）`).join('、')}`);
 
   if (s.fatTarget != null) lines.push(`からだの目標: 体脂肪率 ${s.fatTarget}%`);
   const bodies = state.entries.filter((e) => e.type === 'body').sort((a, b) => a.date.localeCompare(b.date)).slice(-5);
   if (bodies.length) lines.push(`体脂肪率・腹囲の推移: ${bodies.map((e) => `${e.date} ${bodyText(e, true)}`).join(' → ')}`);
   if (s.heightCm != null) lines.push(`身長: ${s.heightCm}cm`);
   const ws = (state.wishes || []).filter((w) => !w.done);
-  if (ws.length) lines.push(`着たい服: ${ws.map((w) => `${w.name}（${wishMeta(w)}、あと約${fmtKgRange(...wishRemaining(w))}）`).join('、')}`);
+  if (ws.length) lines.push(`着たい服（id付き）:\n${ws.map((w) => `- id=${w.id} ${wishLabel(w)}（${wishMeta(w) || 'サイズ未確認'}、あと約${fmtKgRange(...wishRemaining(w))}）`).join('\n')}`);
   const presets = state.workoutPresets || [];
   if (presets.length) lines.push(`いつもの運動: ${presets.map((p) => `${p.name}（${workoutText(p.items)}）`).join('、')}`);
   const ef = estimateFat(bodyWeightFor(t));
@@ -2340,14 +2580,15 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
     {"date":"YYYY-MM-DD","type":"weight","kg":数値},
     {"date":"YYYY-MM-DD","type":"meal","label":"料理名","slot":"breakfast|lunch|dinner|snack","kcal":数値,"p":数値,"f":数値,"c":数値,"treat":真偽値,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":数値,"sets":数値,"minutes":数値,"mets":一覧にない種目だけ数値}],"note":"任意"},
-    {"date":"YYYY-MM-DD","type":"beauty","brand":"ブランド名","item":"商品名","guess":真偽値,"category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
+    {"date":"YYYY-MM-DD","type":"beauty","brand":"ブランド名","item":"商品名","guess":真偽値,"category":"skincare|makeup|hair|tool","part":"base|eye|brow|lip|finish（メイクのみ）","action":"add|note|status","status":"using|stock|rest|done（statusのとき）","mood":"good|repeat|soso|ng（気持ちが分かるとき）","note":"任意"},
     {"date":"YYYY-MM-DD","type":"condition","note":"体や肌の状態メモ"},
     {"date":"YYYY-MM-DD","type":"body","fatPct":体脂肪率の数値,"waistCm":腹囲cmの数値,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"steps","steps":歩数,"km":歩いた距離kmの数値}
   ],
   "updates":[{"id":"既存の記録のid","entry":{直したあとの記録（上と同じ形）}}],
   "deletes":["消してほしいと言われた記録のid"],
-  "wishes":[{"name":"商品名","brand":"ブランド","size":"サイズ","sizeInfo":"サイズ表の要点","loseKgMin":数値,"loseKgMax":数値,"basis":"何から判断したか","exercise":"運動の目安"}],
+  "wishUpdates":[{"id":"既存の着たい服のid","name":"商品名","kind":"服の種類","brand":"ブランド","size":"サイズ","sizeInfo":"","loseKgMin":数値,"loseKgMax":数値,"basis":"","exercise":""}],
+  "wishes":[{"name":"商品名（分からなければ空）","kind":"服の種類（コート・デニム・ブーツなど）","brand":"ブランド","size":"サイズ","sizeInfo":"サイズ表の要点","loseKgMin":数値,"loseKgMax":数値,"basis":"何から判断したか","exercise":"運動の目安"}],
   "comment":"提案コメント"
 }
 
@@ -2358,13 +2599,21 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 - treat は、ユーザーがご褒美・チートと言っているか、明らかに特別な外食やスイーツのときに true。
 - 美容アイテムやアパレルは、略称・カタカナ・うろ覚えの書き方からでも、ブランド名と正式な商品名（シリーズ名・種類まで）を推定して記録する。例：「ラロッシュのシカ」→ brand「ラ ロッシュ ポゼ」、item「シカプラスト リペアクリーム B5+」。ブランドの運営会社名ではなく、店頭で見るブランド名を brand にする。
 - 名前に確信がないときは guess を true にする。それらしい候補があればそれを使い、まったく分からなければ書かれたとおりにする。
-- 美容アイテムは、すでに使用中のアイテムと同じものなら同じ名前に揃える。新しく使い始めたら start、使い切ったら finish、それ以外は use。
+- 美容アイテムは「アイテム」として登録し、使用回数は数えない。
+  - 持っているもの・使い始めたもの・「デッキに登録」と言われたものは action「add」（note には「家用」「外出用」「お気に入り」「医薬品」などアイテムの情報だけ）。
+  - 使用感・感想・続けたい気持ちは action「note」。気持ちが読み取れれば mood（good=いい感じ / repeat=リピしたい / soso=ふつう / ng=合わないかも）を付け、note に短くそのまま書く。
+  - 使い切った・しばらくやめる・買い置きした は action「status」で status（done=使い切り / rest=お休み / stock=ストック / using=使用中）。
+  - メイクは part（base=ベース / eye=アイ / brow=眉 / lip=リップ / finish=仕上げ）も入れる。
+  - 下の「美容アイテム」にあるものと同じなら、その名前に揃える。
 - 体や肌の状態についての言及は condition にする。
-- 「【コスメの所感】」として書かれた内容は、アイテムごとに condition にする（note は「アイテム名：所感」）。使用回数は増やさない。
+- 「【コスメの所感】」として書かれた内容は、アイテムごとに beauty の note にする（気持ちが読み取れれば mood も）。
 - 記録にあたる内容がなければ entries は空配列にして、comment だけ返す。
 
 # 着たい服（ZOZOTOWN などの商品ページのスクショ）
 - 服の商品ページやサイズ表のスクショなら、記録（entries）は作らずに wishes に入れる。
+- kind には必ず服の種類（コート・ジャケット・デニム・パンツ・スカート・ワンピース・ニット・ブーツなど）を入れる。name は商品名（分からなければ空。種類やブランドは name に入れない）。
+- 「【着たい服を詳しく】id=…」と書かれていたら、新しく作らずに wishUpdates でその id の着たい服を更新する（スクショから分かった項目だけでよい）。
+- 「◯◯のコートが着たい」のように商品が決まっていない目標も wishes にしてよい（サイズ未確認として目安を出す）。
 - 商品名・ブランド・選んでいるサイズ・サイズ表（ウエスト・ヒップ・着丈など）を読み取る。サイズが分からなければ、いちばん一般的なサイズとして考える。
 - 下の状況（身長・体重の7日平均・体脂肪率の推定・腹囲の記録）とサイズ表を比べて、そのサイズを無理なく着られる目安までに減らすとよい体重を、幅で loseKgMin〜loseKgMax（kg、0以上）として出す。すでに着られそうなら 0。
 - サイズ表が読めないときは、ブランドやアイテムの一般的な傾向（細身・ゆったりなど）から推定し、basis にそう書く。
@@ -2382,7 +2631,7 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 - 画像は複数届くことがある。1枚ずつ何の画像かを見分けて、すべて記録にする。
 - フードデリバリー（Uber Eats など）の注文画面・注文履歴：注文した品を1品ずつ meal にする。店名は note に入れる。数量が2以上なら量に合わせて見積もる。画面に日付があればその日付、なければ今日。
 - 食事の写真：写っている料理と量から meal を見積もる。複数の料理が1枚に写っていれば、定食などひとまとまりなら1件、別々の料理なら分けてよい。
-- コスメ・スキンケア・ヘアケア用品の写真：beauty の use にする。商品名が読めればその名前、読めなければ見た目から短く名付ける。使用中のアイテムと同じものに見えれば、その名前に揃える。
+- コスメ・スキンケア・ヘアケア用品の写真：まだないアイテムなら beauty の add、すでにあるアイテムで感想が書かれていれば note。商品名が読めればその名前、読めなければ見た目から短く名付ける。
 - 体重計やヘルスケアアプリのスクショ：weight にする。体脂肪率が写っていれば body も作る。
 - 健康診断の結果（画像でも文章でも）：書かれている日付ごとに weight と body（体脂肪率・腹囲）を作る。過去の日付でもそのまま使う。
 - 運動アプリ・フィットネス機器のスクショ：workout にする。
@@ -2401,6 +2650,7 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 # commentのトーン
 ${TONE_RULES}
 - 2〜4文程度。今月の枠の中での配分や、次の食事での整え方を具体的に。
+- 記録がない日・少ない期間には触れない（抜けを指摘しない）。
 - 消費カロリーの概算は参考情報として扱い、「運動で相殺する」「消費を増やして取り返す」ような提案はしない。
 - 美容アイテムの使用が偏っている（あるアイテムだけ直近の回数が少ない、など）ときや、しばらく状態メモがないときは、ときどき（毎回ではなく）状態を聞く短い質問を最後に1つ入れる。例：「最近、髪のパサつきはどうですか？」
 
@@ -2495,7 +2745,7 @@ function setupAI() {
     // JSON（ショートカットやチャットの返答）ならAPIを使わずに読む
     if (!images.length) {
       const local = extractPayload(text);
-      if (local && (local.entries.length || local.updates.length || local.deletes.length || local.wishes.length)) { setPendingFromPayload(local); return; }
+      if (local && (local.entries.length || local.updates.length || local.deletes.length || local.wishes.length || local.wishUpdates.length)) { setPendingFromPayload(local); return; }
     }
     const api = loadApi();
     if (!api.key) { toast('設定でAPIキーを入れてください'); return; }
@@ -3510,7 +3760,7 @@ function reviewDue(type, t = today()) {
   if (!base || dayDiff(base, t) < REVIEW_INTERVAL_DAYS) return false;
   const since = state.entries.filter((e) => !last || e.date > last);
   if (type === 'pfc') return since.filter((e) => e.type === 'meal').length >= 5;
-  if (type === 'beauty') return since.filter((e) => e.type === 'beauty').length >= 3 && beautyStats(t).active.length > 0;
+  if (type === 'beauty') return beautyStats().active.length > 0 && (state.beautyItems || []).some((i) => i.addedOn && i.addedOn <= addDays(t, -REVIEW_INTERVAL_DAYS));
   if (type === 'workout') return since.length >= 5 && !state.entries.some((e) => e.type === 'workout' && e.date > addDays(t, -REVIEW_INTERVAL_DAYS));
   return false;
 }
@@ -3601,19 +3851,27 @@ const fmtKgRange = (a, b) => {
   const lo = Math.max(0, round1(Math.min(a, b))), hi = Math.max(0, round1(Math.max(a, b)));
   return lo === hi ? `${fmtNum(lo, 1)}kg` : `${fmtNum(lo, 1)}〜${fmtNum(hi, 1)}kg`;
 };
-const wishMeta = (w) => [w.brand, w.size ? `サイズ ${w.size}` : '', w.sizeInfo].filter(Boolean).join('・');
+// 表示名：「ブランド の 種類」「ブランド の 種類「商品名」」
+const wishLabel = (w) => {
+  const head = [toStr(w.brand), toStr(w.kind)].filter(Boolean).join(' の ');
+  const nm = toStr(w.name);
+  return head ? (nm ? `${head}「${nm}」` : head) : (nm || '着たい服');
+};
+const wishKey = (w) => wishLabel(w);
+const wishMeta = (w) => [w.size ? `サイズ ${w.size}` : '', w.sizeInfo].filter(Boolean).join('・');
 
 function normalizeWish(raw) {
-  const name = toStr(raw.name) || toStr(raw.brand);
-  if (!name) return null;
+  let name = toStr(raw.name), kind = toStr(raw.kind);
+  if (!kind && WISH_KINDS.includes(name)) { kind = name; name = ''; }
+  if (!name && !kind && !toStr(raw.brand)) return null;
   const errs = [];
   let a = toNum(raw.loseKgMin, 'loseKgMin', errs), b = toNum(raw.loseKgMax, 'loseKgMax', errs);
   if (a == null && b == null) { a = 0; b = 0; }
   if (a == null) a = b;
   if (b == null) b = a;
   a = Math.min(30, a); b = Math.min(30, b);
-  return { name, brand: toStr(raw.brand), size: toStr(raw.size), sizeInfo: toStr(raw.sizeInfo), basis: toStr(raw.basis), exercise: toStr(raw.exercise),
-    loseMin: Math.min(a, b), loseMax: Math.max(a, b) };
+  return { name, kind, brand: toStr(raw.brand), size: toStr(raw.size), sizeInfo: toStr(raw.sizeInfo), basis: toStr(raw.basis), exercise: toStr(raw.exercise),
+    loseMin: Math.min(a, b), loseMax: Math.max(a, b), hasLose: raw.loseKgMin != null || raw.loseKgMax != null };
 }
 
 // 今の7日平均から見た「あと何kg」
@@ -3639,7 +3897,7 @@ function renderWishes() {
   el.innerHTML = '<h2>着たい服 <span class="right small">目安</span></h2>' + list.map((w) => {
     const [lo, hi] = wishRemaining(w);
     const kg = hi <= 0 ? '着られそう' : `あと約${fmtKgRange(lo, hi)}`;
-    return `<div class="wish" data-wish="${esc(w.id)}"><div class="w-main"><div class="w-name">${esc(w.name)}</div><div class="w-sub">${esc(wishMeta(w))}</div></div>
+    return `<div class="wish" data-wish="${esc(w.id)}"><div class="w-main"><div class="w-name">${esc(wishLabel(w))}</div><div class="w-sub">${esc(wishMeta(w) || 'サイズ未確認')}</div></div>
       <div class="w-kg">${kg}<small>${esc(wishWeeks(w))}</small></div></div>`;
   }).join('') + '<div class="hint">体重の7日平均とサイズ表・ブランドの傾向から出した目安です。</div>';
 }
@@ -3648,25 +3906,43 @@ function openWish(id) {
   const w = state.wishes.find((x) => x.id === id);
   if (!w) return;
   const [lo, hi] = wishRemaining(w);
-  openSheet(`<h3>${esc(w.name)}</h3>
+  openSheet(`<h3>${esc(wishLabel(w))}</h3>
     <div class="plan">
-      ${wishMeta(w) ? `<div class="row2"><span class="k">ブランド・サイズ</span><span>${esc(wishMeta(w))}</span></div>` : ''}
+      <div class="row2"><span class="k">サイズ</span><span>${esc(wishMeta(w) || '未確認')}</span></div>
       <div class="row2"><span class="k">今からの目安</span><span><b>${hi <= 0 ? '着られそう' : `あと約${fmtKgRange(lo, hi)}`}</b></span></div>
       ${wishWeeks(w) ? `<div class="row2"><span class="k">今のペースで</span><span>${esc(wishWeeks(w))}</span></div>` : ''}
       ${w.exercise ? `<div class="row2"><span class="k">運動の目安</span><span>${esc(w.exercise)}</span></div>` : ''}
     </div>
     ${w.basis ? `<div class="hint">${esc(w.basis)}</div>` : ''}
-    <div class="hint">登録した日：${fmtMD(w.addedOn || today())}（そのときの目安 あと約${fmtKgRange(w.loseMin || 0, w.loseMax || 0)}）</div>
-    <div class="btns" style="margin-top:12px"><button class="danger" id="wsDel">削除</button><button class="ghost" id="wsClose">閉じる</button><button class="primary" id="wsDone">着られた！</button></div>`);
+    ${w.done ? '' : '<button class="ghost" id="wsShot" style="width:100%; margin-top:10px">商品のスクショで詳しくする</button>'}
+    <details class="more" style="margin-top:8px"><summary>名前・サイズを直す</summary>
+      <div class="row" style="margin-top:6px"><label class="field"><span>ブランド</span><input type="text" id="wsBrand" value="${v(w.brand)}"></label>
+        <label class="field"><span>種類</span><input type="text" id="wsKind" list="wishKinds" value="${v(w.kind)}"></label></div>
+      <datalist id="wishKinds">${WISH_KINDS.map((k) => `<option value="${k}">`).join('')}</datalist>
+      <label class="field"><span>商品名（任意）</span><input type="text" id="wsName" value="${v(w.name)}"></label>
+      <label class="field"><span>サイズ</span><input type="text" id="wsSize" value="${v(w.size)}"></label>
+      <button class="ghost" id="wsSave" style="width:100%">保存</button>
+    </details>
+    <div class="btns" style="margin-top:12px"><button class="danger" id="wsDel">削除</button><button class="ghost" id="wsClose">閉じる</button>${w.done ? '' : '<button class="primary" id="wsDone">着られた！</button>'}</div>`);
   $('#wsClose').addEventListener('click', closeSheet);
   $('#wsDel').addEventListener('click', () => {
     if (!confirm('この服をリストから消しますか？')) return;
     state.wishes = state.wishes.filter((x) => x.id !== id);
     saveState(); closeSheet(); refreshAll();
   });
-  $('#wsDone').addEventListener('click', () => {
+  $('#wsSave').addEventListener('click', () => {
+    Object.assign(w, { brand: $('#wsBrand').value.trim(), kind: $('#wsKind').value.trim(), name: $('#wsName').value.trim(), size: $('#wsSize').value.trim() });
+    saveState(); toast('保存しました'); refreshAll(); openWish(id);
+  });
+  if ($('#wsDone')) $('#wsDone').addEventListener('click', () => {
     w.done = today();
     saveState(); closeSheet(); toast('おめでとうございます！'); refreshAll();
+  });
+  if ($('#wsShot')) $('#wsShot').addEventListener('click', () => {
+    closeSheet();
+    $('#dropText').value = `【着たい服を詳しく】id=${w.id} ${wishLabel(w)}\n`;
+    goInput('input');
+    toast('商品ページやサイズ表のスクショを追加して「記録する」を押してください');
   });
 }
 
