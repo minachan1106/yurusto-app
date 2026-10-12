@@ -56,6 +56,7 @@
   favorites: [ { id, label, kcal, p, f, c, treat } ],   // よく頼むメニュー
   workoutPresets: [ { id, name, items: [ { name, reps, sets, minutes } ] } ],   // いつもの運動
   links: { projectUrl },      // claude.ai のチャットのプロジェクト
+  exerciseMets: { 種目名: { mets, by: "claude" } },   // 一覧にない種目の強さ（Claudeの推定）
   wishes: [ { id, name, brand, size, sizeInfo, basis, exercise, loseMin, loseMax, targetLow, targetHigh, addedOn, done } ],   // 着たい服
   settings: {
     weightMin, weightMax,       // 目標体重の範囲（kg）
@@ -222,3 +223,9 @@
 - ZOZOTOWN などの商品ページ・サイズ表のスクショを「記録する」に入れると、Claude が `wishes` として返す（記録は作らない）。商品名・ブランド・サイズ・サイズ表の要点を読み、身長・体重の7日平均・体脂肪率の推定・腹囲の記録と比べて「あと約◯〜◯kg」（loseKgMin〜Max）を幅で出す。サイズ表がなければブランドやアイテムの傾向から推定し、根拠を basis に書く。運動の目安（いつもの運動をもとに週あたり）も添える。
 - 保存時に、その時点の7日平均から目標体重（targetLow〜targetHigh）に直して持つ。ホームの「着たい服」カードは今の7日平均との差で「あと約◯kg」と、減らすペース（未設定は0.25kg/週）での週数を表示。差がなくなれば「着られそう」。
 - タップで詳細（根拠・運動の目安・登録時の目安）、「着られた！」で非表示、削除。エクスポート対象。
+
+### フェーズG4（一覧にない種目の強さを Claude が推定）
+- 運動の強さは「記録に付いた mets → 種目一覧 → exerciseMets（Claudeの推定）→ 名前からの判定 → 筋トレ相当3.5」の順で決める。
+- 一覧にない種目名が出てきたら（運動フォームで「その他」を入れたとき、運動を保存したとき、起動時に過去の記録・いつもの運動にあるとき）、APIキーがあれば Claude に METs をまとめて推定してもらい、`exerciseMets` に保存。過去の記録も自動で再計算される。同じ名前は一度だけ頼む。0.9〜20 以外の値は使わない。
+- 投げ込みでは、一覧にない種目に items[].mets を付けて返すよう指示し、届いた値も `exerciseMets` に覚える。
+- 運動フォームの内訳に「強さ◯・Claudeの推定」／「強さ◯・仮」を表示。設定の「いつもの運動」に推定済みの一覧を表示。
