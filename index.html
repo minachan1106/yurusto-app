@@ -641,7 +641,7 @@
       <div class="card" id="beautyCondition"></div>
     <details class="card review-box" id="auditCard">
       <summary>商品名をチェック</summary>
-      <div class="small muted">これまでの美容アイテムと着たい服の名前を Claude が見直し、正式な名前の候補を出すよ。選んだものだけ、過去の記録もまとめて直します。</div>
+      <div class="small muted">これまでの美容アイテムと着たい服の名前を Claude が見直し、正式な名前の候補を出すよ。選んだものだけ、過去の記録もまとめて直すよ</div>
       <label class="check" style="margin-top:8px"><input type="checkbox" id="auWeb">ネットで調べる（精度が上がる・少し料金が増える）</label>
       <button class="primary" id="auRun" style="width:100%">チェックする</button>
       <div id="auResult"></div>
@@ -892,7 +892,6 @@ function makeUndo(beforeSnap, msg = '取り消したよ') {
       });
     });
     closeSheet();
-    pending = null; renderPreview();
     if (saveState()) { toast(msg); refreshAll(); }
   };
 }
@@ -1111,7 +1110,7 @@ function normalizeEntry(raw) {
     e.fatPct = toNum(raw.fatPct, 'fatPct', errors);
     e.waistCm = toNum(raw.waistCm, 'waistCm', errors);
     e.note = note;
-    if (e.fatPct === null && e.waistCm === null) errors.push('体脂肪率が空です（消すときは「削除」）');
+    if (e.fatPct === null && e.waistCm === null) errors.push('体脂肪率が空だよ（消すときは「削除」）');
     if (e.fatPct !== null && (e.fatPct < 3 || e.fatPct > 70)) errors.push(`fatPct「${e.fatPct}」が範囲外です`);
     if (e.waistCm !== null && (e.waistCm < 40 || e.waistCm > 200)) errors.push(`waistCm「${e.waistCm}」が範囲外です`);
   }
@@ -1706,7 +1705,8 @@ function setPendingFromPayload(payload, { show = true, date = null } = {}) {
 function pendingIsSimple(p) {
   if (!p) return false;
   const ok = p.items.filter((it) => it.entry);
-  return ok.length > 0 && ok.length === p.items.length && !p.items.some((it) => it.supersededInBatch)
+  const overwrites = ok.some((it) => it.overwrite || (['care', 'steps', 'body'].includes(it.entry.type) && state.entries.some((e) => e.type === it.entry.type && e.date === it.entry.date)));
+  return ok.length > 0 && ok.length === p.items.length && !p.items.some((it) => it.supersededInBatch) && !overwrites
     && !(p.updates || []).length && !(p.deletes || []).length && !(p.wishes || []).length && !(p.wishUps || []).length;
 }
 
@@ -1721,8 +1721,8 @@ function renderPreview() {
   Array.from(byDate.keys()).sort().reverse().forEach((d) => {
     html += `<div class="day-head" style="margin-top:8px"><span class="d">${fmtMDW(d)}</span></div>`;
     byDate.get(d).sort((a, b) => sortEntriesInDay(a.entry, b.entry)).forEach((it) => {
-      const flag = it.supersededInBatch ? '<div class="meta">同じ日の体重がこの中に複数あるため、後の値を使います</div>'
-        : it.overwrite ? '<div class="meta">同じ日の体重を上書きします</div>' : '';
+      const flag = it.supersededInBatch ? '<div class="meta">同じ日の体重が複数あるから、後の値を使うね</div>'
+        : it.overwrite ? '<div class="meta">同じ日の体重を上書きするよ</div>' : '';
       html += `<div class="entry"><span class="chip ${it.entry.type}">${TYPE_LABEL[it.entry.type]}</span><div class="body">${entryBodyHTML(it.entry)}${flag}</div></div>`;
     });
   });
@@ -2120,7 +2120,7 @@ function openEditor(id, opts = {}) {
   });
   if (e.type === 'meal') {
     $('#edFav').addEventListener('click', () => {
-      const r = upsertFavorite({ label: $('#edLabel').value, kcal: $('#edKcal').value, p: $('#edP').value, f: $('#edF').value, c: $('#edC').value, treat: $('#edTreat').checked });
+      const r = upsertFavorite({ label: $('#edLabel').value, kcal: $('#edKcal').value, p: $('#edP').value, f: $('#edF').value, c: $('#edC').value, treat: $('#edTreat').checked, src: $('#edSrc').value });
       if (r.error) { $('#edErr').textContent = r.error; return; }
       if (saveState()) { toast(r.updated ? 'いつものメニュー、更新したよ' : '登録したよ！次からワンタップだよ'); $('#edFav').textContent = 'いつものメニューを更新'; }
     });
@@ -2163,7 +2163,7 @@ function openEditor(id, opts = {}) {
     if (!raw.date) { $('#edErr').textContent = '日付を入れてね'; return; }
     const r = normalizeEntry(raw);
     if (r.errors) { $('#edErr').innerHTML = r.errors.map(esc).join('<br>'); return; }
-    if ((e.type === 'weight' || e.type === 'steps') && state.entries.some((x) => x.id !== id && x.type === e.type && x.date === r.entry.date)) {
+    if (['weight', 'steps', 'care'].includes(e.type) && state.entries.some((x) => x.id !== id && x.type === e.type && x.date === r.entry.date)) {
       if (!confirm(`${fmtMD(r.entry.date)}の${TYPE_LABEL[e.type]}はもうあるよ。上書きする？`)) return;
       state.entries = state.entries.filter((x) => !(x.id !== id && x.type === e.type && x.date === r.entry.date));
     }
@@ -2671,12 +2671,17 @@ function parseImport(text) {
   const workoutPresets = (Array.isArray(obj.workoutPresets) ? obj.workoutPresets : []).map((x) => ({ x, r: normalizePreset(x) })).filter((o) => o.r.preset)
     .map((o) => ({ ...o.r.preset, id: o.x.id ? String(o.x.id) : uid() }));
   const links = obj.links && typeof obj.links.projectUrl === 'string' && /^https:\/\/claude\.ai\//.test(obj.links.projectUrl) ? { projectUrl: obj.links.projectUrl } : null;
-  const beautyItems = Array.isArray(obj.beautyItems) ? obj.beautyItems.filter((x) => x && typeof x === 'object' && toStr(x.name)).map((x) => ({ ...x, id: x.id ? String(x.id) : uid() })) : null;
+  // 9. 中身を確かめてから取り込む（状態は決まった値だけ、日付は形式を確認）
+  const okDate = (d) => (isValidYMD(d) ? d : undefined);
+  const beautyItems = Array.isArray(obj.beautyItems) ? obj.beautyItems.filter((x) => x && typeof x === 'object' && toStr(x.name))
+    .map((x) => ({ ...x, id: x.id ? String(x.id) : uid(), name: toStr(x.name), brand: toStr(x.brand), memo: toStr(x.memo), status: ITEM_STATUS[x.status] ? x.status : 'using',
+      category: CATEGORIES[x.category] ? x.category : 'skincare', part: PARTS[x.part] ? x.part : '', addedOn: okDate(x.addedOn) })) : null;
+  const easyDays = Object.fromEntries(Object.keys(asObj(obj.easyDays)).filter(isValidYMD).map((d) => [d, 1]));
   const wishes = (Array.isArray(obj.wishes) ? obj.wishes : []).filter((w) => w && typeof w === 'object' && (toStr(w.name) || toStr(w.kind)))
-    .map((w) => ({ ...w, id: w.id ? String(w.id) : uid() }));
+    .map((w) => ({ ...w, id: w.id ? String(w.id) : uid(), done: okDate(w.done), addedOn: okDate(w.addedOn) }));
   const exerciseMets = {};
   Object.entries(asObj(obj.exerciseMets)).forEach(([k, v]) => { const m = validMets(v && v.mets != null ? v.mets : v); if (toStr(k) && m) exerciseMets[toStr(k)] = { mets: m, by: 'claude' }; });
-  return { entries, comments, favorites, workoutPresets, wishes, beautyItems, exerciseMets, links, settings, bad };
+  return { entries, comments, favorites, workoutPresets, wishes, beautyItems, exerciseMets, links, settings, easyDays, bad };
 }
 
 function doImport(mode) {
@@ -2690,7 +2695,7 @@ function doImport(mode) {
       exerciseMets: data.exerciseMets || state.exerciseMets || {},
       beautyItems: data.beautyItems || [],
       links: data.links || state.links || {},
-      reviewLog: {},
+      reviewLog: {}, easyDays: data.easyDays || {},
       settings: data.settings ? { ...base.settings, ...data.settings } : state.settings,
     };
     addEntries(data.entries);
@@ -2712,14 +2717,15 @@ function doImport(mode) {
     let iAdded = 0, wAdded = 0;
     (data.beautyItems || []).forEach((it) => { if (!findItem(it.name)) { state.beautyItems.push({ ...it, id: state.beautyItems.some((x) => x.id === it.id) ? uid() : it.id }); iAdded++; } });
     const wKeys = new Set((state.wishes || []).map(wishKey));
-    data.wishes.forEach((w) => { if (!state.wishes.some((x) => x.id === w.id) && !wKeys.has(wishKey(w))) { state.wishes.push(w); wAdded++; } });
+    data.wishes.forEach((w) => { if (!state.wishes.some((x) => x.id === w.id) && !wKeys.has(wishKey(w))) { const { pin, ...rest } = w; state.wishes.push(rest); wAdded++; } });
+    state.easyDays = { ...(data.easyDays || {}), ...(state.easyDays || {}) };
     migrateWishes();
     if (saveState()) {
       const parts = [`追加${r.added}件`];
       if (fAdded) parts.push(`登録メニュー${fAdded}件`);
       if (iAdded) parts.push(`アイテム${iAdded}件`);
       if (wAdded) parts.push(`着たい服${wAdded}件`);
-      if (r.replaced) parts.push(`体重の上書き${r.replaced}件`);
+      if (r.replaced) parts.push(`同じ日の上書き${r.replaced}件`);
       if (r.skipped) parts.push(`同じ記録${r.skipped}件はスキップ`);
       if (cAdded) parts.push(`コメント${cAdded}件`);
       if (data.bad.length) parts.push(`除外${data.bad.length}件`);
@@ -2921,6 +2927,7 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 
 # 変換のルール
 - 日付は今日を基準に解決する（「昨日」「今朝」など）。日付の手がかりがなければ今日にする。
+- 1日の区切りは朝4時。0:00〜3:59の食事（注文画面の時刻を含む）は前の日の日付にする（歩数は除く）。
 - 食事のkcal・P・F・C（g）は、量や写真から妥当な概算を入れる。どうしても見当がつかない値だけ null にする。
 - slot は食事の時間帯（breakfast=朝 / lunch=昼 / dinner=夜 / snack=間食）。「朝」「ランチ」などの言葉や、今の時刻・注文時刻から判断する。分からなければ省略する。
 - treat は、ユーザーがご褒美・チートと言っているか、明らかに特別な外食やスイーツのときに true。
@@ -3095,7 +3102,7 @@ function setupAI() {
       if (!payload) showPreviewMessage('記録の形に変換できなかったみたい。返ってきた内容：', r.text);
       else {
         setPendingFromPayload(payload);
-        if (r.truncated) toast('返答が途中で切れたかもしれません。内容を確認してね');
+        if (r.truncated) toast('返事が途中で切れたかも。中身を確認してね');
       }
     } catch (e) {
       showPreviewMessage(esc(e instanceof TypeError ? '通信できなかったみたい。電波のいいところでもう一回ね' : e.message));
@@ -3140,7 +3147,7 @@ function upsertFavorite(raw, id = null) {
   const same = findFavorite(r.fav.label);
   const target = id ? state.favorites.find((f) => f.id === id) : same;
   if (id && same && same.id !== id) return { error: 'もう同じ名前のメニューがあるよ' };
-  if (target) { Object.assign(target, r.fav); return { updated: true }; }
+  if (target) { if (!r.fav.src) delete target.src; Object.assign(target, r.fav); return { updated: true }; }
   state.favorites.push({ ...r.fav, id: uid() });
   return { updated: false };
 }
@@ -4043,7 +4050,7 @@ function setupNow() {
     else if (k === 'camera') $('#homeCam').click();
     else if (k === 'paste') pasteImageRecord();
     else if (k === 'weight') openWeightSheet();
-    else if (k === 'steps') pasteSteps(today());
+    else if (k === 'steps') pasteSteps(stepsDay());
     else if (k === 'write') { $('#inDate').value = today(); $('#inDate').dispatchEvent(new Event('change')); goInput('input'); }
     else if (k === 'preset') recordPresetNow(b.dataset.id);
     else if (k === 'eat') openEatSheet();
@@ -4223,13 +4230,16 @@ ${USER_PROFILE}
     if (!obj) throw new Error('うまく受け取れなかったみたい。もう一回ね');
     eatIdeas = obj.ideas.slice(0, 3).map((x) => ({ kind: toStr(x.kind), title: toStr(x.title), detail: toStr(x.detail), kcal: Number(x.kcal) || null, p: Number(x.p) || null, f: Number(x.f) || null, c: Number(x.c) || null })).filter((x) => x.title);
     const KIND = { conveni: 'コンビニ', delivery: 'デリバリー・外食', home: '5分自炊' };
-    $('#eatIdeas').innerHTML = eatIdeas.map((x, i) => `<div class="idea"><div class="k">${esc(KIND[x.kind] || '')}${x.kcal ? `・約${fmtNum(x.kcal)}kcal` : ''}</div><div class="t">${esc(x.title)}</div>${x.detail ? `<div class="d">${esc(x.detail)}</div>` : ''}
+    renderApiMeter();
+    const box = $('#eatIdeas');
+    if (!box) return;
+    box.innerHTML = eatIdeas.map((x, i) => `<div class="idea"><div class="k">${esc(KIND[x.kind] || '')}${x.kcal ? `・約${fmtNum(x.kcal)}kcal` : ''}</div><div class="t">${esc(x.title)}</div>${x.detail ? `<div class="d">${esc(x.detail)}</div>` : ''}
       <button class="ghost" type="button" data-idea="${i}" style="width:100%; margin-top:6px; min-height:40px">これにする（記録）</button></div>`).join('') + (obj.comment ? `<div class="comment-text" style="margin-top:6px">${esc(toStr(obj.comment))}</div>` : '');
     renderApiMeter();
   } catch (e) {
     toast(e instanceof TypeError ? '通信できなかったみたい。電波のいいところでもう一回ね' : e.message);
   } finally {
-    if ($('#eatAsk')) { btn.disabled = false; btn.textContent = 'Claudeに3つ考えてもらう'; }
+    if (btn.isConnected) { btn.disabled = false; btn.textContent = 'Claudeに3つ考えてもらう'; }
   }
 }
 
@@ -4239,19 +4249,23 @@ let homeResult = null;  // { title, items, lines, comment, undo }
 async function quickRecord(imgs, text = '') {
   const key = loadApi().key;
   if (!key) { toast('設定でAPIキーを入れると、写真から記録できるよ'); return; }
-  if (homeBusy) return;
+  if (homeBusy) { toast('いま読み取り中だよ、ちょっと待ってね'); return; }
   homeBusy = true; homeResult = null; renderNow();
   try {
     const r = await callClaude({ key, text: text || '画像の内容を記録してください。', imgs });
     const payload = extractPayload(r.text);
     if (!payload) { toast('うまく読めなかったみたい。記録するタブで見てみてね'); showTab('input'); showPreviewMessage('記録の形に変換できなかったみたい。返ってきた内容：', r.text); return; }
+    const kept = pending; // 記録するタブで確認中の内容は残す
     setPendingFromPayload(payload, { show: false, date: today() });
-    if (pendingIsSimple(pending) && !r.truncated) savePending('home');
+    if (pendingIsSimple(pending) && !r.truncated) {
+      savePending('home'); pending = kept;
+      if (currentTab !== 'home') toast('写真の記録、保存したよ！ホームで見られるよ');
+    }
     else if (pending.items.length || pending.updates.length || pending.deletes.length || pending.wishes.length || pending.wishUps.length) {
       // 直し・着たい服・読めない行があるときは確認してから
       showTab('input'); renderPreview(); toast('中身を見てから反映してね');
-    } else if (pending.comment) savePending('home');
-    else { pending = null; toast('記録になるものが見つからなかったよ'); }
+    } else if (pending.comment) { savePending('home'); pending = kept; }
+    else { pending = kept; toast('記録になるものが見つからなかったよ'); }
   } catch (e) {
     toast(e instanceof TypeError ? '通信できなかったみたい。電波のいいところでもう一回ね' : e.message);
   } finally {
@@ -4316,7 +4330,6 @@ function slotFavorites(n = 3) {
   return favs.map((f) => ({ f, s: score(f) })).sort((a, b) => b.s - a.s || a.f.label.localeCompare(b.f.label, 'ja')).slice(0, n).map((x) => x.f);
 }
 
-let todayDate = null;
 
 function ringSVG(pct) {
   const r = 48, c = 2 * Math.PI * r, p = Math.max(0, Math.min(1, pct));
@@ -4326,8 +4339,7 @@ function ringSVG(pct) {
 
 function renderToday() {
   const t = today();
-  if (!todayDate || todayDate > t) todayDate = t;
-  const d = todayDate;
+  const d = t;
   const st = dayStats(d);
   const s = state.settings;
   const isToday = d === t;
@@ -4339,7 +4351,7 @@ function renderToday() {
   const easyDay = isEasyDay(d);
   if (s.kcal != null && !easyDay) {
     const r = Math.round(s.kcal - st.intake.kcal);
-    rest = r >= 0 ? `<span class="rest">あと${fmtNum(r)}</span>` : `<span class="rest over">目安より+${fmtNum(-r)}</span>`;
+    rest = r >= 0 ? `<span class="rest">あと約${fmtNum(r)}</span>` : `<span class="rest over">目安より約+${fmtNum(-r)}</span>`;
   }
   const ring = `<div class="ring">${ringSVG(s.kcal ? st.intake.kcal / s.kcal : 0)}<div class="c"><small>摂取</small><b>${fmtNum(st.intake.kcal)}</b><small>${s.kcal != null ? `/ ${fmtNum(s.kcal)}kcal` : 'kcal'}</small>${rest}</div></div>`;
   const bars = [['P', 'p'], ['F', 'f'], ['C', 'c']].map(([l, k]) => {
@@ -4347,9 +4359,9 @@ function renderToday() {
     const pct = tg ? Math.min(100, Math.round(v / tg * 100)) : 0;
     const diff = tg != null && !easyDay ? Math.round(tg - v) : null;
     return `<div class="pm"><div class="pb"><i style="width:${tg ? pct : 0}%; background:var(--c-${k})"></i></div>
-      <div class="v"><span>${l} ${fmtNum(v)}${tg != null ? `/${fmtNum(tg)}` : ''}g</span>${diff != null && (st.meals.length || diff < tg) ? (diff >= 0 ? `<span>あと${fmtNum(diff)}g</span>` : `<span class="over">目安より+${fmtNum(-diff)}g</span>`) : ''}</div></div>`;
+      <div class="v"><span>${l} ${fmtNum(v)}${tg != null ? `/${fmtNum(tg)}` : ''}g</span>${diff != null && (st.meals.length || diff < tg) ? (diff >= 0 ? `<span>あと約${fmtNum(diff)}g</span>` : `<span class="over">目安より約+${fmtNum(-diff)}g</span>`) : ''}</div></div>`;
   }).join('');
-  html += `<div class="today-main">${ring}<div>${bars}${s.p == null && s.f == null && s.c == null ? '<div class="small muted">設定で目安を入れると、あと何gかが出ます。</div>' : ''}</div></div>`;
+  html += `<div class="today-main">${ring}<div>${bars}${s.p == null && s.f == null && s.c == null ? '<div class="small muted">設定で目安を入れると、あと何gかが出るよ</div>' : ''}</div></div>`;
 
   // 消費・収支
   const burnSub = st.burn != null
@@ -4625,12 +4637,14 @@ function saveSteps(date, steps, km = null) {
   return true;
 }
 
+// 歩数はヘルスケアの1日（0時区切り）に合わせる
+const stepsDay = () => toYMD(new Date());
 async function pasteSteps(date) {
   let text = '';
   try { text = await navigator.clipboard.readText(); } catch (e) { text = ''; }
   const st = text ? parseStepsText(text) : null;
   if (!st || !st.steps) { toast('歩数が見つからなかったみたい。先にショートカットを動かしてからタップしてね'); return false; }
-  return saveSteps(st.date && st.date <= today() ? st.date : date, st.steps, st.km);
+  return saveSteps(st.date && st.date <= stepsDay() ? st.date : date, st.steps, st.km);
 }
 
 function setupSteps() {
@@ -4739,11 +4753,10 @@ function init() {
       if ($('#inDate').value === seenDay) { $('#inDate').value = t; $('#inDate').dispatchEvent(new Event('change')); }
       if (calSel === seenDay) calSel = t;
       if (calMonth === seenDay.slice(0, 7)) calMonth = t.slice(0, 7);
-      todayDate = null;
     }
     // しばらくぶり（30分以上）ならホームから。書きかけの文章と写真は残す
-    if (hiddenAt && Date.now() - hiddenAt > 30 * 60 * 1000) { closeSheet(); showTab('home'); return; }
-    showTab(currentTab);
+    if (hiddenAt && Date.now() - hiddenAt > 30 * 60 * 1000) { closeSheet(); homeResult = null; showTab('home'); return; }
+    if (t !== seenDay) refreshAll();
   });
   showTab((location.hash || '#home').slice(1));
 }
