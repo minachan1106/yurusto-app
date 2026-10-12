@@ -97,7 +97,7 @@
   /* forms */
   label.field { display: block; margin-bottom: 10px; }
   label.field > span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-  input[type=text], input[type=number], input[type=date], select, textarea {
+  input[type=text], input[type=password], input[type=number], input[type=date], input[type=time], select, textarea {
     width: 100%;
     font-size: 16px; /* iOS自動ズーム防止 */
     font-family: inherit;
@@ -108,7 +108,7 @@
     padding: 10px 12px;
     -webkit-appearance: none; appearance: none;
   }
-  input[type=date] { min-height: 44px; }
+  input[type=date], input[type=time] { min-height: 44px; }
   select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
     background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 30px; }
   textarea { min-height: 160px; resize: vertical; line-height: 1.5; }
@@ -236,6 +236,18 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .err-list { color: #c0646c; font-size: 13px; }
+  .ask-card { border-left: 3px solid var(--accent); }
+  .ask-text { font-size: 15.5px; font-weight: 600; margin-bottom: 10px; }
+  .ask-text::before { content: "♡ "; color: var(--accent); }
+  .review-btns { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 8px; }
+  .review-result { margin-top: 10px; padding: 10px 12px; background: var(--accent-soft); border-radius: 10px; white-space: pre-wrap; font-size: 14.5px; }
+  .ask-row { border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+  .ask-row .row { margin-top: 8px; align-items: center; }
+  .day-chips { display: flex; gap: 4px; margin-top: 8px; }
+  .day-chips button { flex: 1; min-height: 34px; padding: 4px 0; font-size: 13px; background: var(--bg); color: var(--muted); border: 1px solid var(--line); font-weight: 500; }
+  .day-chips button.on { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); font-weight: 700; }
+  ol.steps { margin: 0; padding-left: 20px; font-size: 14px; }
+  ol.steps li { margin-bottom: 6px; }
   .fav-chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .fav-chip { min-height: 38px; padding: 7px 14px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); font-size: 14px; font-weight: 600; }
   .fav-chip small { font-weight: 400; color: var(--muted); margin-left: 4px; font-size: 11px; }
@@ -263,6 +275,8 @@
 <main>
   <!-- ホーム -->
   <section class="view" id="view-home">
+    <div id="askArea"></div>
+    <div id="reviewArea"></div>
     <div class="card">
       <h2>体重 <span class="right"><span class="seg" id="rangeSeg">
         <button data-r="30" class="on">30日</button><button data-r="90">90日</button><button data-r="all">全期間</button>
@@ -327,6 +341,25 @@
 
   <!-- 設定 -->
   <section class="view" id="view-settings">
+    <div class="card">
+      <h2>問いかけ</h2>
+      <p class="small muted" style="margin:0 0 10px">設定した時間を過ぎてアプリを開くと、ホームに表示されます。</p>
+      <div id="askList"></div>
+      <button class="ghost" id="askAdd" style="width:100%">問いかけを追加</button>
+    </div>
+
+    <div class="card">
+      <h2>通知でお知らせしたいとき</h2>
+      <p class="small" style="margin:0 0 8px">このアプリはサーバーを持たないので、閉じている間に通知は出せません。iPhoneの「リマインダー」を使うと、決まった時間に通知できます。</p>
+      <ol class="steps">
+        <li>「リマインダー」アプリで新規リマインダーを作る（例：「ユルスト：今日何食べた？」）</li>
+        <li>詳細（ⓘ）で「日付」「時刻」をオンにして、問いかけと同じ時間にする</li>
+        <li>「繰り返し」を「毎日」などにする</li>
+        <li>通知が来たら、ホーム画面のユルストを開く（問いかけがホームに出ています）</li>
+      </ol>
+      <div class="hint">ホーム画面のユルストとSafariで開いたユルストは、iPhoneでは保存場所が別になります。いつもホーム画面のアイコンから開いてください。</div>
+    </div>
+
     <div class="card">
       <h2>今週のデータ</h2>
       <p class="small muted" style="margin:0 0 10px">直近7日分を、Claudeとのチャットに貼れるテキストでコピーします。</p>
@@ -477,11 +510,32 @@ async function copyText(text) {
 }
 
 /* ========== ストア ========== */
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+const DEFAULT_PROMPTS = [
+  { id: 'p-weight', text: '今日体重測った？スクショがあれば送ってね', time: '08:00', days: ALL_DAYS, action: 'weight', enabled: true },
+  { id: 'p-meal', text: '今日何食べた？写真やUberの画面をポンと送ってね', time: '21:00', days: ALL_DAYS, action: 'input', enabled: true },
+];
+const clonePrompts = (list) => list.map((x) => ({ ...x, days: [...x.days] }));
+
 function defaultState() {
   const settings = {};
   SETTING_KEYS.forEach((k) => { settings[k] = null; });
-  return { version: 1, entries: [], comments: [], favorites: [], settings };
+  return { version: 1, entries: [], comments: [], favorites: [], prompts: clonePrompts(DEFAULT_PROMPTS), promptLog: {}, reviewLog: {}, settings };
 }
+
+function normalizePrompt(o) {
+  if (!o || typeof o !== 'object') return null;
+  const days = Array.isArray(o.days) ? [...new Set(o.days.map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort() : [...ALL_DAYS];
+  return {
+    id: o.id ? String(o.id) : uid(),
+    text: toStr(o.text),
+    time: /^\d{2}:\d{2}$/.test(o.time) ? o.time : '21:00',
+    days,
+    action: o.action === 'weight' ? 'weight' : 'input',
+    enabled: o.enabled !== false,
+  };
+}
+const asObj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
 
 function loadState() {
   try {
@@ -494,6 +548,9 @@ function loadState() {
       entries: Array.isArray(s.entries) ? s.entries : [],
       comments: Array.isArray(s.comments) ? s.comments : [],
       favorites: Array.isArray(s.favorites) ? s.favorites : [],
+      prompts: Array.isArray(s.prompts) ? s.prompts.map(normalizePrompt).filter(Boolean) : base.prompts,
+      promptLog: asObj(s.promptLog),
+      reviewLog: asObj(s.reviewLog),
       settings: { ...base.settings, ...(s.settings || {}) },
     };
   } catch (e) {
@@ -969,6 +1026,8 @@ function renderComment() {
 }
 
 function renderHome() {
+  renderAsks();
+  renderReview();
   renderChart();
   renderMonth();
   renderTreat();
@@ -1300,6 +1359,7 @@ function renderSettings() {
   const api = loadApi();
   if (document.activeElement !== $('#apiKey')) $('#apiKey').value = api.key || '';
   renderFavList();
+  renderAskList();
   $$('[data-set]').forEach((el) => {
     const k = el.getAttribute('data-set');
     if (document.activeElement !== el) el.value = state.settings[k] ?? '';
@@ -1358,6 +1418,7 @@ function setupSettings() {
     $('#apiKey').value = '';
     toast('APIキーを削除しました');
   });
+  setupAskSettings();
   $('#favAdd').addEventListener('click', () => openFavEditor(null));
   $('#favList').addEventListener('click', (ev) => { const a = ev.target.closest('[data-fav]'); if (a) openFavEditor(a.getAttribute('data-fav')); });
   $('#importMerge').addEventListener('click', () => doImport('merge'));
@@ -1395,7 +1456,8 @@ function parseImport(text) {
   }
   const favorites = (Array.isArray(obj.favorites) ? obj.favorites : []).map((f) => normalizeFavorite(f)).filter((r) => r.fav)
     .map((r, i) => ({ ...r.fav, id: obj.favorites[i] && obj.favorites[i].id ? String(obj.favorites[i].id) : uid() }));
-  return { entries, comments, favorites, settings, bad };
+  const prompts = Array.isArray(obj.prompts) ? obj.prompts.map(normalizePrompt).filter((x) => x && x.text) : null;
+  return { entries, comments, favorites, prompts, settings, bad };
 }
 
 function doImport(mode) {
@@ -1404,7 +1466,11 @@ function doImport(mode) {
   if (mode === 'replace') {
     if (!confirm(`今のデータをすべて消して、${data.entries.length}件の記録に置き換えます。よろしいですか？`)) return;
     const base = defaultState();
-    state = { version: 1, entries: [], comments: data.comments, favorites: data.favorites, settings: data.settings ? { ...base.settings, ...data.settings } : state.settings };
+    state = {
+      version: 1, entries: [], comments: data.comments, favorites: data.favorites,
+      prompts: data.prompts || state.prompts, promptLog: {}, reviewLog: {},
+      settings: data.settings ? { ...base.settings, ...data.settings } : state.settings,
+    };
     addEntries(data.entries);
     if (saveState()) toast(`置き換えました（${state.entries.length}件）${data.bad.length ? `・除外${data.bad.length}件` : ''}`);
   } else {
@@ -1580,6 +1646,7 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 - treat は、ユーザーがご褒美・チートと言っているか、明らかに特別な外食やスイーツのときに true。
 - 美容アイテムは、すでに使用中のアイテムと同じものなら同じ名前に揃える。新しく使い始めたら start、使い切ったら finish、それ以外は use。
 - 体や肌の状態についての言及は condition にする。
+- 「【コスメの所感】」として書かれた内容は、アイテムごとに condition にする（note は「アイテム名：所感」）。使用回数は増やさない。
 - 記録にあたる内容がなければ entries は空配列にして、comment だけ返す。
 
 # 画像の読み取り
@@ -1791,6 +1858,191 @@ function setupFavorites() {
   });
 }
 
+
+/* ========== 問いかけ ========== */
+const nowHM = (d = new Date()) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+function duePrompts(now = new Date()) {
+  const t = today();
+  const hm = nowHM(now);
+  const weighedToday = state.entries.some((e) => e.type === 'weight' && e.date === t);
+  return (state.prompts || []).filter((p) => p.enabled && p.text && p.days.includes(now.getDay()) && hm >= p.time
+    && state.promptLog[p.id] !== t && !(p.action === 'weight' && weighedToday));
+}
+
+function renderAsks() {
+  $('#askArea').innerHTML = duePrompts().map((p) => `<div class="card ask-card"><div class="ask-text">${esc(p.text)}</div>
+    <div class="btns"><button class="ghost" data-ask-ok="${esc(p.id)}">今日はOK</button><button class="primary" data-ask-go="${esc(p.id)}">${p.action === 'weight' ? '体重を入れる' : '送る'}</button></div></div>`).join('');
+}
+
+function markPrompt(id) { state.promptLog[id] = today(); saveState(); }
+
+// 投げ込み画面へ移動して入力欄にフォーカス
+function goInput(mode, template = '') {
+  showTab('input');
+  if (mode === 'weight') {
+    $('#qDate').value = today();
+    const el = $('#qWeight');
+    el.scrollIntoView({ block: 'center' });
+    el.focus();
+  } else {
+    const ta = $('#dropText');
+    if (template && !ta.value.trim()) ta.value = template;
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+  }
+}
+
+function renderAskList() {
+  const list = state.prompts || [];
+  $('#askList').innerHTML = list.length ? list.map((p) => `<div class="ask-row" data-pid="${esc(p.id)}">
+    <input type="text" class="pText" value="${v(p.text)}" placeholder="例：今日何食べた？">
+    <div class="row">
+      <input type="time" class="pTime" value="${v(p.time)}">
+      <select class="pAction"><option value="input" ${p.action === 'input' ? 'selected' : ''}>投げ込みを開く</option><option value="weight" ${p.action === 'weight' ? 'selected' : ''}>体重入力を開く</option></select>
+    </div>
+    <div class="day-chips">${WEEKDAYS.map((w, i) => `<button type="button" data-day="${i}" class="${p.days.includes(i) ? 'on' : ''}">${w}</button>`).join('')}</div>
+    <div class="row">
+      <label class="check" style="margin:0"><input type="checkbox" class="pEnabled" ${p.enabled ? 'checked' : ''}>オン</label>
+      <button type="button" class="danger shrink pDel" style="min-height:36px;padding:6px 14px">削除</button>
+    </div></div>`).join('') : '<div class="empty-soft">問いかけはありません。</div>';
+}
+
+function setupAskSettings() {
+  const box = $('#askList');
+  const find = (el) => { const row = el.closest('[data-pid]'); return row ? state.prompts.find((p) => p.id === row.getAttribute('data-pid')) : null; };
+  box.addEventListener('change', (ev) => {
+    const p = find(ev.target);
+    if (!p) return;
+    const t = ev.target;
+    if (t.classList.contains('pText')) p.text = t.value.trim();
+    if (t.classList.contains('pTime') && /^\d{2}:\d{2}$/.test(t.value)) p.time = t.value;
+    if (t.classList.contains('pAction')) p.action = t.value;
+    if (t.classList.contains('pEnabled')) p.enabled = t.checked;
+    if (saveState()) toast('問いかけを保存しました');
+  });
+  box.addEventListener('click', (ev) => {
+    const p = find(ev.target);
+    if (!p) return;
+    const day = ev.target.closest('[data-day]');
+    if (day) {
+      const d = Number(day.getAttribute('data-day'));
+      p.days = p.days.includes(d) ? p.days.filter((x) => x !== d) : [...p.days, d].sort();
+      day.classList.toggle('on');
+      saveState();
+      return;
+    }
+    if (ev.target.closest('.pDel')) {
+      if (!confirm('この問いかけを削除しますか？')) return;
+      state.prompts = state.prompts.filter((x) => x.id !== p.id);
+      saveState(); renderAskList();
+    }
+  });
+  $('#askAdd').addEventListener('click', () => {
+    state.prompts.push({ id: uid(), text: '', time: '21:00', days: [...ALL_DAYS], action: 'input', enabled: true });
+    saveState(); renderAskList();
+    const rows = $$('#askList .pText');
+    rows[rows.length - 1].focus();
+  });
+}
+
+/* ========== ふりかえり ========== */
+const REVIEWS = {
+  pfc: { label: 'PFCをレビューしてもらう', ai: true,
+    prompt: '【PFCレビュー】今回は記録の追加はしないので entries は空配列にしてください。直近7日と今月の食事をふりかえって、comment に短いレビューを書いてください。良かった点を1つと、今月の枠の中での配分や次の食事で整えるポイントを1〜2つ。' },
+  beauty: { label: 'コスメの所感を聞いてもらう', ai: true,
+    prompt: '【コスメの所感】今回は記録の追加はしないので entries は空配列にしてください。使用中の美容アイテムについて、使い心地や肌・髪の変化を聞く質問を comment に書いてください。アイテムごとに短く1問ずつ、最大3つまで。' },
+  workout: { label: '最近の運動もメモしておく', ai: false },
+};
+const REVIEW_INTERVAL_DAYS = 7;
+let reviewResult = null; // { type, text }
+
+function reviewDue(type, t = today()) {
+  const log = state.reviewLog || {};
+  if (log.snooze && log.snooze >= t) return false;
+  const last = log[type] || null;
+  const dates = state.entries.map((e) => e.date).sort();
+  const base = last || dates[0];
+  if (!base || dayDiff(base, t) < REVIEW_INTERVAL_DAYS) return false;
+  const since = state.entries.filter((e) => !last || e.date > last);
+  if (type === 'pfc') return since.filter((e) => e.type === 'meal').length >= 5;
+  if (type === 'beauty') return since.filter((e) => e.type === 'beauty').length >= 3 && beautyStats(t).active.length > 0;
+  if (type === 'workout') return since.length >= 5 && !state.entries.some((e) => e.type === 'workout' && e.date > addDays(t, -REVIEW_INTERVAL_DAYS));
+  return false;
+}
+
+function renderReview() {
+  const due = Object.keys(REVIEWS).filter((k) => reviewDue(k));
+  const el = $('#reviewArea');
+  if (!due.length && !reviewResult) { el.innerHTML = ''; return; }
+  const hasKey = !!loadApi().key;
+  let html = '<div class="card"><h2>ふりかえる？</h2>';
+  if (due.length) {
+    html += '<div class="small muted">記録がたまってきました。気が向いたらどうぞ。</div><div class="review-btns">'
+      + due.map((k) => `<button class="${REVIEWS[k].ai ? 'primary' : ''}" data-review="${k}">${REVIEWS[k].label}</button>`).join('') + '</div>';
+    if (!hasKey && due.some((k) => REVIEWS[k].ai)) html += '<div class="hint">APIキーがないときは、チャットに貼る文章をコピーします。</div>';
+  }
+  if (reviewResult) {
+    html += `<div class="review-result">${esc(reviewResult.text)}</div>`;
+    html += `<div class="btns" style="margin-top:8px">${reviewResult.type === 'beauty' ? '<button class="primary" data-review-answer>答えを書く</button>' : ''}<button class="ghost" data-review-close>閉じる</button></div>`;
+  }
+  if (due.length) html += '<button class="ghost" data-review-snooze style="width:100%; margin-top:8px">今はいい</button>';
+  el.innerHTML = html + '</div>';
+}
+
+function beautyAnswerTemplate() {
+  const items = beautyStats().active.slice(0, 3);
+  return '【コスメの所感】\n' + items.map((a) => `${a.name}：`).join('\n');
+}
+
+async function runReview(type, btn) {
+  const r = REVIEWS[type];
+  const finish = () => { state.reviewLog[type] = today(); saveState(); };
+  if (!r.ai) { finish(); goInput('input', '【運動】最近やった運動：'); return; }
+  const text = `${r.prompt}\n\n${buildWeekText()}`;
+  const api = loadApi();
+  if (!api.key) {
+    const ok = await copyText(`${text}\n\n（ユルストの形式で、comment に返してください）`);
+    finish();
+    toast(ok ? 'コピーしました。Claudeのチャットに貼ってください' : 'コピーできませんでした');
+    renderReview();
+    return;
+  }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span>考えています…';
+  try {
+    const res = await callClaude({ key: api.key, text, imgs: [] });
+    const payload = extractPayload(res.text);
+    const comment = (payload && payload.comment) || res.text;
+    addComment(comment, today());
+    finish();
+    reviewResult = { type, text: comment };
+  } catch (e) {
+    toast(e instanceof TypeError ? '通信できませんでした' : e.message);
+  }
+  renderHome();
+}
+
+function setupHomeCards() {
+  $('#askArea').addEventListener('click', (ev) => {
+    const ok = ev.target.closest('[data-ask-ok]');
+    if (ok) { markPrompt(ok.getAttribute('data-ask-ok')); renderAsks(); return; }
+    const go = ev.target.closest('[data-ask-go]');
+    if (go) {
+      const p = state.prompts.find((x) => x.id === go.getAttribute('data-ask-go'));
+      markPrompt(p.id);
+      goInput(p.action);
+    }
+  });
+  $('#reviewArea').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-review]');
+    if (b) { runReview(b.getAttribute('data-review'), b); return; }
+    if (ev.target.closest('[data-review-snooze]')) { state.reviewLog.snooze = addDays(today(), 2); saveState(); renderReview(); return; }
+    if (ev.target.closest('[data-review-close]')) { reviewResult = null; renderReview(); return; }
+    if (ev.target.closest('[data-review-answer]')) { reviewResult = null; goInput('input', beautyAnswerTemplate()); }
+  });
+}
+
 /* ========== ナビゲーション ========== */
 let currentTab = 'home';
 
@@ -1828,6 +2080,7 @@ function init() {
   $('#overlay').addEventListener('click', (ev) => { if (ev.target.id === 'overlay') closeSheet(); });
   setupInput();
   setupFavorites();
+  setupHomeCards();
   setupList();
   setupBeauty();
   setupSettings();
