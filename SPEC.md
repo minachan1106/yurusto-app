@@ -27,7 +27,8 @@
     {"date":"YYYY-MM-DD","type":"meal","label":"料理名","kcal":0,"p":0,"f":0,"c":0,"treat":false,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":0,"sets":0,"minutes":null}],"note":"任意"},
     {"date":"YYYY-MM-DD","type":"beauty","item":"アイテム名","category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
-    {"date":"YYYY-MM-DD","type":"condition","note":"髪がパサつく、など体や肌の状態メモ"}
+    {"date":"YYYY-MM-DD","type":"condition","note":"髪がパサつく、など体や肌の状態メモ"},
+    {"date":"YYYY-MM-DD","type":"body","fatPct":0.0,"waistCm":0.0,"note":"任意"}
   ],
   "comment":"Claudeからのコメント（任意）"
 }
@@ -49,8 +50,10 @@
   entries: [ { id, createdAt, ...取り込みデータのエントリ } ],
   comments: [ { id, date, text, createdAt } ],
   favorites: [ { id, label, kcal, p, f, c, treat } ],   // よく頼むメニュー
+  workoutPresets: [ { id, name, items: [ { name, reps, sets, minutes } ] } ],   // いつもの運動
   settings: {
     weightMin, weightMax,       // 目標体重の範囲（kg）
+    fatTarget, waistTarget,     // 目標の体脂肪率（%）・腹囲（cm）
     kcal, p, f, c,              // 1日の目安
     treatPerMonth               // 月のご褒美枠（回）
   }
@@ -139,3 +142,14 @@
     - 運動のメモ：記録5件以上かつ直近7日に運動の記録なし → 投げ込みに「【運動】」の雛形。
   - 「今はいい」で3日間表示しない。APIキーがない場合は、チャットに貼る文章をコピー。
 - 通知：サーバーがないため、閉じている間の通知は出せない。設定画面に iPhone「リマインダー」での代替手順を表示（ホーム画面版とSafari版は保存場所が別なので、URLで開く方式は使わない）。
+
+### フェーズD1（入力の簡素化・体組成）
+- 体重の簡易入力は整数と小数のプルダウン。選択肢は直近の体重の前後6kg（記録がなければ目標範囲の中央の前後、どちらもなければ30〜120kg）。初期選択は直近の体重。「数字を直接入力する」で手入力にも切り替え可。
+- 体組成（`type: "body"`）：体脂肪率・腹囲。どちらか一方でも可。同じ日付の記録は項目ごとにマージ。体重の簡易入力から一緒に入れられる。
+- ホームに体脂肪率・腹囲のグラフ（切り替え式、記録日ごとの点と線）。設定の「からだの目標」を点線で表示。
+- いつもの運動：運動の編集シートから「いつもの運動に登録」、設定で追加・編集・削除。投げ込み画面の「ワンタップ記録」から指定日の運動として記録。Claude には「いつもの」と書かれたらこの内容を使うよう指示。
+- Claude への指示に体組成の形式、健康診断・体組成計の読み取り、からだの目標と体組成の推移、いつもの運動を追加。
+
+### フェーズD2（予定）
+- ホーム上部に「今日」カード：摂取（kcal・PFC と目安）、消費の概算（基礎代謝＋活動量＋運動）、今日の運動、7日平均体重。
+- 消費の計算に使う身長・年齢・性別・活動量は設定で入力し、端末内にのみ保存。

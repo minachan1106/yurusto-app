@@ -32,6 +32,7 @@
     --c-workout: #7fa58f;
     --c-beauty: #a58ac9;
     --c-condition: #8aa7c9;
+    --c-body: #4fb0a8;
     --c-comment: #9a8c8e;
     --shadow: 0 2px 8px rgba(255, 79, 151, 0.08);
     --radius: 14px;
@@ -184,6 +185,7 @@
   .chip.workout { background: var(--c-workout); }
   .chip.beauty { background: var(--c-beauty); }
   .chip.condition { background: var(--c-condition); }
+  .chip.body { background: var(--c-body); }
   .chip.comment { background: var(--c-comment); }
   .chip.error { background: #c0646c; }
   .entry { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-top: 1px solid var(--line); }
@@ -248,6 +250,14 @@
   .day-chips button.on { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); font-weight: 700; }
   ol.steps { margin: 0; padding-left: 20px; font-size: 14px; }
   ol.steps li { margin-bottom: 6px; }
+  .wpick { display: flex; align-items: center; gap: 4px; }
+  .wpick select { flex: 1; min-width: 0; text-align: center; padding-right: 26px; }
+  .wpick span { font-size: 20px; font-weight: 700; color: var(--muted); }
+  .linkish { background: none; border: none; color: var(--muted); font-size: 12.5px; font-weight: 500; text-decoration: underline; min-height: 32px; padding: 4px 0; }
+  details.more { margin: 2px 0 10px; }
+  details.more summary { padding: 6px 0; }
+  .sub-h { font-size: 12px; color: var(--muted); margin: 4px 0 6px; font-weight: 600; }
+  .sub-h + .fav-chips { margin-bottom: 12px; }
   .fav-chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .fav-chip { min-height: 38px; padding: 7px 14px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); font-size: 14px; font-weight: 600; }
   .fav-chip small { font-weight: 400; color: var(--muted); margin-left: 4px; font-size: 11px; }
@@ -286,6 +296,13 @@
       <div class="hint" id="chartHint"></div>
     </div>
 
+    <div class="card" id="bodyCard">
+      <h2>体脂肪率・腹囲 <span class="right"><span class="seg" id="bodySeg"><button data-m="fatPct" class="on">体脂肪率</button><button data-m="waistCm">腹囲</button></span></span></h2>
+      <div class="stat-line" id="bodyStat"></div>
+      <div class="chart-wrap" id="bodyWrap" style="height:180px"><canvas id="bodyChart"></canvas></div>
+      <div class="hint" id="bodyHint"></div>
+    </div>
+
     <div class="card" id="monthCard"></div>
     <div class="card" id="treatCard"></div>
     <div class="card comment-card" id="commentCard"></div>
@@ -309,18 +326,31 @@
     <div class="card" id="previewCard" style="display:none"></div>
 
     <div class="card">
-      <h2>よく頼むメニュー</h2>
+      <h2>ワンタップ記録</h2>
+      <div class="sub-h">よく頼むメニュー</div>
       <div class="fav-chips" id="favChips"></div>
-      <div class="row" style="margin-top:10px"><label class="field" style="margin-bottom:0"><span>記録する日</span><input type="date" id="favDate"></label></div>
+      <div class="sub-h">いつもの運動</div>
+      <div class="fav-chips" id="wkChips"></div>
+      <div class="row"><label class="field" style="margin-bottom:0"><span>記録する日</span><input type="date" id="favDate"></label></div>
     </div>
 
     <div class="card">
       <h2>体重をさっと記録</h2>
-      <div class="row">
-        <label class="field"><span>体重（kg）</span><input type="number" id="qWeight" inputmode="decimal" step="0.1" min="0" placeholder="00.0"></label>
+      <div class="row" style="align-items:flex-start">
+        <div class="field"><span class="small muted" style="display:block;margin-bottom:4px">体重（kg）</span>
+          <div class="wpick" id="wPick"><select id="qWInt" aria-label="体重（整数）"></select><span>.</span><select id="qWDec" aria-label="体重（小数）"></select></div>
+          <input type="number" id="qWeight" inputmode="decimal" step="0.1" min="0" placeholder="00.0" style="display:none">
+        </div>
         <label class="field"><span>日付</span><input type="date" id="qDate"></label>
       </div>
+      <details class="more" id="qMore"><summary>体脂肪率・腹囲も入れる</summary>
+        <div class="row" style="margin-top:6px">
+          <label class="field"><span>体脂肪率（%）</span><input type="number" id="qFat" inputmode="decimal" step="0.1" min="0"></label>
+          <label class="field"><span>腹囲（cm）</span><input type="number" id="qWaist" inputmode="decimal" step="0.1" min="0"></label>
+        </div>
+      </details>
       <button class="primary" id="qSave" style="width:100%">保存</button>
+      <div class="row"><button type="button" class="linkish shrink" id="qManual">数字を直接入力する</button></div>
       <div class="hint" id="qHint"></div>
     </div>
 
@@ -375,6 +405,15 @@
     </div>
 
     <div class="card">
+      <h2>からだの目標</h2>
+      <div class="row">
+        <label class="field"><span>体脂肪率（%）</span><input type="number" inputmode="decimal" step="0.1" data-set="fatTarget"></label>
+        <label class="field"><span>腹囲（cm）</span><input type="number" inputmode="decimal" step="0.1" data-set="waistTarget"></label>
+      </div>
+      <div class="hint">グラフに目標の線を表示します。</div>
+    </div>
+
+    <div class="card">
       <h2>1日の目安</h2>
       <label class="field"><span>カロリー（kcal）</span><input type="number" inputmode="numeric" step="1" data-set="kcal"></label>
       <div class="grid2" style="grid-template-columns:1fr 1fr 1fr">
@@ -402,6 +441,13 @@
       <div id="favList"></div>
       <button class="ghost" id="favAdd" style="width:100%; margin-top:8px">メニューを追加</button>
       <div class="hint">記録一覧の食事からも「よく頼むに登録」できます。Claudeで変換するときも、同じメニューはここの値を使います。</div>
+    </div>
+
+    <div class="card">
+      <h2>いつもの運動</h2>
+      <div id="presetList"></div>
+      <button class="ghost" id="presetAdd" style="width:100%; margin-top:8px">運動セットを追加</button>
+      <div class="hint">記録一覧の運動からも「いつもの運動に登録」できます。投げ込みで「いつもの」と書いても、この内容で記録されます。</div>
     </div>
 
     <div class="card">
@@ -445,13 +491,13 @@
 
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
-const TYPES = ['weight', 'meal', 'workout', 'beauty', 'condition'];
-const TYPE_LABEL = { weight: '体重', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
+const TYPES = ['weight', 'body', 'meal', 'workout', 'beauty', 'condition'];
+const TYPE_LABEL = { weight: '体重', body: '体組成', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
 const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: 'ツール' };
 const ACTIONS = { use: '使用', start: '使い始め', finish: '使い切り' };
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 const VIEW_TITLES = { home: 'ホーム', input: '投げ込み', list: '記録', beauty: '美容', settings: '設定' };
-const SETTING_KEYS = ['weightMin', 'weightMax', 'kcal', 'p', 'f', 'c', 'treatPerMonth'];
+const SETTING_KEYS = ['weightMin', 'weightMax', 'fatTarget', 'waistTarget', 'kcal', 'p', 'f', 'c', 'treatPerMonth'];
 
 /* ========== ユーティリティ ========== */
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -520,7 +566,7 @@ const clonePrompts = (list) => list.map((x) => ({ ...x, days: [...x.days] }));
 function defaultState() {
   const settings = {};
   SETTING_KEYS.forEach((k) => { settings[k] = null; });
-  return { version: 1, entries: [], comments: [], favorites: [], prompts: clonePrompts(DEFAULT_PROMPTS), promptLog: {}, reviewLog: {}, settings };
+  return { version: 1, entries: [], comments: [], favorites: [], workoutPresets: [], prompts: clonePrompts(DEFAULT_PROMPTS), promptLog: {}, reviewLog: {}, settings };
 }
 
 function normalizePrompt(o) {
@@ -548,6 +594,7 @@ function loadState() {
       entries: Array.isArray(s.entries) ? s.entries : [],
       comments: Array.isArray(s.comments) ? s.comments : [],
       favorites: Array.isArray(s.favorites) ? s.favorites : [],
+      workoutPresets: Array.isArray(s.workoutPresets) ? s.workoutPresets : [],
       prompts: Array.isArray(s.prompts) ? s.prompts.map(normalizePrompt).filter(Boolean) : base.prompts,
       promptLog: asObj(s.promptLog),
       reviewLog: asObj(s.reviewLog),
@@ -636,6 +683,13 @@ function normalizeEntry(raw) {
   } else if (type === 'condition') {
     e.note = note;
     if (!note) errors.push('noteが空です');
+  } else if (type === 'body') {
+    e.fatPct = toNum(raw.fatPct, 'fatPct', errors);
+    e.waistCm = toNum(raw.waistCm, 'waistCm', errors);
+    e.note = note;
+    if (e.fatPct === null && e.waistCm === null) errors.push('fatPct と waistCm がどちらも空です');
+    if (e.fatPct !== null && (e.fatPct < 3 || e.fatPct > 70)) errors.push(`fatPct「${e.fatPct}」が範囲外です`);
+    if (e.waistCm !== null && (e.waistCm < 40 || e.waistCm > 200)) errors.push(`waistCm「${e.waistCm}」が範囲外です`);
   }
   return errors.length ? { errors } : { entry: e };
 }
@@ -655,6 +709,17 @@ function addEntries(list, { dedupe = false } = {}) {
   list.forEach((src, i) => {
     const e = { ...src };
     if (dedupe && sigs.has(signature(e))) { skipped++; return; }
+    if (e.type === 'body') {
+      const ex = state.entries.find((x) => x.type === 'body' && x.date === e.date);
+      if (ex) {
+        if (e.fatPct != null) ex.fatPct = e.fatPct;
+        if (e.waistCm != null) ex.waistCm = e.waistCm;
+        if (e.note) ex.note = e.note;
+        ex.createdAt = now + i;
+        replaced++;
+        return;
+      }
+    }
     if (e.type === 'weight') {
       const idx = state.entries.findIndex((x) => x.type === 'weight' && x.date === e.date);
       if (idx >= 0) {
@@ -777,6 +842,7 @@ function entryBodyHTML(e) {
     case 'workout': return `${esc(workoutText(e.items)) || '（運動）'}${note}`;
     case 'beauty': return `${esc(e.item)} <span class="meta">${esc(CATEGORIES[e.category] || e.category)}・${esc(ACTIONS[e.action] || e.action)}</span>${note}`;
     case 'condition': return esc(e.note);
+    case 'body': return `${bodyText(e)}${note}`;
     default: return '';
   }
 }
@@ -792,11 +858,19 @@ function entryPlain(e) {
     case 'workout': return `運動: ${workoutText(e.items)}${e.note ? `（${e.note}）` : ''}`;
     case 'beauty': return `美容: ${e.item}（${CATEGORIES[e.category] || e.category}）${ACTIONS[e.action] || e.action}${e.note ? `／${e.note}` : ''}`;
     case 'condition': return `体調メモ: ${e.note}`;
+    case 'body': return `体組成: ${bodyText(e, true)}${e.note ? `（${e.note}）` : ''}`;
     default: return '';
   }
 }
 
-const TYPE_ORDER = { weight: 0, meal: 1, workout: 2, beauty: 3, condition: 4 };
+const TYPE_ORDER = { weight: 0, body: 1, meal: 2, workout: 3, beauty: 4, condition: 5 };
+function bodyText(e, plain = false) {
+  const b = (x) => (plain ? x : `<b>${x}</b>`);
+  const parts = [];
+  if (e.fatPct != null) parts.push(`体脂肪率 ${b(fmtNum(e.fatPct, 1))}%`);
+  if (e.waistCm != null) parts.push(`腹囲 ${b(fmtNum(e.waistCm, 1))}cm`);
+  return parts.join(plain ? ' / ' : '・');
+}
 function sortEntriesInDay(a, b) {
   return (TYPE_ORDER[a.type] - TYPE_ORDER[b.type]) || ((a.createdAt || 0) - (b.createdAt || 0));
 }
@@ -1029,6 +1103,7 @@ function renderHome() {
   renderAsks();
   renderReview();
   renderChart();
+  renderBodyChart();
   renderMonth();
   renderTreat();
   renderComment();
@@ -1047,19 +1122,39 @@ function setupInput() {
   $('#qDate').addEventListener('change', updateHint);
   $('#qDate').addEventListener('focus', updateHint);
   const save = () => {
-    const kgRaw = $('#qWeight').value.replace(',', '.');
+    const kgRaw = readWeightInput();
+    const fatRaw = $('#qFat').value.replace(',', '.').trim(), waistRaw = $('#qWaist').value.replace(',', '.').trim();
     const date = $('#qDate').value || today();
-    const { entry, errors } = normalizeEntry({ type: 'weight', date, kg: kgRaw });
-    if (errors) { toast(errors[0]); return; }
-    const r = addEntries([entry]);
+    const list = [];
+    if (kgRaw) {
+      const r = normalizeEntry({ type: 'weight', date, kg: kgRaw });
+      if (r.errors) { toast(r.errors[0]); return; }
+      list.push(r.entry);
+    }
+    if (fatRaw || waistRaw) {
+      const r = normalizeEntry({ type: 'body', date, fatPct: fatRaw, waistCm: waistRaw });
+      if (r.errors) { toast(r.errors[0]); return; }
+      list.push(r.entry);
+    }
+    if (!list.length) { toast('体重を選んでください'); return; }
+    addEntries(list);
     if (saveState()) {
-      toast(r.replaced ? `${fmtMD(date)}の体重を更新しました` : `${fmtMD(date)}の体重を記録しました`);
-      $('#qWeight').value = '';
-      $('#qWeight').blur();
+      toast(`${fmtMD(date)}の${list.map((x) => TYPE_LABEL[x.type]).join('と')}を記録しました`);
+      $('#qWeight').value = ''; $('#qFat').value = ''; $('#qWaist').value = '';
+      $('#qMore').open = false;
+      document.activeElement && document.activeElement.blur();
       updateHint();
       refreshAll();
     }
   };
+  $('#qManual').addEventListener('click', () => {
+    const manual = $('#qWeight').style.display === 'none';
+    $('#qWeight').style.display = manual ? '' : 'none';
+    $('#wPick').style.display = manual ? 'none' : '';
+    $('#qManual').textContent = manual ? 'リストから選ぶ' : '数字を直接入力する';
+    if (manual) $('#qWeight').focus();
+  });
+  renderWeightPicker();
   $('#qSave').addEventListener('click', save);
   $('#qWeight').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') save(); });
 
@@ -1229,7 +1324,8 @@ function openEditor(id) {
   } else if (e.type === 'workout') {
     fields += `<div class="field"><span class="small muted">種目</span><div id="wkList">${(e.items || []).map(wkItemHTML).join('')}</div>
       <button class="ghost" type="button" id="wkAdd" style="width:100%">種目を追加</button></div>
-      <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>`;
+      <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>
+      <button class="ghost" type="button" id="edPreset" style="width:100%; margin-bottom:10px">♡ いつもの運動に登録</button>`;
   } else if (e.type === 'beauty') {
     fields += `<label class="field"><span>アイテム名</span><input type="text" id="edItem" value="${v(e.item)}"></label>
       <div class="grid2">
@@ -1239,6 +1335,12 @@ function openEditor(id) {
       <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>`;
   } else if (e.type === 'condition') {
     fields += `<label class="field"><span>メモ</span><textarea id="edNote" style="min-height:90px">${v(e.note)}</textarea></label>`;
+  } else if (e.type === 'body') {
+    fields += `<div class="row">
+        <label class="field"><span>体脂肪率（%）</span><input type="number" inputmode="decimal" step="0.1" id="edFat" value="${v(e.fatPct)}"></label>
+        <label class="field"><span>腹囲（cm）</span><input type="number" inputmode="decimal" step="0.1" id="edWaist" value="${v(e.waistCm)}"></label>
+      </div>
+      <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>`;
   }
   openSheet(`<h3>${TYPE_LABEL[e.type]}を編集</h3>${fields}
     <div class="err-list" id="edErr"></div>
@@ -1249,6 +1351,17 @@ function openEditor(id) {
       const r = upsertFavorite({ label: $('#edLabel').value, kcal: $('#edKcal').value, p: $('#edP').value, f: $('#edF').value, c: $('#edC').value, treat: $('#edTreat').checked });
       if (r.error) { $('#edErr').textContent = r.error; return; }
       if (saveState()) { toast(r.updated ? 'よく頼むメニューを更新しました' : 'よく頼むに登録しました'); $('#edFav').textContent = '♥ よく頼むメニューを更新'; }
+    });
+  }
+  if (e.type === 'workout') {
+    $('#edPreset').addEventListener('click', () => {
+      const items = readWkItems('#wkList');
+      const def = items.map((it) => it.name).filter(Boolean).join('＋').slice(0, 30) || '運動セット';
+      const name = window.prompt('セットの名前', def);
+      if (name === null) return;
+      const r = upsertPreset({ name, items });
+      if (r.error) { $('#edErr').textContent = r.error; return; }
+      if (saveState()) toast(r.updated ? 'いつもの運動を更新しました' : 'いつもの運動に登録しました');
     });
   }
   if (e.type === 'workout') {
@@ -1267,11 +1380,12 @@ function openEditor(id) {
     if (e.type === 'weight') raw.kg = val('#edKg');
     if (e.type === 'meal') Object.assign(raw, { label: val('#edLabel'), kcal: val('#edKcal'), p: val('#edP'), f: val('#edF'), c: val('#edC'), treat: $('#edTreat').checked, note: val('#edNote') });
     if (e.type === 'workout') {
-      raw.items = $$('#wkList .wk-item').map((w) => ({ name: $('.wk-name', w).value, reps: $('.wk-reps', w).value, sets: $('.wk-sets', w).value, minutes: $('.wk-min', w).value }));
+      raw.items = readWkItems('#wkList');
       raw.note = val('#edNote');
     }
     if (e.type === 'beauty') Object.assign(raw, { item: val('#edItem'), category: val('#edCat'), action: val('#edAct'), note: val('#edNote') });
     if (e.type === 'condition') raw.note = val('#edNote');
+    if (e.type === 'body') Object.assign(raw, { fatPct: val('#edFat'), waistCm: val('#edWaist'), note: val('#edNote') });
     if (!raw.date) { $('#edErr').textContent = '日付を入れてください'; return; }
     const r = normalizeEntry(raw);
     if (r.errors) { $('#edErr').innerHTML = r.errors.map(esc).join('<br>'); return; }
@@ -1359,6 +1473,7 @@ function renderSettings() {
   const api = loadApi();
   if (document.activeElement !== $('#apiKey')) $('#apiKey').value = api.key || '';
   renderFavList();
+  renderPresetList();
   renderAskList();
   $$('[data-set]').forEach((el) => {
     const k = el.getAttribute('data-set');
@@ -1457,7 +1572,9 @@ function parseImport(text) {
   const favorites = (Array.isArray(obj.favorites) ? obj.favorites : []).map((f) => normalizeFavorite(f)).filter((r) => r.fav)
     .map((r, i) => ({ ...r.fav, id: obj.favorites[i] && obj.favorites[i].id ? String(obj.favorites[i].id) : uid() }));
   const prompts = Array.isArray(obj.prompts) ? obj.prompts.map(normalizePrompt).filter((x) => x && x.text) : null;
-  return { entries, comments, favorites, prompts, settings, bad };
+  const workoutPresets = (Array.isArray(obj.workoutPresets) ? obj.workoutPresets : []).map((x) => ({ x, r: normalizePreset(x) })).filter((o) => o.r.preset)
+    .map((o) => ({ ...o.r.preset, id: o.x.id ? String(o.x.id) : uid() }));
+  return { entries, comments, favorites, workoutPresets, prompts, settings, bad };
 }
 
 function doImport(mode) {
@@ -1467,7 +1584,7 @@ function doImport(mode) {
     if (!confirm(`今のデータをすべて消して、${data.entries.length}件の記録に置き換えます。よろしいですか？`)) return;
     const base = defaultState();
     state = {
-      version: 1, entries: [], comments: data.comments, favorites: data.favorites,
+      version: 1, entries: [], comments: data.comments, favorites: data.favorites, workoutPresets: data.workoutPresets,
       prompts: data.prompts || state.prompts, promptLog: {}, reviewLog: {},
       settings: data.settings ? { ...base.settings, ...data.settings } : state.settings,
     };
@@ -1484,9 +1601,10 @@ function doImport(mode) {
     });
     let fAdded = 0;
     data.favorites.forEach((f) => { if (!findFavorite(f.label)) { state.favorites.push({ ...f, id: uid() }); fAdded++; } });
+    data.workoutPresets.forEach((x) => { if (!findPreset(x.name)) { state.workoutPresets.push({ ...x, id: uid() }); fAdded++; } });
     if (saveState()) {
       const parts = [`追加${r.added}件`];
-      if (fAdded) parts.push(`よく頼む${fAdded}件`);
+      if (fAdded) parts.push(`登録メニュー${fAdded}件`);
       if (r.replaced) parts.push(`体重の上書き${r.replaced}件`);
       if (r.skipped) parts.push(`同じ記録${r.skipped}件はスキップ`);
       if (cAdded) parts.push(`コメント${cAdded}件`);
@@ -1614,6 +1732,11 @@ function buildContext() {
   const { active } = beautyStats(t);
   lines.push(`使用中の美容アイテム: ${active.length ? active.map((a) => `${a.name}（${CATEGORIES[a.category] || a.category}・使用${a.days}日目・直近30日${a.recent}回）`).join('、') : '（なし）'}`);
 
+  if (s.fatTarget != null || s.waistTarget != null) lines.push(`からだの目標: ${[s.fatTarget != null ? `体脂肪率 ${s.fatTarget}%` : '', s.waistTarget != null ? `腹囲 ${s.waistTarget}cm` : ''].filter(Boolean).join('、')}`);
+  const bodies = state.entries.filter((e) => e.type === 'body').sort((a, b) => a.date.localeCompare(b.date)).slice(-5);
+  if (bodies.length) lines.push(`体脂肪率・腹囲の推移: ${bodies.map((e) => `${e.date} ${bodyText(e, true)}`).join(' → ')}`);
+  const presets = state.workoutPresets || [];
+  if (presets.length) lines.push(`いつもの運動: ${presets.map((p) => `${p.name}（${workoutText(p.items)}）`).join('、')}`);
   const favs = state.favorites || [];
   lines.push(`よく頼むメニュー: ${favs.length ? favs.map((f) => `${f.label}（${[['kcal', f.kcal], ['P', f.p], ['F', f.f], ['C', f.c]].map(([k, n]) => `${k} ${n ?? '?'}`).join(' / ')}${f.treat ? '・ご褒美' : ''}）`).join('、') : '（なし）'}`);
 
@@ -1635,7 +1758,8 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
     {"date":"YYYY-MM-DD","type":"meal","label":"料理名","kcal":数値,"p":数値,"f":数値,"c":数値,"treat":真偽値,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":数値,"sets":数値,"minutes":数値}],"note":"任意"},
     {"date":"YYYY-MM-DD","type":"beauty","item":"アイテム名","category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
-    {"date":"YYYY-MM-DD","type":"condition","note":"体や肌の状態メモ"}
+    {"date":"YYYY-MM-DD","type":"condition","note":"体や肌の状態メモ"},
+    {"date":"YYYY-MM-DD","type":"body","fatPct":体脂肪率の数値,"waistCm":腹囲cmの数値,"note":"任意"}
   ],
   "comment":"提案コメント"
 }
@@ -1654,8 +1778,12 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 - フードデリバリー（Uber Eats など）の注文画面・注文履歴：注文した品を1品ずつ meal にする。店名は note に入れる。数量が2以上なら量に合わせて見積もる。画面に日付があればその日付、なければ今日。
 - 食事の写真：写っている料理と量から meal を見積もる。複数の料理が1枚に写っていれば、定食などひとまとまりなら1件、別々の料理なら分けてよい。
 - コスメ・スキンケア・ヘアケア用品の写真：beauty の use にする。商品名が読めればその名前、読めなければ見た目から短く名付ける。使用中のアイテムと同じものに見えれば、その名前に揃える。
-- 体重計やヘルスケアアプリのスクショ：weight にする。
+- 体重計やヘルスケアアプリのスクショ：weight にする。体脂肪率が写っていれば body も作る。
+- 健康診断の結果（画像でも文章でも）：書かれている日付ごとに weight と body（体脂肪率・腹囲）を作る。過去の日付でもそのまま使う。
 - 運動アプリ・フィットネス機器のスクショ：workout にする。
+
+# いつもの運動
+- 「いつもの」「いつものセット」や、下の「いつもの運動」の名前で書かれていたら、その種目・回数・セット数を items にそのまま使う。
 
 # よく頼むメニュー
 - 下の「よく頼むメニュー」と同じ品（名前が一致、またはほぼ同じ）なら、label・kcal・p・f・c・treat はその登録値をそのまま使う。
@@ -1859,6 +1987,182 @@ function setupFavorites() {
 }
 
 
+
+/* ========== 体重のプルダウン ========== */
+function latestWeight() {
+  const w = state.entries.filter((e) => e.type === 'weight' && e.kg != null)
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0))[0];
+  return w ? w.kg : null;
+}
+
+// 選択肢は直近の体重（なければ目標範囲）の前後だけにする
+function weightPickRange() {
+  const last = latestWeight();
+  const { weightMin, weightMax } = state.settings;
+  let center = last;
+  if (center == null && weightMin != null && weightMax != null) center = (weightMin + weightMax) / 2;
+  if (center == null) return { lo: 30, hi: 120, def: null };
+  const c = Math.floor(center);
+  return { lo: Math.max(20, c - 6), hi: Math.min(300, c + 6), def: last };
+}
+
+function renderWeightPicker() {
+  const { lo, hi, def } = weightPickRange();
+  const intSel = $('#qWInt'), decSel = $('#qWDec');
+  const ints = ['<option value="">—</option>'];
+  for (let i = lo; i <= hi; i++) ints.push(`<option value="${i}">${i}</option>`);
+  intSel.innerHTML = ints.join('');
+  decSel.innerHTML = Array.from({ length: 10 }, (_, d) => `<option value="${d}">${d}</option>`).join('');
+  if (def != null) {
+    const r = Math.round(def * 10);
+    intSel.value = String(Math.floor(r / 10));
+    decSel.value = String(r % 10);
+  } else {
+    intSel.value = '';
+  }
+}
+
+function readWeightInput() {
+  if ($('#qWeight').style.display !== 'none') return $('#qWeight').value.replace(',', '.').trim();
+  const i = $('#qWInt').value;
+  return i === '' ? '' : `${i}.${$('#qWDec').value}`;
+}
+
+/* ========== いつもの運動 ========== */
+function readWkItems(sel) {
+  return $$(`${sel} .wk-item`).map((w) => ({ name: $('.wk-name', w).value, reps: $('.wk-reps', w).value, sets: $('.wk-sets', w).value, minutes: $('.wk-min', w).value }));
+}
+const presetKey = (name) => toStr(name).replace(/\s+/g, '').toLowerCase();
+function findPreset(name) {
+  const k = presetKey(name);
+  return k ? (state.workoutPresets || []).find((x) => presetKey(x.name) === k) : null;
+}
+function normalizePreset(raw) {
+  const o = raw && typeof raw === 'object' ? raw : {};
+  const name = toStr(o.name);
+  if (!name) return { error: '名前を入れてください' };
+  const r = normalizeEntry({ type: 'workout', items: o.items, note: '' });
+  if (r.errors) return { error: r.errors[0].replace('itemsとnoteが空です', '種目を1つ以上入れてください') };
+  return { preset: { name, items: r.entry.items } };
+}
+function upsertPreset(raw, id = null) {
+  const r = normalizePreset(raw);
+  if (r.error) return r;
+  const same = findPreset(r.preset.name);
+  const target = id ? state.workoutPresets.find((x) => x.id === id) : same;
+  if (id && same && same.id !== id) return { error: '同じ名前のセットがすでにあります' };
+  if (target) { Object.assign(target, r.preset); return { updated: true }; }
+  state.workoutPresets.push({ ...r.preset, id: uid() });
+  return { updated: false };
+}
+function presetUseCount(p) {
+  const sig = workoutText(p.items);
+  return state.entries.filter((e) => e.type === 'workout' && workoutText(e.items) === sig).length;
+}
+function sortedPresets() {
+  return (state.workoutPresets || []).map((p) => ({ p, n: presetUseCount(p) }))
+    .sort((a, b) => b.n - a.n || a.p.name.localeCompare(b.p.name, 'ja')).map((x) => x.p);
+}
+function renderPresetChips() {
+  const list = sortedPresets();
+  $('#wkChips').innerHTML = list.length
+    ? list.map((p) => `<button class="fav-chip" data-addpreset="${esc(p.id)}">${esc(p.name)}<small>${p.items.length}種目</small></button>`).join('')
+    : '<div class="empty-soft">記録一覧の運動をタップして「いつもの運動に登録」すると、ここからワンタップで記録できます。</div>';
+}
+function renderPresetList() {
+  const list = sortedPresets();
+  $('#presetList').innerHTML = list.length
+    ? list.map((p) => `<div class="entry tap" data-preset="${esc(p.id)}"><span class="chip workout">運動</span><div class="body">${esc(p.name)}<div class="meta">${esc(workoutText(p.items))}</div></div></div>`).join('')
+    : '<div class="empty-soft">まだ登録はありません。</div>';
+}
+function openPresetEditor(id) {
+  const p = id ? state.workoutPresets.find((x) => x.id === id) : { name: '', items: [{}] };
+  if (!p) return;
+  openSheet(`<h3>${id ? 'いつもの運動を編集' : 'いつもの運動を追加'}</h3>
+    <label class="field"><span>セットの名前</span><input type="text" id="psName" value="${v(p.name)}" placeholder="例：いつものセット"></label>
+    <div class="field"><span class="small muted">種目</span><div id="psList">${p.items.map(wkItemHTML).join('')}</div>
+      <button class="ghost" type="button" id="psAddItem" style="width:100%">種目を追加</button></div>
+    <div class="err-list" id="psErr"></div>
+    <div class="btns" style="margin-top:8px">${id ? '<button class="danger" id="psDel">削除</button>' : ''}<button class="ghost" id="psClose">閉じる</button><button class="primary" id="psSave">保存</button></div>`);
+  $('#psAddItem').addEventListener('click', () => $('#psList').insertAdjacentHTML('beforeend', wkItemHTML()));
+  $('#psList').addEventListener('click', (ev) => { const b = ev.target.closest('.wk-del'); if (b) b.closest('.wk-item').remove(); });
+  $('#psClose').addEventListener('click', closeSheet);
+  if (id) $('#psDel').addEventListener('click', () => {
+    if (!confirm('このセットを削除しますか？（これまでの記録は消えません）')) return;
+    state.workoutPresets = state.workoutPresets.filter((x) => x.id !== id);
+    saveState(); closeSheet(); toast('削除しました'); refreshAll();
+  });
+  $('#psSave').addEventListener('click', () => {
+    const r = upsertPreset({ name: $('#psName').value, items: readWkItems('#psList') }, id);
+    if (r.error) { $('#psErr').textContent = r.error; return; }
+    saveState(); closeSheet(); toast('保存しました'); refreshAll();
+  });
+}
+function setupPresets() {
+  $('#wkChips').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-addpreset]');
+    if (!b) return;
+    const p = state.workoutPresets.find((x) => x.id === b.getAttribute('data-addpreset'));
+    if (!p) return;
+    const date = $('#favDate').value || today();
+    const { entry, errors } = normalizeEntry({ type: 'workout', date, items: p.items.map((it) => ({ ...it })), note: '' });
+    if (errors) { toast(errors[0]); return; }
+    addEntries([entry]);
+    if (saveState()) { toast(`${fmtMD(date)}に「${p.name}」を記録しました`); refreshAll(); }
+  });
+  $('#presetAdd').addEventListener('click', () => openPresetEditor(null));
+  $('#presetList').addEventListener('click', (ev) => { const a = ev.target.closest('[data-preset]'); if (a) openPresetEditor(a.getAttribute('data-preset')); });
+}
+
+/* ========== 体脂肪率・腹囲のグラフ ========== */
+let bodyChart = null;
+let bodyMetric = 'fatPct';
+const BODY_META = { fatPct: { label: '体脂肪率', unit: '%', target: 'fatTarget' }, waistCm: { label: '腹囲', unit: 'cm', target: 'waistTarget' } };
+
+function renderBodyChart() {
+  const meta = BODY_META[bodyMetric];
+  const recs = state.entries.filter((e) => e.type === 'body' && e[bodyMetric] != null)
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt || 0) - (b.createdAt || 0));
+  const wrap = $('#bodyWrap'), stat = $('#bodyStat'), hint = $('#bodyHint');
+  const target = state.settings[meta.target];
+  if (!recs.length) {
+    if (bodyChart) { bodyChart.destroy(); bodyChart = null; }
+    wrap.style.display = 'none';
+    stat.innerHTML = '';
+    hint.textContent = `${meta.label}を記録すると、ここに推移が出ます。健診の結果も投げ込みで取り込めます。`;
+    return;
+  }
+  const last = recs[recs.length - 1], prev = recs[recs.length - 2];
+  let diff = '';
+  if (prev) {
+    const d = round1(last[bodyMetric] - prev[bodyMetric]);
+    diff = d === 0 ? `前回（${fmtMD(prev.date)}）と同じくらい` : `前回（${fmtMD(prev.date)}）から ${d > 0 ? '+' : ''}${d.toFixed(1)}${meta.unit}`;
+  }
+  stat.innerHTML = `<div><div class="small muted">最新（${fmtMD(last.date)}）</div><div class="big">${fmtNum(last[bodyMetric], 1)}<small>${meta.unit}</small></div>
+    <div class="small muted">${[diff, target != null ? `目標 ${fmtNum(target, 1)}${meta.unit}` : ''].filter(Boolean).map(esc).join('<br>')}</div></div>`;
+  if (typeof Chart === 'undefined') { wrap.style.display = 'none'; hint.textContent = ''; return; }
+  wrap.style.display = '';
+  hint.textContent = target != null ? '点線は目標です。' : '設定の「からだの目標」を入れると目標の線を表示します。';
+  const labels = recs.map((r) => { const [y, m, d] = r.date.split('-'); return `${y.slice(2)}/${Number(m)}/${Number(d)}`; });
+  const vals = recs.map((r) => r[bodyMetric]);
+  const all = target != null ? [...vals, target] : vals;
+  const pad = Math.max(0.5, (Math.max(...all) - Math.min(...all)) * 0.15);
+  const accent = cssVar('--c-body'), muted = cssVar('--muted'), line = cssVar('--line'), strong = cssVar('--accent');
+  const datasets = [{ label: meta.label, data: vals, borderColor: accent, backgroundColor: accent, borderWidth: 2.5, pointRadius: 4, tension: 0.2 }];
+  if (target != null) datasets.push({ label: '目標', data: vals.map(() => target), borderColor: strong, borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0 });
+  const data = { labels, datasets };
+  const options = {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${c.dataset.label} ${c.parsed.y.toFixed(1)}${meta.unit}` } } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: muted, maxRotation: 0, autoSkip: true, maxTicksLimit: 5, font: { size: 11 } }, border: { color: line } },
+      y: { min: Math.floor(Math.min(...all) - pad), max: Math.ceil(Math.max(...all) + pad), grid: { color: line }, ticks: { color: muted, font: { size: 11 }, maxTicksLimit: 5 }, border: { display: false } },
+    },
+  };
+  if (bodyChart) { bodyChart.data = data; bodyChart.options = options; bodyChart.update(); }
+  else bodyChart = new Chart($('#bodyChart'), { type: 'line', data, options });
+}
+
 /* ========== 問いかけ ========== */
 const nowHM = (d = new Date()) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
@@ -1882,7 +2186,7 @@ function goInput(mode, template = '') {
   showTab('input');
   if (mode === 'weight') {
     $('#qDate').value = today();
-    const el = $('#qWeight');
+    const el = $('#qWeight').style.display === 'none' ? $('#qWInt') : $('#qWeight');
     el.scrollIntoView({ block: 'center' });
     el.focus();
   } else {
@@ -2063,7 +2367,7 @@ function renderCurrent() {
   if (currentTab === 'list') renderList();
   if (currentTab === 'beauty') renderBeauty();
   if (currentTab === 'settings') renderSettings();
-  if (currentTab === 'input') renderFavChips();
+  if (currentTab === 'input') { renderFavChips(); renderPresetChips(); renderWeightPicker(); }
 }
 
 function refreshAll() { renderCurrent(); }
@@ -2077,9 +2381,17 @@ function init() {
     $$('#rangeSeg button').forEach((x) => x.classList.toggle('on', x === b));
     renderChart();
   });
+  $('#bodySeg').addEventListener('click', (ev) => {
+    const b = ev.target.closest('button[data-m]');
+    if (!b) return;
+    bodyMetric = b.dataset.m;
+    $$('#bodySeg button').forEach((x) => x.classList.toggle('on', x === b));
+    renderBodyChart();
+  });
   $('#overlay').addEventListener('click', (ev) => { if (ev.target.id === 'overlay') closeSheet(); });
   setupInput();
   setupFavorites();
+  setupPresets();
   setupHomeCards();
   setupList();
   setupBeauty();
