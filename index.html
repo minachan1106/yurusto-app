@@ -536,6 +536,7 @@
       <h2>いつもの運動</h2>
       <div id="presetList"></div>
       <button class="ghost" id="presetAdd" style="width:100%; margin-top:8px">運動セットを追加</button>
+      <div class="small muted" id="metsList" style="margin-top:8px"></div>
       <div class="hint">記録一覧の運動からも「いつもの運動に登録」できます。投げ込みで「いつもの」と書いても、この内容で記録されます。</div>
     </div>
 
@@ -661,7 +662,7 @@
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
 // 公開のたびに上げる（CLAUDE.md の「公開のルール」参照）
-const APP_VERSION = '2026.10.12-13';
+const APP_VERSION = '2026.10.12-14';
 const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'condition'];
 const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
 const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: 'ツール' };
@@ -738,7 +739,7 @@ const clonePrompts = (list) => list.map((x) => ({ ...x, days: [...x.days] }));
 function defaultState() {
   const settings = {};
   SETTING_KEYS.forEach((k) => { settings[k] = null; });
-  return { version: 1, entries: [], comments: [], favorites: [], workoutPresets: [], wishes: [], links: {}, prompts: clonePrompts(DEFAULT_PROMPTS), promptLog: {}, reviewLog: {}, settings };
+  return { version: 1, entries: [], comments: [], favorites: [], workoutPresets: [], wishes: [], exerciseMets: {}, links: {}, prompts: clonePrompts(DEFAULT_PROMPTS), promptLog: {}, reviewLog: {}, settings };
 }
 
 function normalizePrompt(o) {
@@ -767,6 +768,7 @@ function loadState() {
       comments: Array.isArray(s.comments) ? s.comments : [],
       favorites: Array.isArray(s.favorites) ? s.favorites : [],
       workoutPresets: Array.isArray(s.workoutPresets) ? s.workoutPresets : [],
+      exerciseMets: asObj(s.exerciseMets),
       wishes: Array.isArray(s.wishes) ? s.wishes : [],
       links: asObj(s.links),
       prompts: Array.isArray(s.prompts)
@@ -849,6 +851,7 @@ function normalizeEntry(raw) {
         reps: toNum(o.reps, `items[${i}].reps`, errors),
         sets: toNum(o.sets, `items[${i}].sets`, errors),
         minutes: toNum(o.minutes, `items[${i}].minutes`, errors),
+        ...(validMets(o.mets) ? { mets: validMets(o.mets) } : {}),
       };
     }).filter((it) => it.name || it.reps !== null || it.sets !== null || it.minutes !== null);
     e.note = note;
@@ -1466,6 +1469,7 @@ function renderPreview() {
 function savePending() {
   if (!pending) return;
   const ok = pending.items.filter((it) => it.entry).map((it) => it.entry);
+  rememberItemMets([...ok, ...(pending.updates || []).map((u) => u.after)]);
   const r = addEntries(ok);
   let fixed = 0, removed = 0;
   (pending.updates || []).filter((u) => u.after).forEach((u) => {
@@ -1494,6 +1498,7 @@ function savePending() {
     if (hasComment) parts.push('コメントを保存');
     toast(parts.join('・') + 'しました');
     pending = null;
+    setTimeout(() => estimateUnknownMets(), 0);
     $('#dropText').value = '';
     clearImages();
     renderPreview();
@@ -1731,6 +1736,7 @@ function openEditor(id, opts = {}) {
     const idx = state.entries.findIndex((x) => x.id === id);
     state.entries[idx] = { ...r.entry, id, createdAt: e.createdAt };
     saveState(); closeSheet(); toast('保存しました'); refreshAll();
+    if (e.type === 'workout') estimateUnknownMets();
   });
 }
 
@@ -1864,6 +1870,8 @@ function renderSettings() {
   if (document.activeElement !== $('#projectUrl')) $('#projectUrl').value = projectUrl();
   renderFavList();
   renderPresetList();
+  const ml = Object.entries(state.exerciseMets || {});
+  $('#metsList').textContent = ml.length ? `Claudeが推定した強さ（METs）：${ml.map(([n, v]) => `${n} ${v.mets}`).join('、')}` : '';
   renderAskList();
   $$('[data-set]').forEach((el) => {
     const k = el.getAttribute('data-set');
@@ -1975,7 +1983,9 @@ function parseImport(text) {
   const links = obj.links && typeof obj.links.projectUrl === 'string' && /^https:\/\/claude\.ai\//.test(obj.links.projectUrl) ? { projectUrl: obj.links.projectUrl } : null;
   const wishes = (Array.isArray(obj.wishes) ? obj.wishes : []).filter((w) => w && typeof w === 'object' && toStr(w.name))
     .map((w) => ({ ...w, id: w.id ? String(w.id) : uid() }));
-  return { entries, comments, favorites, workoutPresets, wishes, links, prompts, settings, bad };
+  const exerciseMets = {};
+  Object.entries(asObj(obj.exerciseMets)).forEach(([k, v]) => { const m = validMets(v && v.mets != null ? v.mets : v); if (toStr(k) && m) exerciseMets[toStr(k)] = { mets: m, by: 'claude' }; });
+  return { entries, comments, favorites, workoutPresets, wishes, exerciseMets, links, prompts, settings, bad };
 }
 
 function doImport(mode) {
@@ -1986,6 +1996,7 @@ function doImport(mode) {
     const base = defaultState();
     state = {
       version: 1, entries: [], comments: data.comments, favorites: data.favorites, workoutPresets: data.workoutPresets, wishes: data.wishes,
+      exerciseMets: data.exerciseMets || state.exerciseMets || {},
       links: data.links || state.links || {},
       prompts: data.prompts || state.prompts, promptLog: {}, reviewLog: {},
       settings: data.settings ? { ...base.settings, ...data.settings } : state.settings,
@@ -2004,6 +2015,7 @@ function doImport(mode) {
     let fAdded = 0;
     data.favorites.forEach((f) => { if (!findFavorite(f.label)) { state.favorites.push({ ...f, id: uid() }); fAdded++; } });
     data.workoutPresets.forEach((x) => { if (!findPreset(x.name)) { state.workoutPresets.push({ ...x, id: uid() }); fAdded++; } });
+    state.exerciseMets = { ...data.exerciseMets, ...(state.exerciseMets || {}) };
     if (saveState()) {
       const parts = [`追加${r.added}件`];
       if (fAdded) parts.push(`登録メニュー${fAdded}件`);
@@ -2170,7 +2182,7 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
   "entries": [
     {"date":"YYYY-MM-DD","type":"weight","kg":数値},
     {"date":"YYYY-MM-DD","type":"meal","label":"料理名","slot":"breakfast|lunch|dinner|snack","kcal":数値,"p":数値,"f":数値,"c":数値,"treat":真偽値,"note":"任意"},
-    {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":数値,"sets":数値,"minutes":数値}],"note":"任意"},
+    {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":数値,"sets":数値,"minutes":数値,"mets":一覧にない種目だけ数値}],"note":"任意"},
     {"date":"YYYY-MM-DD","type":"beauty","item":"アイテム名","category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
     {"date":"YYYY-MM-DD","type":"condition","note":"体や肌の状態メモ"},
     {"date":"YYYY-MM-DD","type":"body","fatPct":体脂肪率の数値,"waistCm":腹囲cmの数値,"note":"任意"},
@@ -2219,6 +2231,7 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 
 # 運動の種目名
 - 次の名前に当てはまる種目は、この表記に揃える：${EXERCISES.map((x) => x.name).join('、')}
+- この一覧にない種目・活動（入浴、家事、ダンスなど）は、items の各要素に mets（運動の強さの目安。安静=1.0。一般的な身体活動の強さの表を参考）も入れる。
 
 # いつもの運動
 - 「いつもの」「いつものセット」や、下の「いつもの運動」の名前で書かれていたら、その種目・回数・セット数を items にそのまま使う。
@@ -2248,7 +2261,7 @@ function apiErrorMessage(status, body) {
   return `うまく変換できませんでした（${status}）${msg ? `：${msg}` : ''}`;
 }
 
-async function callClaude({ key, text, imgs }) {
+async function callClaude({ key, text, imgs, system = null, maxTokens = 16000 }) {
   const model = MODEL;
   const content = imgs.map((im) => ({ type: 'image', source: { type: 'base64', media_type: im.mediaType, data: im.data } }));
   content.push({ type: 'text', text: text || '画像の内容を記録してください。' });
@@ -2260,7 +2273,7 @@ async function callClaude({ key, text, imgs }) {
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true',
     };
-    const body = { model, max_tokens: 16000, system: buildSystemPrompt(), messages: [{ role: 'user', content }] };
+    const body = { model, max_tokens: maxTokens, system: system || buildSystemPrompt(), messages: [{ role: 'user', content }] };
     if (withFallback) { headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'; body.fallbacks = 'default'; }
     return fetch(API_URL, { method: 'POST', headers, body: JSON.stringify(body) });
   };
@@ -2805,6 +2818,58 @@ function renderLinks() {
 }
 
 
+
+/* ========== 一覧にない種目の強さを Claude に推定してもらう ========== */
+const metsTried = new Set(); // この起動中に推定を頼んだ名前（失敗しても繰り返さない）
+let metsBusy = false;
+
+function unknownExerciseNames() {
+  const names = new Set();
+  const add = (it) => { const n = toStr(it && it.name); if (n && !validMets(it.mets) && !exerciseOf(n) && !(state.exerciseMets || {})[n] && !metsTried.has(n)) names.add(n); };
+  state.entries.filter((e) => e.type === 'workout').forEach((e) => (e.items || []).forEach(add));
+  (state.workoutPresets || []).forEach((p) => (p.items || []).forEach(add));
+  wqRows.forEach(add);
+  return [...names].slice(0, 20);
+}
+
+// 記録に付いて届いた強さ（投げ込み経由）を、名前ごとに覚えておく
+function rememberItemMets(entries) {
+  let changed = false;
+  entries.filter((e) => e && e.type === 'workout').forEach((e) => (e.items || []).forEach((it) => {
+    const n = toStr(it.name), m = validMets(it.mets);
+    if (n && m && !exerciseOf(n) && !(state.exerciseMets || {})[n]) { state.exerciseMets[n] = { mets: m, by: 'claude' }; changed = true; }
+  }));
+  return changed;
+}
+
+async function estimateUnknownMets({ silent = false } = {}) {
+  const key = loadApi().key;
+  if (!key || metsBusy) return;
+  const names = unknownExerciseNames();
+  if (!names.length) return;
+  metsBusy = true;
+  names.forEach((n) => metsTried.add(n));
+  renderWqKcal();
+  try {
+    const system = 'あなたは運動・身体活動の強さ（METs）の目安を答えるアシスタントです。一般的な身体活動の強さの表（Compendium of Physical Activities など）を参考に、日本語の活動名ごとに、ふつうに行ったときの METs を1つの数値で答えてください。安静（座って休む）は1.0です。分からない活動は近い活動から推定してください。出力は JSON オブジェクト1つだけ：{"mets":{"活動名":数値}}';
+    const r = await callClaude({ key, system, maxTokens: 1000, text: `次の活動の METs の目安：\n${names.map((n) => `- ${n}`).join('\n')}`, imgs: [] });
+    let obj = null;
+    for (const c of findJsonCandidates(r.text)) { const v = tryParse(c.text); if (v && typeof v === 'object' && v.mets) { obj = v.mets; break; } }
+    const got = [];
+    if (obj) names.forEach((n) => { const m = validMets(obj[n]); if (m) { state.exerciseMets[n] = { mets: m, by: 'claude' }; got.push(`${n} ${m}`); } });
+    if (got.length) {
+      saveState();
+      refreshAll();
+      if (!silent) toast(`強さをClaudeが推定しました（${got.join('、')}）`);
+    }
+  } catch (e) {
+    /* 推定できなければ名前からの判定のまま */
+  } finally {
+    metsBusy = false;
+    renderWqKcal();
+  }
+}
+
 /* ========== 運動をさっと記録 ========== */
 const WQ_KEY = 'yurusto.wqrows';
 const REPS_OPTS = [5, 8, 10, 12, 15, 20, 25, 30, 40, 50];
@@ -2858,9 +2923,14 @@ function renderWqKcal() {
   const el = $('#wqKcal');
   if (!items.length) { el.textContent = ''; return; }
   if (kg == null) { el.innerHTML = '<span class="muted">体重を記録すると、消費の目安が出ます。</span>'; return; }
-  const per = items.map((it) => ({ it, k: workoutKcal([it], kg) }));
+  const per = items.map((it) => ({ it, k: workoutKcal([it], kg), m: metsSource(it.name, it) }));
+  const note = (x) => {
+    if (x.m.src === 'claude') return `（強さ${x.m.mets}・Claudeの推定）`;
+    if (x.m.src === 'list') return '';
+    return metsBusy && metsTried.has(x.it.name) ? '（強さを推定中…）' : `（強さ${x.m.mets}・仮）`;
+  };
   el.innerHTML = `消費の目安 <b>約${fmtNum(per.reduce((a, x) => a + x.k, 0))}kcal</b>
-    <div class="small muted">${per.map((x) => `${esc(x.it.name)} ${fmtNum(x.k)}`).join(' ・ ')}</div>`;
+    <div class="small muted">${per.map((x) => `${esc(x.it.name)} ${fmtNum(x.k)}${note(x)}`).join(' ・ ')}</div>`;
 }
 
 function renderWq() {
@@ -2888,6 +2958,7 @@ function setupWq() {
       if (ex && ex.unit === 'min') { r.reps = null; r.sets = null; if (r.minutes == null) r.minutes = 20; }
       if (ex && ex.unit === 'reps') { r.minutes = null; if (r.reps == null) r.reps = 15; if (r.sets == null) r.sets = 3; }
       saveWqRows(); renderWq();
+      if (!ex) estimateUnknownMets();
       return;
     }
     const num = (x) => (x === '' ? null : Number(x));
@@ -2915,6 +2986,7 @@ function setupWq() {
       const kg = bodyWeightFor(date);
       toast(`${fmtMD(date)}の運動を記録しました${kg != null ? `（約${fmtNum(workoutKcal(entry.items, kg))}kcal）` : ''}`);
       refreshAll();
+      estimateUnknownMets();
     }
   });
 }
@@ -3007,12 +3079,23 @@ const EXERCISES = [
 ];
 const exerciseOf = (name) => EXERCISES.find((x) => x.name === toStr(name)) || null;
 
-function itemMets(name) {
-  const ex = exerciseOf(name);
-  if (ex) return ex.mets;
-  const hit = METS_RULES.find(([re]) => re.test(name || ''));
-  return hit ? hit[1] : STRENGTH_METS;
+// 0.9〜20 の範囲だけ受け付ける（それ以外は推定の失敗とみなす）
+function validMets(v) {
+  const n = Number(v);
+  return v !== null && v !== '' && isFinite(n) && n >= 0.9 && n <= 20 ? Math.round(n * 10) / 10 : null;
 }
+
+// 強さの決め方：記録に付いた値 → 種目一覧 → Claude が推定した値 → 名前からの判定 → 筋トレ相当
+function metsSource(name, it) {
+  if (it && validMets(it.mets)) return { mets: validMets(it.mets), src: 'claude' };
+  const ex = exerciseOf(name);
+  if (ex) return { mets: ex.mets, src: 'list' };
+  const c = (state.exerciseMets || {})[toStr(name)];
+  if (c && validMets(c.mets)) return { mets: validMets(c.mets), src: 'claude' };
+  const hit = METS_RULES.find(([re]) => re.test(name || ''));
+  return hit ? { mets: hit[1], src: 'name' } : { mets: STRENGTH_METS, src: 'default' };
+}
+function itemMets(name, it) { return metsSource(name, it).mets; }
 
 // 時間の記録がない筋トレは、一覧の種目なら「1回の秒数＋セット間30秒」、それ以外は「1回3秒＋セット間1分」でおおよその時間を出す
 function itemMinutes(it) {
@@ -3030,7 +3113,7 @@ function itemMinutes(it) {
 
 // 基礎代謝と重複しないよう、安静分（1 MET）を差し引く
 function workoutKcal(items, kg) {
-  return (items || []).reduce((sum, it) => sum + Math.max(0, itemMets(it.name) - 1) * kg * itemMinutes(it) / 60 * 1.05, 0);
+  return (items || []).reduce((sum, it) => sum + Math.max(0, itemMets(it.name, it) - 1) * kg * itemMinutes(it) / 60 * 1.05, 0);
 }
 
 function bodyWeightFor(ymd) {
@@ -3549,6 +3632,7 @@ function init() {
   setupUpdate();
   setupSteps();
   setupWishes();
+  setTimeout(() => estimateUnknownMets({ silent: true }), 1500);
   setupList();
   setupBeauty();
   setupSettings();
