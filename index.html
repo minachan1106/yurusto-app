@@ -244,7 +244,7 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.act { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 6px 8px 6px 16px; }
-  .toast .t-undo { min-height: 32px; padding: 4px 12px; border-radius: 99px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; }
+  .toast .t-undo { flex: 0 0 auto; white-space: nowrap; min-height: 32px; padding: 4px 12px; border-radius: 99px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; }
   .err-list { color: #c0646c; font-size: 13px; }
   .ask-card { border-left: 3px solid var(--accent); }
   .ask-text { font-size: 15.5px; font-weight: 600; margin-bottom: 10px; }
@@ -367,6 +367,13 @@
   .today-line { font-size: 13px; margin-top: 6px; }
   .today-line .k { color: var(--muted); margin-right: 6px; }
   .now-card { padding-bottom: 12px; }
+  .result-card { border-left: 3px solid var(--sage); }
+  .result-card h2 { color: var(--text); }
+  .result-card h2::before { content: "✓ "; color: var(--sage); }
+  .res-line { font-size: 14px; margin: 4px 0; }
+  .res-line.sub { font-size: 12px; color: var(--muted); }
+  .result-card .btns button { white-space: nowrap; padding-left: 6px; padding-right: 6px; font-size: 14px; }
+  .big-ghost { min-height: 48px; font-weight: 600; color: var(--accent-strong); }
   .now-greet { font-size: 16px; font-weight: 700; }
   .now-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
   .now-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
@@ -519,15 +526,15 @@
       <div class="img-row" id="imgRow"></div>
       <textarea id="dropText" style="min-height:96px" placeholder="食べたもの・運動・使ったコスメなどを自由に。写真だけでもOKです。"></textarea>
       <button class="primary" id="dropAI" style="width:100%; margin-top:8px">記録する</button>
-      <div class="api-meter" id="apiMeterInput"></div>
       <div class="hint" id="aiHint"></div>
       <div class="sub-actions"><button type="button" class="linkish" id="dropPaste">クリップボードから貼り付け</button><button type="button" class="linkish" id="dropClear">クリア</button></div>
     </div>
 
     <div class="card" id="previewCard" style="display:none"></div>
+    <div class="card result-card" id="resultCard" style="display:none"></div>
 
     <div class="card">
-      <h2>体重・歩数</h2>
+      <h2>体重</h2>
       <div class="wrow">
         <div class="wpick" id="wPick"><select id="qWInt" aria-label="体重（整数）"></select><span>.</span><select id="qWDec" aria-label="体重（小数）"></select><span class="unit">kg</span></div>
         <input type="number" id="qWeight" inputmode="decimal" step="0.1" min="0" placeholder="00.0" style="display:none">
@@ -535,22 +542,26 @@
       </div>
       <div class="sub-actions"><button type="button" class="linkish" id="qManual">数字を直接入力する</button></div>
       <div class="hint" id="qHint"></div>
-      <div class="wrow" style="margin-top:10px">
-        <div class="wpick"><select id="qSteps" aria-label="歩数"></select><span class="unit">歩</span></div>
-        <button class="primary" id="qStepsSave">保存</button>
-      </div>
-      <div class="sub-actions"><button type="button" class="linkish" id="qStepsPaste">ヘルスケアから貼り付け</button><span class="small muted" id="qStepsNow"></span></div>
+      <div class="sub-h" style="margin-top:14px">歩数 <span class="small muted" id="qStepsNow" style="font-weight:400"></span></div>
+      <button class="ghost big-ghost" type="button" id="qStepsPaste" style="width:100%">ヘルスケアから取り込む</button>
+      <details class="more" style="margin-top:6px"><summary>数字を選んで入れる</summary>
+        <div class="wrow" style="margin-top:8px">
+          <div class="wpick"><select id="qSteps" aria-label="歩数"></select><span class="unit">歩</span></div>
+          <button class="primary" id="qStepsSave">保存</button>
+        </div>
+      </details>
     </div>
 
     <div class="card">
       <h2>運動</h2>
       <div class="sub-h">いつもの（タップで記録）</div>
       <div class="fav-chips" id="wkChips"></div>
-      <div class="sub-h">種目を選ぶ</div>
-      <div id="wqRows"></div>
-      <button class="ghost" type="button" id="wqAddRow" style="width:100%; margin-bottom:10px">種目を追加</button>
-      <div class="wq-kcal" id="wqKcal"></div>
-      <button class="primary" id="wqSave" style="width:100%">記録する</button>
+      <details class="more" id="wqMore" style="margin-top:8px"><summary>ほかの運動を選ぶ</summary>
+        <div id="wqRows" style="margin-top:8px"></div>
+        <button class="ghost" type="button" id="wqAddRow" style="width:100%; margin-bottom:10px">種目を追加</button>
+        <div class="wq-kcal" id="wqKcal"></div>
+        <button class="primary" id="wqSave" style="width:100%">記録する</button>
+      </details>
     </div>
 
     <div class="card">
@@ -798,7 +809,7 @@
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
 // 公開のたびに上げる（CLAUDE.md の「公開のルール」参照）
-const APP_VERSION = '2026.10.12-18';
+const APP_VERSION = '2026.10.12-19';
 const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'condition'];
 const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
 const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: '美容ツール' };
@@ -1638,9 +1649,11 @@ function setupInput() {
     if (!kgRaw) { toast('体重を選んでください'); return; }
     const r = normalizeEntry({ type: 'weight', date, kg: kgRaw });
     if (r.errors) { toast(r.errors[0]); return; }
+    const snap = snapshot();
     const res = addEntries([r.entry]);
     if (saveState()) {
-      toast(res.replaced ? `${fmtMD(date)}の体重を更新しました` : `${fmtMD(date)}の体重を記録しました`);
+      const when = date === today() ? '今日' : fmtMD(date);
+      toastSaved(res.replaced ? `${when}の体重を ${fmtNum(r.entry.kg, 1)}kg に更新` : `${when}の体重 ${fmtNum(r.entry.kg, 1)}kg を記録`, date, ['weight'], snap);
       $('#qWeight').value = '';
       document.activeElement && document.activeElement.blur();
       updateHint();
@@ -1767,7 +1780,56 @@ function renderPreview() {
   card.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// 保存した結果、その日がどうなったか（目安との差は責めない言い方で）
+function dayImpact(date, types) {
+  const st = dayStats(date), s = state.settings, lines = [];
+  const when = date === today() ? '今日' : fmtMD(date);
+  if (types.has('meal') && st.meals.length) {
+    const r = s.kcal != null ? Math.round(s.kcal - st.intake.kcal) : null;
+    lines.push(`${when}の食事 約${fmtNum(st.intake.kcal)}kcal${r == null ? '' : r >= 0 ? `・目安まであと約${fmtNum(r)}kcal` : `・目安より約${fmtNum(-r)}kcal多め（次のごはんを軽めにすれば十分）`}`);
+  }
+  if (types.has('weight')) { const avg = movingAvg7(weightMap(), date); if (avg != null) lines.push(`体重の7日平均 ${fmtNum(avg, 1)}kg`); }
+  if (types.has('workout') && st.exKcal >= 1) lines.push(`${when}の運動 約${fmtNum(st.exKcal)}kcal`);
+  if (types.has('steps') && st.steps) lines.push(`${when}の歩数 ${stepsText(st.steps)}`);
+  return lines;
+}
+
+let lastResult = null; // { title, lines, comment, snap, usd }
+function renderResult() {
+  const card = $('#resultCard');
+  if (!lastResult) { card.style.display = 'none'; card.innerHTML = ''; return; }
+  const r = lastResult;
+  const usage = loadUsage()[today().slice(0, 7)];
+  card.innerHTML = `<h2>${esc(r.title)}</h2>${r.lines.map((l) => `<div class="res-line">${esc(l)}</div>`).join('')}
+    ${r.comment ? `<div class="comment-text" style="margin-top:8px">${esc(r.comment)}</div>` : ''}
+    ${r.usd > 0 ? `<div class="res-line sub">今回のAPI 約$${r.usd.toFixed(3)}${usage ? `・今月 $${usage.usd.toFixed(usage.usd < 1 ? 3 : 2)}` : ''}</div>` : ''}
+    <div class="btns" style="margin-top:10px"><button class="ghost" id="rsUndo">取り消す</button><button class="ghost" id="rsHome">ホームへ</button><button class="primary" id="rsNext">続けて記録</button></div>`;
+  card.style.display = '';
+  $('#rsUndo').addEventListener('click', () => { const snap = r.snap; lastResult = null; renderResult(); undoTo(snap); });
+  $('#rsHome').addEventListener('click', () => { lastResult = null; renderResult(); showTab('home'); });
+  $('#rsNext').addEventListener('click', () => { lastResult = null; renderResult(); window.scrollTo(0, 0); $('#dropText').focus(); });
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// 下のカード（体重・運動・いつものメニュー・歩数）からの保存はトーストで結果と「取り消す」
+function toastSaved(msg, date, types, snap) {
+  const extra = dayImpact(date, new Set(types)).filter((l) => !msg.includes(l));
+  toast([msg, ...extra.slice(0, 1)].join('・'), { undo: () => undoTo(snap) });
+}
+
+const DROP_PH = {
+  morning: '朝ごはん・体重計のスクショなど。「ヨーグルトとバナナ」だけでもOK。',
+  day: 'ランチの写真や「昼にパスタ」など。写真だけでもOKです。',
+  night: '夕食・Uberの注文画面・運動・使ったコスメなど。写真だけでもOKです。',
+};
+function renderInputHints() {
+  $('#dropText').placeholder = DROP_PH[timeBand()];
+  // いつもの運動がなければ、選ぶフォームを開いておく
+  if (!(state.workoutPresets || []).length) $('#wqMore').open = true;
+}
+
 function savePending() {
+  const snap = snapshot();
   if (!pending) return;
   const ok = pending.items.filter((it) => it.entry).map((it) => it.entry);
   rememberItemMets([...ok, ...(pending.updates || []).map((u) => u.after)]);
@@ -1804,13 +1866,18 @@ function savePending() {
     if (removed) parts.push(`${removed}件を削除`);
     if (wished) parts.push(`着たい服を${wished}件反映`);
     if (hasComment) parts.push('コメントを保存');
-    toast(parts.join('・') + 'しました');
+    const types = new Set(ok.map((e) => e.type));
+    const dates = ok.map((e) => e.date);
+    const mainDate = dates.length ? dates.sort((a, b) => dates.filter((x) => x === b).length - dates.filter((x) => x === a).length)[0] : today();
+    lastResult = { title: parts.join('・') + 'しました', lines: dayImpact(mainDate, types), comment: pending.comment || '', snap, usd: sessionUsd };
+    sessionUsd = 0;
     pending = null;
     setTimeout(() => estimateUnknownMets(), 0);
     $('#dropText').value = '';
     clearImages();
     renderPreview();
     refreshAll();
+    renderResult();
   }
 }
 
@@ -2981,6 +3048,8 @@ function setupAI() {
 
   $('#dropAI').addEventListener('click', async () => {
     const text = $('#dropText').value.trim();
+    if (lastResult) { lastResult = null; renderResult(); }
+    sessionUsd = 0;
     if (!text && !images.length) { toast('写真かテキストを入れてください'); return; }
     // JSON（ショートカットやチャットの返答）ならAPIを使わずに読む
     if (!images.length) {
@@ -3141,8 +3210,9 @@ function recordFavorite(id) {
   const date = inputDate();
   const { entry, errors } = normalizeEntry({ type: 'meal', date, label: f.label, kcal: f.kcal, p: f.p, f: f.f, c: f.c, treat: f.treat, slot: date === today() ? slotByTime() : '' });
   if (errors) { toast(errors[0]); return; }
+  const snap = snapshot();
   addEntries([entry]);
-  if (saveState()) { toast(`${fmtMD(date)}に「${f.label}」を記録しました`); refreshAll(); }
+  if (saveState()) { refreshAll(); toastSaved(`${date === today() ? '今日' : fmtMD(date)}に「${f.label}」を記録`, date, ['meal'], snap); }
 }
 
 
@@ -3438,6 +3508,7 @@ function renderPlan() {
 // Claude Sonnet 5.5 の単価（USD / 100万トークン）
 const PRICE = { input: 2, output: 10, cacheRead: 0.2, webSearch: 0.01 }; // ネット検索は1回あたり（$10 / 1,000回）
 const USAGE_KEY = 'yurusto.usage';
+let sessionUsd = 0; // 直近の「記録する」で使った分（結果カードに出す）
 
 function loadUsage() { try { return JSON.parse(localStorage.getItem(USAGE_KEY) || '{}') || {}; } catch (e) { return {}; } }
 
@@ -3453,7 +3524,9 @@ function recordUsage(u) {
   cur.input += inTok + cacheTok;
   cur.output += outTok;
   const searches = (u.server_tool_use && u.server_tool_use.web_search_requests) || 0;
-  cur.usd += (inTok * PRICE.input + cacheTok * PRICE.cacheRead + outTok * PRICE.output) / 1e6 + searches * PRICE.webSearch;
+  const cost = (inTok * PRICE.input + cacheTok * PRICE.cacheRead + outTok * PRICE.output) / 1e6 + searches * PRICE.webSearch;
+  cur.usd += cost;
+  sessionUsd += cost;
   all[m] = cur;
   try { localStorage.setItem(USAGE_KEY, JSON.stringify(all)); } catch (e) { /* 表示用なので無視 */ }
 }
@@ -3639,10 +3712,11 @@ function setupWq() {
     const date = $('#inDate').value || today();
     const { entry, errors } = normalizeEntry({ type: 'workout', date, items, note: '' });
     if (errors) { toast(errors[0]); return; }
+    const snap = snapshot();
     addEntries([entry]);
     if (saveState()) {
       const kg = bodyWeightFor(date);
-      toast(`${fmtMD(date)}の運動を記録しました${kg != null ? `（約${fmtNum(workoutKcal(entry.items, kg))}kcal）` : ''}`);
+      toast(`${fmtMD(date)}の運動を記録しました${kg != null ? `（約${fmtNum(workoutKcal(entry.items, kg))}kcal）` : ''}`, { undo: () => undoTo(snap) });
       refreshAll();
       estimateUnknownMets();
     }
@@ -4323,10 +4397,11 @@ function parseStepsText(text) {
 function saveSteps(date, steps, km = null) {
   const r = normalizeEntry({ type: 'steps', date, steps, km });
   if (r.errors) { toast(r.errors[0]); return false; }
+  const snap = snapshot();
   addEntries([r.entry]);
   if (!saveState()) return false;
-  toast(`${fmtMD(date)}の歩数 ${stepsText(r.entry)}を記録しました`);
   refreshAll();
+  toast(`${fmtMD(date)}の歩数 ${stepsText(r.entry)}を記録しました`, { undo: () => undoTo(snap) });
   return true;
 }
 
@@ -4401,7 +4476,7 @@ function renderCurrent() {
   if (currentTab === 'list') renderList();
   if (currentTab === 'beauty') renderBeauty();
   if (currentTab === 'settings') renderSettings();
-  if (currentTab === 'input') { renderFavChips(); renderPresetChips(); renderWeightPicker(); renderStepsPicker(); renderWq(); renderApiMeter(); }
+  if (currentTab === 'input') { renderInputHints(); renderFavChips(); renderPresetChips(); renderWeightPicker(); renderStepsPicker(); renderWq(); renderApiMeter(); }
 }
 
 function refreshAll() { syncTargets(); renderCurrent(); }
