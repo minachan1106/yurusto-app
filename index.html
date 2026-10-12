@@ -18,7 +18,7 @@
     --bg: #fff4f8;
     --card: #ffffff;
     --text: #4a2a38;
-    --muted: #9a7585;
+    --muted: #876171;
     --line: #f8dde8;
     --accent: #ff5c9d;
     --accent-strong: #e0337a;
@@ -163,7 +163,7 @@
   /* home */
   .chart-wrap { position: relative; height: 230px; }
   .seg { display: inline-flex; background: var(--bg); border-radius: 9px; padding: 2px; border: 1px solid var(--line); }
-  .seg button { min-height: 28px; padding: 3px 10px; font-size: 12px; background: transparent; color: var(--muted); border-radius: 7px; font-weight: 500; }
+  .seg button { min-height: 34px; padding: 4px 11px; font-size: 12px; background: transparent; color: var(--muted); border-radius: 7px; font-weight: 500; }
   .seg button.on { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
   .stat-line { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; gap: 8px; flex-wrap: wrap; }
   .big { font-size: 26px; font-weight: 700; letter-spacing: 0.01em; }
@@ -227,7 +227,10 @@
     padding: 16px 16px calc(env(safe-area-inset-bottom) + 16px);
     max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
-  .sheet h3 { margin: 0 0 12px; font-size: 16px; }
+  .sheet { position: relative; padding-top: 22px; }
+  .sheet::before { content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 38px; height: 4px; border-radius: 2px; background: var(--line); }
+  .sheet h3 { margin: 0 0 12px; font-size: 16px; padding-right: 44px; min-height: 28px; }
+  .sheet-x { position: absolute; top: 12px; right: 10px; width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 22px; line-height: 1; box-shadow: none; }
   .wk-item { border: 1px solid var(--line); border-radius: 10px; padding: 8px; margin-bottom: 8px; }
   .wk-item .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 6px; }
   .wk-item input { padding: 8px 10px; }
@@ -261,7 +264,7 @@
   .wpick { display: flex; align-items: center; gap: 4px; }
   .wpick select { flex: 1; min-width: 0; text-align: center; padding-right: 26px; }
   .wpick span { font-size: 20px; font-weight: 700; color: var(--muted); }
-  .linkish { background: none; border: none; color: var(--muted); font-size: 12.5px; font-weight: 500; text-decoration: underline; min-height: 32px; padding: 4px 0; }
+  .linkish { background: none; border: none; color: var(--muted); font-size: 12.5px; font-weight: 500; text-decoration: underline; min-height: 40px; padding: 6px 0; }
   details.more { margin: 2px 0 10px; }
   details.more summary { padding: 6px 0; }
   details.sgroup { margin-bottom: 10px; }
@@ -367,6 +370,15 @@
   .today-line { font-size: 13px; margin-top: 6px; }
   .today-line .k { color: var(--muted); margin-right: 6px; }
   .now-card { padding-bottom: 12px; }
+  .start-card { border-left: 3px solid var(--accent); }
+  .start-step { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 4px; background: transparent; border: none; border-top: 1px solid var(--line); text-align: left; color: var(--text); font: inherit; border-radius: 0; box-shadow: none; }
+  .start-step .n { flex: 0 0 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-strong); font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .start-step.done .n { background: var(--sage); color: #fff; }
+  .start-step .t { flex: 1; }
+  .start-step .t b { display: block; font-size: 14px; }
+  .start-step .t small { color: var(--muted); font-size: 12px; }
+  .start-step::after { content: "›"; color: var(--muted); font-size: 18px; }
+  .start-step.done::after { content: ""; }
   .result-card { border-left: 3px solid var(--sage); }
   .result-card h2 { color: var(--text); }
   .result-card h2::before { content: "✓ "; color: var(--sage); }
@@ -477,6 +489,7 @@
   <div class="update-bar" id="updateBar" style="display:none"><span>新しいバージョンがあります</span><button id="doUpdate">更新する</button></div>
   <!-- ホーム -->
   <section class="view" id="view-home">
+    <div class="card start-card" id="startCard" style="display:none"></div>
     <div class="card now-card" id="nowCard">
       <div id="nowHead"></div>
       <div class="now-actions" id="nowActions"></div>
@@ -727,35 +740,6 @@
 
     </details>
 
-    <details class="sgroup" data-group="歩数（ヘルスケア）">
-      <summary>歩数（ヘルスケア）</summary>
-    <div class="card">
-      <h2>ヘルスケアの歩数を取り込む</h2>
-      <p class="small" style="margin:0 0 8px">iPhoneの「ショートカット」で、今日の歩数をコピーする小さなショートカットを作ります。アクションは3つだけです。</p>
-      <div class="sub-h">① ショートカットを作る（1回だけ）</div>
-      <ol class="steps">
-        <li>「ショートカット」アプリ → 右上の ＋</li>
-        <li>「アクションを検索」で「ヘルスケア」→「ヘルスケアサンプルを検索」を追加 → 種類を「歩数」、条件の「開始日」を「今日」にする</li>
-        <li>「アクションを検索」で「統計」→「統計を計算」を追加 → 「平均」を押して「合計」にする<br><span class="small muted">見つからないときは、2のアクションの「グループ化」を「日」にして、この手順は飛ばす</span></li>
-        <li>「クリップボードにコピー」を追加</li>
-        <li>名前を「ユルスト歩数」にして完了（初回はヘルスケアへのアクセスを許可）</li>
-      </ol>
-      <div class="sub-h" style="margin-top:10px">② 毎日自動で動かす</div>
-      <ol class="steps">
-        <li>ショートカットアプリの「オートメーション」→ ＋ →「時刻」</li>
-        <li>時刻（例：21:00）と「毎日」を選び、「すぐに実行」にする</li>
-        <li>実行するショートカットに「ユルスト歩数」を選ぶ</li>
-      </ol>
-      <div class="sub-h" style="margin-top:10px">③ ユルストに入れる</div>
-      <ol class="steps">
-        <li>ユルストを開き、投げ込みの「ヘルスケアから貼り付け」を押す（iPhoneが「ペーストを許可」を聞いたら許可）</li>
-        <li>設定の「問いかけ」で「今日の歩数を取り込む？」をオンにすると、ホームに貼り付けボタンが出ます</li>
-      </ol>
-      <div class="hint">ヘルスケアの歩数画面のスクショを「記録する」に入れても記録できます。歩数のプルダウンからも入れられます。歩数がある日は、消費の概算が「座りがち＋歩いた分」になります。</div>
-    </div>
-
-    </details>
-
     <details class="sgroup" data-group="データとアプリ">
       <summary>データとアプリ</summary>
     <div class="card">
@@ -809,7 +793,7 @@
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
 // 公開のたびに上げる（CLAUDE.md の「公開のルール」参照）
-const APP_VERSION = '2026.10.12-19';
+const APP_VERSION = '2026.10.12-20';
 const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'condition'];
 const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
 const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: '美容ツール' };
@@ -1618,6 +1602,7 @@ function renderComment() {
 }
 
 function renderHome() {
+  renderStart();
   renderNow();
   renderAsks();
   renderReview();
@@ -2047,7 +2032,9 @@ function setupList() {
 
 /* ========== 編集シート ========== */
 function openSheet(html) {
-  $('#sheet').innerHTML = html;
+  $('#sheet').innerHTML = '<button type="button" class="sheet-x" aria-label="閉じる">×</button>' + html;
+  $('#sheet .sheet-x').addEventListener('click', closeSheet);
+  $('#sheet').scrollTop = 0;
   $('#overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -2149,9 +2136,9 @@ function openEditor(id, opts = {}) {
   }
   $('#edClose').addEventListener('click', closeSheet);
   $('#edDel').addEventListener('click', () => {
-    if (!confirm('この記録を削除しますか？')) return;
+    const snap = snapshot();
     state.entries = state.entries.filter((x) => x.id !== id);
-    saveState(); closeSheet(); toast('削除しました'); refreshAll();
+    if (saveState()) { closeSheet(); refreshAll(); toast('削除しました', { undo: () => undoTo(snap, 'もとに戻しました') }); }
   });
   $('#edSave').addEventListener('click', () => {
     const raw = { type: e.type, date: $('#edDate').value };
@@ -2190,9 +2177,9 @@ function openCommentEditor(id) {
     <div class="btns" style="margin-top:8px"><button class="danger" id="edDel">削除</button><button class="ghost" id="edClose">閉じる</button><button class="primary" id="edSave">保存</button></div>`);
   $('#edClose').addEventListener('click', closeSheet);
   $('#edDel').addEventListener('click', () => {
-    if (!confirm('このコメントを削除しますか？')) return;
+    const snap = snapshot();
     state.comments = state.comments.filter((x) => x.id !== id);
-    saveState(); closeSheet(); toast('削除しました'); refreshAll();
+    if (saveState()) { closeSheet(); refreshAll(); toast('削除しました', { undo: () => undoTo(snap, 'もとに戻しました') }); }
   });
   $('#edSave').addEventListener('click', () => {
     const date = $('#edDate').value, text = $('#edText').value.trim();
@@ -2361,11 +2348,11 @@ function openItem(id) {
     saveState(); toast('保存しました'); refreshAll(); openItem(id);
   });
   $('#itDel').addEventListener('click', () => {
-    if (!confirm('このアイテムを削除しますか？（これまでの気持ちの記録も消えます）')) return;
+    const snap = snapshot();
     const k = itemKey(it.name);
     state.beautyItems = state.beautyItems.filter((x) => x.id !== id);
     state.entries = state.entries.filter((e) => !(e.type === 'beauty' && itemKey(e.item) === k));
-    saveState(); closeSheet(); toast('削除しました'); refreshAll();
+    if (saveState()) { closeSheet(); refreshAll(); toast('アイテムと記録を削除しました', { undo: () => undoTo(snap, 'もとに戻しました') }); }
   });
 }
 
@@ -3185,9 +3172,9 @@ function openFavEditor(id) {
     <div class="btns" style="margin-top:8px">${id ? '<button class="danger" id="fvDel">削除</button>' : ''}<button class="ghost" id="fvClose">閉じる</button><button class="primary" id="fvSave">保存</button></div>`);
   $('#fvClose').addEventListener('click', closeSheet);
   if (id) $('#fvDel').addEventListener('click', () => {
-    if (!confirm('このメニューを削除しますか？（これまでの記録は消えません）')) return;
+    const snap = snapshot();
     state.favorites = state.favorites.filter((x) => x.id !== id);
-    saveState(); closeSheet(); toast('削除しました'); refreshAll();
+    if (saveState()) { closeSheet(); refreshAll(); toast('削除しました（これまでの記録はそのまま）', { undo: () => undoTo(snap, 'もとに戻しました') }); }
   });
   $('#fvSave').addEventListener('click', () => {
     const r = upsertFavorite({ label: $('#fvLabel').value, kcal: $('#fvKcal').value, p: $('#fvP').value, f: $('#fvF').value, c: $('#fvC').value, treat: $('#fvTreat').checked }, id);
@@ -3317,9 +3304,9 @@ function openPresetEditor(id) {
   $('#psList').addEventListener('click', (ev) => { const b = ev.target.closest('.wk-del'); if (b) b.closest('.wk-item').remove(); });
   $('#psClose').addEventListener('click', closeSheet);
   if (id) $('#psDel').addEventListener('click', () => {
-    if (!confirm('このセットを削除しますか？（これまでの記録は消えません）')) return;
+    const snap = snapshot();
     state.workoutPresets = state.workoutPresets.filter((x) => x.id !== id);
-    saveState(); closeSheet(); toast('削除しました'); refreshAll();
+    if (saveState()) { closeSheet(); refreshAll(); toast('削除しました（これまでの記録はそのまま）', { undo: () => undoTo(snap, 'もとに戻しました') }); }
   });
   $('#psSave').addEventListener('click', () => {
     const r = upsertPreset({ name: $('#psName').value, items: readWkItems('#psList') }, id);
@@ -3894,6 +3881,40 @@ function dayStats(ymd) {
   return { meals, intake, workouts, exKcal, base, daily, burn, weight, steps, walkKcal };
 }
 
+/* ---- はじめての3ステップ ---- */
+function startSteps() {
+  const s = state.settings;
+  return [
+    { k: 'goal', label: '目標とからだを入れる', sub: '目標体重の範囲と身長・年齢など。1日の目安が自動で決まります', done: s.weightMin != null && s.heightCm != null },
+    { k: 'key', label: 'Claude の APIキーを入れる', sub: '写真や文章から記録を作るのに使います', done: !!loadApi().key },
+    { k: 'first', label: '最初の記録をしてみる', sub: '体重か、ごはんの写真1枚でOK', done: state.entries.length > 0 },
+  ];
+}
+function renderStart() {
+  const el = $('#startCard');
+  const steps = startSteps();
+  if ((state.reviewLog || {}).startDone || steps.every((x) => x.done)) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = '';
+  el.innerHTML = `<h2>はじめに（3つだけ）</h2><div class="small muted" style="margin-bottom:6px">あとからでも、いつでも変えられます。</div>
+    ${steps.map((x, i) => `<button type="button" class="start-step ${x.done ? 'done' : ''}" data-start="${x.k}"><span class="n">${x.done ? '✓' : i + 1}</span><span class="t"><b>${esc(x.label)}</b><small>${esc(x.sub)}</small></span></button>`).join('')}
+    <button type="button" class="linkish" data-start-skip style="margin-top:4px">あとで</button>`;
+}
+function openSettingsGroup(name) {
+  showTab('settings');
+  const g = $(`#view-settings details.sgroup[data-group="${name}"]`);
+  if (g) { g.open = true; g.scrollIntoView({ block: 'start' }); }
+}
+function setupStart() {
+  $('#startCard').addEventListener('click', (ev) => {
+    if (ev.target.closest('[data-start-skip]')) { state.reviewLog.startDone = today(); saveState(); renderStart(); return; }
+    const b = ev.target.closest('[data-start]');
+    if (!b) return;
+    if (b.dataset.start === 'goal') openSettingsGroup('目標とからだ');
+    else if (b.dataset.start === 'key') openSettingsGroup('Claude');
+    else $('#homeImg').click();
+  });
+}
+
 /* ---- 次のひとこと（時間帯で変わる） ---- */
 const timeBand = (h = new Date().getHours()) => (h >= 4 && h < 11 ? 'morning' : h >= 11 && h < 16 ? 'day' : 'night');
 const GREETS = { morning: 'おはようございます', day: 'こんにちは', night: '今日もおつかれさま' };
@@ -4147,9 +4168,9 @@ function setupAskSettings() {
       return;
     }
     if (ev.target.closest('.pDel')) {
-      if (!confirm('この問いかけを削除しますか？')) return;
+      const snap = snapshot();
       state.prompts = state.prompts.filter((x) => x.id !== p.id);
-      saveState(); renderAskList();
+      if (saveState()) { renderAskList(); toast('削除しました', { undo: () => { undoTo(snap, 'もとに戻しました'); renderAskList(); } }); }
     }
   });
   $('#askAdd').addEventListener('click', () => {
@@ -4349,9 +4370,9 @@ function openWish(id) {
     <div class="btns" style="margin-top:12px"><button class="danger" id="wsDel">削除</button><button class="ghost" id="wsClose">閉じる</button>${w.done ? '' : '<button class="primary" id="wsDone">着られた！</button>'}</div>`);
   $('#wsClose').addEventListener('click', closeSheet);
   $('#wsDel').addEventListener('click', () => {
-    if (!confirm('この服をリストから消しますか？')) return;
+    const snap = snapshot();
     state.wishes = state.wishes.filter((x) => x.id !== id);
-    saveState(); closeSheet(); refreshAll();
+    if (saveState()) { closeSheet(); refreshAll(); toast('リストから消しました', { undo: () => undoTo(snap, 'もとに戻しました') }); }
   });
   $('#wsSave').addEventListener('click', () => {
     Object.assign(w, { brand: $('#wsBrand').value.trim(), kind: $('#wsKind').value.trim(), name: $('#wsName').value.trim(), size: $('#wsSize').value.trim() });
@@ -4499,6 +4520,7 @@ function init() {
   setupWq();
   setupHomeCards();
   setupNow();
+  setupStart();
   setupToday();
   setupUpdate();
   setupSteps();
