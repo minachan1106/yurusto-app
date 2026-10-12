@@ -231,6 +231,17 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .err-list { color: #c0646c; font-size: 13px; }
+  .img-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .img-row:empty { display: none; }
+  .img-thumb { position: relative; width: 64px; height: 64px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+  .img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .img-thumb button { position: absolute; top: 2px; right: 2px; min-height: 0; width: 22px; height: 22px; padding: 0; border-radius: 50%;
+    background: rgba(0,0,0,.55); color: #fff; font-size: 13px; line-height: 22px; font-weight: 400; }
+  .img-pick { display: block; margin-top: 8px; text-align: center; padding: 10px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: 14px; cursor: pointer; }
+  .img-pick input { display: none; }
+  .loading { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .raw-reply { white-space: pre-wrap; font-size: 13px; color: var(--muted); max-height: 240px; overflow: auto; background: var(--bg); border-radius: 8px; padding: 8px; margin-top: 8px; }
   details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 </style>
 </head>
@@ -272,11 +283,15 @@
 
     <div class="card">
       <h2>投げ込み</h2>
-      <textarea id="dropText" placeholder="Claudeから受け取ったJSONをそのまま貼り付け。前後に文章が混ざっていても大丈夫です。"></textarea>
+      <textarea id="dropText" placeholder="食べたもの・運動・使ったコスメなどを自由に。Claudeから受け取ったJSONをそのまま貼ってもOKです。"></textarea>
+      <div class="img-row" id="imgRow"></div>
+      <label class="img-pick"><input type="file" id="imgInput" accept="image/*" multiple>画像（スクショ）を追加</label>
       <div class="btns" style="margin-top:8px">
         <button class="ghost" id="dropClear">クリア</button>
-        <button class="primary" id="dropParse">解析する</button>
+        <button id="dropParse">JSONとして解析</button>
       </div>
+      <button class="primary" id="dropAI" style="width:100%; margin-top:8px">Claudeで変換</button>
+      <div class="hint" id="aiHint"></div>
     </div>
 
     <div class="card" id="previewCard" style="display:none"></div>
@@ -325,6 +340,14 @@
       <h2>ご褒美ごはん</h2>
       <label class="field"><span>月の枠（回）</span><input type="number" inputmode="numeric" step="1" min="0" data-set="treatPerMonth"></label>
       <div class="hint">ご褒美は月の枠の中の「予定」として数えます。</div>
+    </div>
+
+    <div class="card">
+      <h2>Claude API</h2>
+      <label class="field"><span>APIキー</span><input type="password" id="apiKey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-..."></label>
+      <label class="field"><span>モデル名</span><input type="text" id="apiModel" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：claude-opus-5-5"></label>
+      <div class="btns"><button class="danger" id="apiClear">キーを削除</button><button class="primary" id="apiSave">保存</button></div>
+      <div class="hint">キーとモデル名はこの端末のブラウザにだけ保存され、エクスポートには含まれません。利用料金はAnthropicのアカウントに従量でかかります。</div>
     </div>
 
     <div class="card">
@@ -960,20 +983,25 @@ function setupInput() {
   $('#qWeight').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') save(); });
 
   $('#dropParse').addEventListener('click', parseDrop);
-  $('#dropClear').addEventListener('click', () => { $('#dropText').value = ''; pending = null; renderPreview(); });
+  $('#dropClear').addEventListener('click', () => { $('#dropText').value = ''; clearImages(); pending = null; renderPreview(); });
+  setupAI();
   updateHint();
 }
 
+function showPreviewMessage(msgHTML, rawText) {
+  pending = null;
+  const card = $('#previewCard');
+  card.style.display = '';
+  card.innerHTML = `<h2>プレビュー</h2><div class="err-list">${msgHTML}</div>${rawText ? `<div class="raw-reply">${esc(rawText)}</div>` : ''}`;
+}
+
 function parseDrop() {
-  const text = $('#dropText').value;
-  const payload = extractPayload(text);
-  if (!payload) {
-    pending = null;
-    const card = $('#previewCard');
-    card.style.display = '';
-    card.innerHTML = '<h2>プレビュー</h2><div class="err-list">JSONが見つかりませんでした。{"entries": [...]} の形が含まれているか確認してください。</div>';
-    return;
-  }
+  const payload = extractPayload($('#dropText').value);
+  if (!payload) { showPreviewMessage('JSONが見つかりませんでした。{"entries": [...]} の形が含まれているか確認してください。'); return; }
+  setPendingFromPayload(payload);
+}
+
+function setPendingFromPayload(payload) {
   const batchWeightDates = new Map();
   const items = payload.entries.map((raw) => {
     const r = normalizeEntry(raw);
@@ -1036,6 +1064,7 @@ function savePending() {
     toast(parts.join('・') + 'しました');
     pending = null;
     $('#dropText').value = '';
+    clearImages();
     renderPreview();
     refreshAll();
   }
@@ -1238,6 +1267,9 @@ function setupBeauty() {
 
 /* ========== 設定 ========== */
 function renderSettings() {
+  const api = loadApi();
+  if (document.activeElement !== $('#apiKey')) $('#apiKey').value = api.key || '';
+  if (document.activeElement !== $('#apiModel')) $('#apiModel').value = api.model || '';
   $$('[data-set]').forEach((el) => {
     const k = el.getAttribute('data-set');
     if (document.activeElement !== el) el.value = state.settings[k] ?? '';
@@ -1285,6 +1317,17 @@ function setupSettings() {
     const r = new FileReader();
     r.onload = () => { $('#importText').value = String(r.result || ''); toast('ファイルを読み込みました'); };
     r.readAsText(f);
+  });
+  $('#apiSave').addEventListener('click', () => {
+    const key = $('#apiKey').value.trim(), model = $('#apiModel').value.trim();
+    if (saveApi({ key, model })) toast(key && model ? 'APIの設定を保存しました' : 'APIの設定を保存しました（キーとモデル名の両方が必要です）');
+  });
+  $('#apiClear').addEventListener('click', () => {
+    if (!confirm('この端末に保存したAPIキーを削除しますか？')) return;
+    const api = loadApi();
+    saveApi({ key: '', model: api.model || '' });
+    $('#apiKey').value = '';
+    toast('APIキーを削除しました');
   });
   $('#importMerge').addEventListener('click', () => doImport('merge'));
   $('#importReplace').addEventListener('click', () => doImport('replace'));
@@ -1385,6 +1428,216 @@ function buildWeekText() {
     es.forEach((e) => lines.push(`- ${entryPlain(e)}`));
   }
   return lines.join('\n');
+}
+
+
+/* ========== Claude API（フェーズB） ========== */
+// APIキー・モデル名は記録データとは別のキーに保存し、エクスポート／インポートの対象にしない
+const API_STORAGE_KEY = 'yurusto.api';
+const API_URL = 'https://api.anthropic.com/v1/messages';
+const MAX_IMAGES = 5;
+const IMAGE_MAX_EDGE = 1568;
+// サーバー側のリフューザル時フォールバックに対応するモデル
+const FALLBACK_MODELS = ['claude-fable-5-1', 'claude-opus-5-5', 'claude-opus-5', 'claude-sonnet-5-5'];
+
+function loadApi() {
+  try { return JSON.parse(localStorage.getItem(API_STORAGE_KEY) || '{}') || {}; } catch (e) { return {}; }
+}
+function saveApi(api) {
+  try { localStorage.setItem(API_STORAGE_KEY, JSON.stringify(api)); return true; } catch (e) { toast('保存できませんでした'); return false; }
+}
+
+let images = []; // [{ mediaType, data(base64), url(dataURL) }]
+
+function clearImages() { images = []; renderImages(); }
+
+function renderImages() {
+  $('#imgRow').innerHTML = images.map((im, i) =>
+    `<div class="img-thumb"><img src="${im.url}" alt=""><button type="button" data-rm="${i}" aria-label="削除">×</button></div>`).join('');
+}
+
+// 長辺を縮小してJPEGのbase64にする（通信量と料金を抑える）
+function fileToImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('画像を読み込めませんでした'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('この形式の画像は読み込めませんでした'));
+      img.onload = () => {
+        const scale = Math.min(1, IMAGE_MAX_EDGE / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        const url = canvas.toDataURL('image/jpeg', 0.85);
+        resolve({ mediaType: 'image/jpeg', data: url.split(',')[1], url });
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+const TONE_RULES = `- 責めない、罰を与えない。ご褒美ごはんは失敗ではなく「月の枠の中の予定」として扱う。
+- 食べすぎの調整は「運動で取り返す」ではなく、「今月の枠の中での配分」「次の食事での整え方」「より軽い代替案」で提案する。
+- 体重は日々の水分変動に触れず、7日平均の傾向で語る。
+- 短く、具体的に、前向きに。`; // CLAUDE.md「提案トーンのルール」と同じ内容に保つ
+
+function buildContext() {
+  const t = today();
+  const s = state.settings;
+  const lines = [];
+  lines.push(`今日の日付: ${t}（${WEEKDAYS[parseYMD(t).getDay()]}曜日）`);
+
+  const goal = [];
+  if (s.weightMin != null && s.weightMax != null) goal.push(`目標体重 ${Math.min(s.weightMin, s.weightMax)}〜${Math.max(s.weightMin, s.weightMax)}kg`);
+  const daily = [['kcal', s.kcal], ['P', s.p], ['F', s.f], ['C', s.c]].filter(([, n]) => n != null).map(([k, n]) => `${k} ${n}`);
+  if (daily.length) goal.push(`1日の目安 ${daily.join(' / ')}`);
+  if (s.treatPerMonth != null) goal.push(`月のご褒美枠 ${s.treatPerMonth}回`);
+  lines.push(`設定: ${goal.length ? goal.join('、') : '（未設定）'}`);
+
+  const ms = monthStats(t);
+  const target = (k) => (s[k] != null ? `（目安×${ms.days}日 = ${Math.round(s[k] * ms.days)}）` : '');
+  lines.push(`今月の食事合計（${ms.days}日目・記録した${ms.mealCount}件の概算）: ${Math.round(ms.sum.kcal)}kcal${target('kcal')}、P ${Math.round(ms.sum.p)}g${target('p')}、F ${Math.round(ms.sum.f)}g${target('f')}、C ${Math.round(ms.sum.c)}g${target('c')}`);
+  lines.push(`今月のご褒美ごはん: ${ms.treats}回${s.treatPerMonth != null ? ` / 枠${s.treatPerMonth}回` : ''}`);
+
+  const map = weightMap();
+  const avgs = [0, 7, 14, 21].map((d) => ({ d, v: movingAvg7(map, addDays(t, -d)) })).filter((x) => x.v != null);
+  lines.push(`体重の7日平均の推移: ${avgs.length ? avgs.slice().reverse().map((x) => `${x.d ? `${x.d}日前` : '今日'} ${x.v.toFixed(1)}kg`).join(' → ') : '（記録なし）'}`);
+
+  const { active } = beautyStats(t);
+  lines.push(`使用中の美容アイテム: ${active.length ? active.map((a) => `${a.name}（${CATEGORIES[a.category] || a.category}・使用${a.days}日目・直近30日${a.recent}回）`).join('、') : '（なし）'}`);
+
+  const conds = state.entries.filter((e) => e.type === 'condition').sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
+  if (conds.length) lines.push(`最近の体や肌の状態メモ: ${conds.map((e) => `${e.date} ${e.note}`).join(' / ')}`);
+  return lines.join('\n');
+}
+
+function buildSystemPrompt() {
+  return `あなたは健康・美容の記録アプリ「ユルスト」の記録係兼アドバイザーです。方針は「ユルストイック」：完璧より継続。抜け漏れOK、記録しない日があっても責めません。
+
+ユーザーが送る文章や画像（食事の写真、アプリのスクショ、メモなど）を読み取り、下の形式のJSONに変換してください。あわせて、記録と現在の状況をふまえた提案コメントを comment に入れてください。
+
+# 出力形式
+JSONオブジェクトを1つだけ出力してください。前後に説明文やコードブロックの記号は付けないでください。
+{
+  "entries": [
+    {"date":"YYYY-MM-DD","type":"weight","kg":数値},
+    {"date":"YYYY-MM-DD","type":"meal","label":"料理名","kcal":数値,"p":数値,"f":数値,"c":数値,"treat":真偽値,"note":"任意"},
+    {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":数値,"sets":数値,"minutes":数値}],"note":"任意"},
+    {"date":"YYYY-MM-DD","type":"beauty","item":"アイテム名","category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
+    {"date":"YYYY-MM-DD","type":"condition","note":"体や肌の状態メモ"}
+  ],
+  "comment":"提案コメント"
+}
+
+# 変換のルール
+- 日付は今日を基準に解決する（「昨日」「今朝」など）。日付の手がかりがなければ今日にする。
+- 食事のkcal・P・F・C（g）は、量や写真から妥当な概算を入れる。どうしても見当がつかない値だけ null にする。
+- treat は、ユーザーがご褒美・チートと言っているか、明らかに特別な外食やスイーツのときに true。
+- 美容アイテムは、すでに使用中のアイテムと同じものなら同じ名前に揃える。新しく使い始めたら start、使い切ったら finish、それ以外は use。
+- 体や肌の状態についての言及は condition にする。
+- 記録にあたる内容がなければ entries は空配列にして、comment だけ返す。
+
+# commentのトーン
+${TONE_RULES}
+- 2〜4文程度。今月の枠の中での配分や、次の食事での整え方を具体的に。
+- 美容アイテムの使用が偏っている（あるアイテムだけ直近の回数が少ない、など）ときや、しばらく状態メモがないときは、ときどき（毎回ではなく）状態を聞く短い質問を最後に1つ入れる。例：「最近、髪のパサつきはどうですか？」
+
+# 現在の状況
+${buildContext()}`;
+}
+
+function apiErrorMessage(status, body) {
+  const msg = body && body.error && body.error.message ? body.error.message : '';
+  if (status === 401) return 'APIキーが正しくないようです。設定を確認してください。';
+  if (status === 403) return 'このAPIキーでは利用できないようです。';
+  if (status === 404) return `モデル名が見つかりませんでした。設定のモデル名を確認してください。${msg ? `（${msg}）` : ''}`;
+  if (status === 413) return '画像が大きすぎるか多すぎるようです。枚数を減らしてください。';
+  if (status === 429) return '利用の上限に達したか、混み合っています。少し時間をおいてください。';
+  if (status === 529 || status >= 500) return 'Claude側が混み合っています。少し時間をおいてください。';
+  return `うまく変換できませんでした（${status}）${msg ? `：${msg}` : ''}`;
+}
+
+async function callClaude({ key, model, text, imgs }) {
+  const content = imgs.map((im) => ({ type: 'image', source: { type: 'base64', media_type: im.mediaType, data: im.data } }));
+  content.push({ type: 'text', text: text || '画像の内容を記録してください。' });
+  const useFallback = FALLBACK_MODELS.includes(model);
+  const send = (withFallback) => {
+    const headers = {
+      'content-type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    };
+    const body = { model, max_tokens: 16000, system: buildSystemPrompt(), messages: [{ role: 'user', content }] };
+    if (withFallback) { headers['anthropic-beta'] = 'server-side-fallback-2026-07-01'; body.fallbacks = 'default'; }
+    return fetch(API_URL, { method: 'POST', headers, body: JSON.stringify(body) });
+  };
+  let res = await send(useFallback);
+  let data = await res.json().catch(() => null);
+  // フォールバック指定が受け付けられない場合は、指定なしで1回だけやり直す
+  if (useFallback && res.status === 400 && /fallback/i.test(JSON.stringify(data || ''))) {
+    res = await send(false);
+    data = await res.json().catch(() => null);
+  }
+  if (!res.ok) throw new Error(apiErrorMessage(res.status, data));
+  if (data.stop_reason === 'refusal') throw new Error('この内容は変換できませんでした。言い回しを変えて試してください。');
+  const out = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
+  return { text: out, truncated: data.stop_reason === 'max_tokens' };
+}
+
+function setupAI() {
+  const updateHint = () => {
+    const api = loadApi();
+    $('#aiHint').textContent = api.key && api.model ? '' : '「Claudeで変換」を使うには、設定でAPIキーとモデル名を入れてください。';
+  };
+  updateHint();
+  document.addEventListener('visibilitychange', updateHint);
+  $('[data-tab=input]').addEventListener('click', updateHint);
+
+  $('#imgInput').addEventListener('change', async (ev) => {
+    const files = Array.from(ev.target.files || []);
+    ev.target.value = '';
+    for (const f of files) {
+      if (images.length >= MAX_IMAGES) { toast(`画像は${MAX_IMAGES}枚までです`); break; }
+      try { images.push(await fileToImage(f)); } catch (e) { toast(e.message); }
+    }
+    renderImages();
+  });
+  $('#imgRow').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-rm]');
+    if (!b) return;
+    images.splice(Number(b.getAttribute('data-rm')), 1);
+    renderImages();
+  });
+
+  $('#dropAI').addEventListener('click', async () => {
+    const api = loadApi();
+    if (!api.key || !api.model) { toast('設定でAPIキーとモデル名を入れてください'); return; }
+    const text = $('#dropText').value.trim();
+    if (!text && !images.length) { toast('テキストか画像を入れてください'); return; }
+    const btn = $('#dropAI');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading"></span>変換しています…';
+    try {
+      const r = await callClaude({ key: api.key, model: api.model, text, imgs: images });
+      const payload = extractPayload(r.text);
+      if (!payload) showPreviewMessage('記録の形に変換できませんでした。返ってきた内容：', r.text);
+      else {
+        setPendingFromPayload(payload);
+        if (r.truncated) toast('返答が途中で切れたかもしれません。内容を確認してください');
+      }
+    } catch (e) {
+      showPreviewMessage(esc(e instanceof TypeError ? '通信できませんでした。電波の状態を確認してください。' : e.message));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Claudeで変換';
+    }
+  });
 }
 
 /* ========== ナビゲーション ========== */
