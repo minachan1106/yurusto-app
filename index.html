@@ -243,6 +243,8 @@
     width: max-content; max-width: 90vw; text-align: center;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.act { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 6px 8px 6px 16px; }
+  .toast .t-undo { min-height: 32px; padding: 4px 12px; border-radius: 99px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; }
   .err-list { color: #c0646c; font-size: 13px; }
   .ask-card { border-left: 3px solid var(--accent); }
   .ask-text { font-size: 15.5px; font-weight: 600; margin-bottom: 10px; }
@@ -313,7 +315,7 @@
   .seg-tabs { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 3px; margin-bottom: 12px; }
   .seg-tabs button { flex: 1; min-height: 38px; background: transparent; color: var(--muted); font-weight: 600; border-radius: 9px; }
   .seg-tabs button.on { background: var(--grad); color: #fff; }
-  .pfc-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; white-space: nowrap; font-size: 12px; color: var(--muted); margin: 6px 0 2px; }
+  .pfc-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; white-space: nowrap; font-size: 11.5px; color: var(--muted); margin: 6px 0 2px; }
   .pfc-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
   .ratio { margin-top: 10px; }
   .ratio .rl { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
@@ -364,6 +366,49 @@
   .kcal-box .sub { font-size: 11px; color: var(--muted); }
   .today-line { font-size: 13px; margin-top: 6px; }
   .today-line .k { color: var(--muted); margin-right: 6px; }
+  .now-card { padding-bottom: 12px; }
+  .now-greet { font-size: 16px; font-weight: 700; }
+  .now-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .now-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .now-act { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-height: 60px; padding: 9px 12px; border-radius: 14px; text-align: left;
+    background: var(--bg); border: 1px solid var(--line); color: var(--text); font: inherit; }
+  .now-act .a-l { font-size: 14.5px; font-weight: 700; }
+  .now-act .a-s { font-size: 11.5px; color: var(--muted); }
+  .now-act.main { grid-column: 1 / -1; background: var(--grad); border: none; color: #fff; min-height: 64px; }
+  .now-act.main .a-s { color: rgba(255,255,255,0.88); }
+  .now-act.done { opacity: 0.7; }
+  .now-act.done .a-l::after { content: " ✓"; color: var(--sage); }
+  #askArea .ask-card { display: flex; align-items: center; gap: 4px; margin-top: 8px; border-radius: 12px; background: var(--accent-soft); border: none; }
+  #askArea .ask-go { flex: 1; min-height: 40px; padding: 6px 10px; text-align: left; background: transparent; color: var(--accent-strong); font-size: 13px; font-weight: 600; box-shadow: none; }
+  #askArea .ask-go::before { content: "♡ "; color: var(--accent); }
+  #askArea .ask-go::after { content: " ›"; }
+  #askArea .ask-x { min-height: 40px; min-width: 44px; padding: 4px 8px; background: transparent; color: var(--muted); font-size: 12px; box-shadow: none; }
+  .now-act:not(.main):last-child:nth-child(even) { grid-column: 1 / -1; }
+  .rv-mini { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .rv-mini > summary { list-style: none; cursor: pointer; font-size: 13px; color: var(--accent-strong); font-weight: 600; display: flex; justify-content: space-between; align-items: center; min-height: 32px; }
+  .rv-mini > summary::-webkit-details-marker { display: none; }
+  .rv-mini > summary small { color: var(--muted); font-weight: 400; }
+  .today-main { display: grid; grid-template-columns: 112px 1fr; gap: 14px; align-items: center; margin: 4px 0 6px; }
+  .ring { position: relative; width: 112px; height: 112px; }
+  .ring svg { width: 112px; height: 112px; transform: rotate(-90deg); }
+  .ring .c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1.15; }
+  .ring .c b { font-size: 22px; }
+  .ring .c small { font-size: 10.5px; color: var(--muted); }
+  .ring .c .rest { font-size: 11px; color: var(--accent-strong); margin-top: 2px; }
+  .ring .c .rest.over { color: var(--text); }
+  .pm { display: grid; gap: 3px; margin: 3px 0 8px; }
+  .pm .l { font-size: 12px; font-weight: 700; }
+  .pm .pb { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .pm .pb i { display: block; height: 100%; border-radius: 4px; }
+  .pm .v { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); }
+  .pm .v .over { color: var(--text); }
+  .burn-line { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 7px 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); margin-top: 4px; }
+  .burn-line .k { color: var(--muted); }
+  .burn-line small { color: var(--muted); font-size: 11px; display: block; }
+  .metric-seg { margin-bottom: 10px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .stat-row .seg { flex: 0 0 auto; }
+  .metric-seg button { min-height: 34px; font-size: 13px; }
   .remain { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .remain span { font-size: 12.5px; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); }
   .remain span.over { background: color-mix(in srgb, var(--c-meal) 18%, transparent); color: var(--text); }
@@ -425,35 +470,41 @@
   <div class="update-bar" id="updateBar" style="display:none"><span>新しいバージョンがあります</span><button id="doUpdate">更新する</button></div>
   <!-- ホーム -->
   <section class="view" id="view-home">
-    <div id="askArea"></div>
-    <div id="reviewArea"></div>
-    <div class="card" id="todayCard"></div>
-    <div class="card">
-      <h2>体重 <span class="right"><span class="seg" id="rangeSeg">
-        <button data-r="30" class="on">30日</button><button data-r="90">90日</button><button data-r="all">全期間</button>
-      </span></span></h2>
-      <div class="stat-line" id="weightStat"></div>
-      <div class="chart-wrap" id="chartWrap"><canvas id="weightChart"></canvas></div>
-      <div class="hint" id="chartHint"></div>
+    <div class="card now-card" id="nowCard">
+      <div id="nowHead"></div>
+      <div class="now-actions" id="nowActions"></div>
+      <div id="askArea"></div>
+      <div id="reviewArea"></div>
     </div>
-
-    <div class="card" id="wishCard" style="display:none"></div>
+    <input type="file" id="homeImg" accept="image/*" multiple style="display:none">
+    <div class="card" id="todayCard"></div>
 
     <div class="card" id="bodyCard">
-      <h2>体脂肪率・腹囲 <span class="right"><span class="seg" id="bodySeg"><button data-m="fatPct" class="on">体脂肪率</button><button data-m="waistCm">腹囲</button></span></span></h2>
-      <div class="stat-line" id="bodyStat"></div>
-      <div class="chart-wrap" id="bodyWrap" style="height:180px"><canvas id="bodyChart"></canvas></div>
-      <div class="hint" id="bodyHint"></div>
+      <div class="seg-tabs metric-seg" id="metricSeg"><button data-mt="weight" class="on">体重</button><button data-mt="fatPct">体脂肪率</button><button data-mt="waistCm">腹囲</button></div>
+      <div id="wPane">
+        <div class="stat-row"><div class="stat-line" id="weightStat"></div><span class="seg" id="rangeSeg"><button data-r="30" class="on">30日</button><button data-r="90">90日</button><button data-r="all">全期間</button></span></div>
+        <div class="chart-wrap" id="chartWrap"><canvas id="weightChart"></canvas></div>
+        <div class="hint" id="chartHint"></div>
+      </div>
+      <div id="bPane" style="display:none">
+        <div class="stat-line" id="bodyStat"></div>
+        <div class="chart-wrap" id="bodyWrap" style="height:180px"><canvas id="bodyChart"></canvas></div>
+        <div class="hint" id="bodyHint"></div>
+      </div>
     </div>
 
     <div class="card" id="pfcCard">
-      <h2>PFCバランス（概算） <span class="right"><span class="seg" id="pfcSeg"><button data-r="7" class="on">7日</button><button data-r="14">14日</button><button data-r="30">30日</button></span></span></h2>
-      <div id="pfcBody"></div>
-      <div class="chart-wrap" id="pfcWrap" style="height:190px"><canvas id="pfcChart"></canvas></div>
-      <div id="pfcRatio"></div>
-      <div class="hint" id="pfcHint"></div>
+      <h2>食事（概算） <span class="right"><span class="seg" id="pfcSeg"><button data-r="7" class="on">7日</button><button data-r="14">14日</button><button data-r="month">今月</button></span></span></h2>
+      <div id="pfcPane">
+        <div id="pfcBody"></div>
+        <div class="chart-wrap" id="pfcWrap" style="height:190px"><canvas id="pfcChart"></canvas></div>
+        <div id="pfcRatio"></div>
+        <div class="hint" id="pfcHint"></div>
+      </div>
+      <div id="monthCard" style="display:none"></div>
     </div>
-    <div class="card" id="monthCard"></div>
+
+    <div class="card" id="wishCard" style="display:none"></div>
     <div class="card" id="treatCard"></div>
     <div class="card comment-card" id="commentCard"></div>
   </section>
@@ -747,7 +798,7 @@
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
 // 公開のたびに上げる（CLAUDE.md の「公開のルール」参照）
-const APP_VERSION = '2026.10.12-17';
+const APP_VERSION = '2026.10.12-18';
 const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'condition'];
 const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
 const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: '美容ツール' };
@@ -791,12 +842,23 @@ function round1(n) { return Math.round(n * 10) / 10; }
 function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
 let toastTimer = null;
-function toast(msg) {
+function toast(msg, opts = {}) {
   const t = $('#toast');
-  t.textContent = msg;
+  t.classList.toggle('act', !!opts.undo);
+  if (opts.undo) {
+    t.innerHTML = `<span>${esc(msg)}</span><button type="button" class="t-undo">取り消す</button>`;
+    $('.t-undo', t).addEventListener('click', () => { t.classList.remove('show', 'act'); opts.undo(); });
+  } else t.textContent = msg;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  toastTimer = setTimeout(() => t.classList.remove('show'), opts.undo ? 5000 : 2200);
+}
+
+// 変更の前の状態を覚えておき、トーストの「取り消す」で戻す
+function snapshot() { return JSON.stringify(state); }
+function undoTo(snap, msg = '取り消しました') {
+  state = JSON.parse(snap);
+  if (saveState()) { toast(msg); refreshAll(); }
 }
 
 async function copyText(text) {
@@ -1432,7 +1494,11 @@ function ratioBar(r, cls = '') {
 }
 
 function renderPfc() {
-  $$('#pfcSeg button').forEach((b) => b.classList.toggle('on', Number(b.dataset.r) === pfcRange));
+  $$('#pfcSeg button').forEach((b) => b.classList.toggle('on', b.dataset.r === String(pfcRange)));
+  const isMonth = pfcRange === 'month';
+  $('#pfcPane').style.display = isMonth ? 'none' : '';
+  $('#monthCard').style.display = isMonth ? '' : 'none';
+  if (isMonth) return;
   const days = pfcDays(pfcRange);
   const s = state.settings;
   const wrap = $('#pfcWrap'), body = $('#pfcBody'), ratioEl = $('#pfcRatio'), hint = $('#pfcHint');
@@ -1486,7 +1552,7 @@ function renderMonth() {
     ['C', 'c', 'g'],
   ];
   const anyTarget = rows.some(([, k]) => s[k] != null);
-  let html = `<h2>${d.getMonth() + 1}月の食事（概算） <span class="right small">${days}日目</span></h2>`;
+  let html = `<div class="sub-h" style="margin-top:0">${d.getMonth() + 1}月の合計 <span class="right small muted">${days}日目</span></div>`;
   if (!mealCount) {
     html += '<div class="empty-soft">食事を記録すると、ここに今月の合計が出ます。</div>';
   } else {
@@ -1541,12 +1607,12 @@ function renderComment() {
 }
 
 function renderHome() {
+  renderNow();
   renderAsks();
   renderReview();
   renderToday();
-  renderChart();
+  renderMetric();
   renderWishes();
-  renderBodyChart();
   renderPfc();
   renderMonth();
   renderTreat();
@@ -3195,13 +3261,7 @@ function setupPresets() {
   $('#wkChips').addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-addpreset]');
     if (!b) return;
-    const p = state.workoutPresets.find((x) => x.id === b.getAttribute('data-addpreset'));
-    if (!p) return;
-    const date = $('#inDate').value || today();
-    const { entry, errors } = normalizeEntry({ type: 'workout', date, items: p.items.map((it) => ({ ...it })), note: '' });
-    if (errors) { toast(errors[0]); return; }
-    addEntries([entry]);
-    if (saveState()) { toast(`${fmtMD(date)}に「${p.name}」を記録しました`); refreshAll(); }
+    recordPresetNow(b.getAttribute('data-addpreset'), $('#inDate').value || today());
   });
   $('#presetAdd').addEventListener('click', () => openPresetEditor(null));
   $('#presetList').addEventListener('click', (ev) => { const a = ev.target.closest('[data-preset]'); if (a) openPresetEditor(a.getAttribute('data-preset')); });
@@ -3760,7 +3820,124 @@ function dayStats(ymd) {
   return { meals, intake, workouts, exKcal, base, daily, burn, weight, steps, walkKcal };
 }
 
+/* ---- 次のひとこと（時間帯で変わる） ---- */
+const timeBand = (h = new Date().getHours()) => (h >= 4 && h < 11 ? 'morning' : h >= 11 && h < 16 ? 'day' : 'night');
+const GREETS = { morning: 'おはようございます', day: 'こんにちは', night: '今日もおつかれさま' };
+const PHOTO_SUB = { morning: '朝ごはん・体重計のスクショ', day: 'ランチの写真・スクショ', night: '夕食・Uberの注文画面' };
+
+function nowActions() {
+  const t = today(), band = timeBand();
+  const es = state.entries.filter((e) => e.date === t);
+  const w = es.find((e) => e.type === 'weight');
+  const st = es.find((e) => e.type === 'steps');
+  const acts = {
+    photo: { k: 'photo', label: '写真・スクショで記録', sub: PHOTO_SUB[band], main: true },
+    weight: { k: 'weight', label: '体重', sub: w ? `${fmtNum(w.kg, 1)}kg` : 'プルダウンで選ぶだけ', done: !!w },
+    steps: { k: 'steps', label: '歩数を取り込む', sub: st ? stepsText(st) : 'ショートカットのあとに', done: !!st },
+    write: { k: 'write', label: '文章で記録', sub: '「昼にパスタ」など' },
+  };
+  const presets = sortedPresets().slice(0, band === 'night' ? 2 : 1).map((p) => {
+    const sig = workoutText(p.items);
+    return { k: 'preset', id: p.id, label: p.name, sub: 'いつもの運動', done: es.some((e) => e.type === 'workout' && workoutText(e.items) === sig) };
+  });
+  const order = band === 'morning' ? [acts.weight, acts.photo, acts.write, ...presets]
+    : band === 'day' ? [acts.photo, acts.weight, acts.write, ...presets]
+    : [acts.photo, ...presets, acts.steps, acts.weight];
+  // 主役の写真は先頭、済んだものは後ろへ
+  const main = order.filter((a) => a.main), rest = order.filter((a) => !a.main);
+  return [...main, ...rest.filter((a) => !a.done), ...rest.filter((a) => a.done)].slice(0, 5);
+}
+
+function renderNow() {
+  const t = today(), band = timeBand();
+  const avg = movingAvg7(weightMap(), t);
+  const st = dayStats(t), kcal = state.settings.kcal;
+  const subs = [];
+  if (band === 'morning' && avg != null) subs.push(`7日平均 ${fmtNum(avg, 1)}kg`);
+  if (band !== 'morning' && st.meals.length) subs.push(kcal != null
+    ? (kcal - st.intake.kcal >= 0 ? `今日は約${fmtNum(st.intake.kcal)}kcal・目安まであと約${fmtNum(kcal - st.intake.kcal)}kcal` : `今日は約${fmtNum(st.intake.kcal)}kcal・次のごはんを軽めにすれば十分です`)
+    : `今日は約${fmtNum(st.intake.kcal)}kcal`);
+  if (band !== 'morning' && !st.meals.length && avg != null) subs.push(`7日平均 ${fmtNum(avg, 1)}kg`);
+  $('#nowHead').innerHTML = `<div class="now-greet">${GREETS[band]}</div>${subs.length ? `<div class="now-sub">${esc(subs.join('　'))}</div>` : ''}`;
+  $('#nowActions').innerHTML = nowActions().map((a) => `<button type="button" class="now-act ${a.main ? 'main' : ''} ${a.done ? 'done' : ''}" data-now="${a.k}" ${a.id ? `data-id="${esc(a.id)}"` : ''}><span class="a-l">${esc(a.label)}</span><span class="a-s">${esc(a.sub)}</span></button>`).join('');
+}
+
+function openWeightSheet() {
+  const t = today();
+  const cur = state.entries.find((e) => e.type === 'weight' && e.date === t);
+  const { lo, hi, def } = weightPickRange();
+  const r = Math.round((cur ? cur.kg : def ?? (lo + hi) / 2) * 10);
+  openSheet(`<h3>今日の体重</h3>
+    <div class="wpick" style="margin:8px 0 4px"><select id="wsInt" aria-label="体重（整数）">${Array.from({ length: hi - lo + 1 }, (_, i) => `<option value="${lo + i}" ${lo + i === Math.floor(r / 10) ? 'selected' : ''}>${lo + i}</option>`).join('')}</select><span>.</span>
+      <select id="wsDec" aria-label="体重（小数）">${Array.from({ length: 10 }, (_, d) => `<option value="${d}" ${d === r % 10 ? 'selected' : ''}>${d}</option>`).join('')}</select><span class="unit">kg</span></div>
+    ${cur ? '<div class="hint">今日の体重を上書きします。</div>' : ''}
+    <div class="btns" style="margin-top:12px"><button class="ghost" id="wsClose">閉じる</button><button class="primary" id="wsSave">保存</button></div>`);
+  $('#wsClose').addEventListener('click', closeSheet);
+  $('#wsSave').addEventListener('click', () => {
+    const n = normalizeEntry({ type: 'weight', date: t, kg: `${$('#wsInt').value}.${$('#wsDec').value}` });
+    if (n.errors) { toast(n.errors[0]); return; }
+    const snap = snapshot();
+    addEntries([n.entry]);
+    if (!saveState()) return;
+    closeSheet(); refreshAll();
+    const avg = movingAvg7(weightMap(), t);
+    toast(`${fmtNum(n.entry.kg, 1)}kg を記録${avg != null ? `・7日平均 ${fmtNum(avg, 1)}kg` : ''}`, { undo: () => undoTo(snap) });
+  });
+}
+
+function recordPresetNow(id, date = today()) {
+  const p = (state.workoutPresets || []).find((x) => x.id === id);
+  if (!p) return;
+  const { entry, errors } = normalizeEntry({ type: 'workout', date, items: p.items.map((it) => ({ ...it })), note: '' });
+  if (errors) { toast(errors[0]); return; }
+  const snap = snapshot();
+  addEntries([entry]);
+  if (saveState()) { refreshAll(); toast(`${date === today() ? '今日' : fmtMD(date)}に「${p.name}」を記録しました`, { undo: () => undoTo(snap) }); }
+}
+
+function setupNow() {
+  $('#nowActions').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-now]');
+    if (!b) return;
+    const k = b.dataset.now;
+    if (k === 'photo') $('#homeImg').click();
+    else if (k === 'weight') openWeightSheet();
+    else if (k === 'steps') pasteSteps(today());
+    else if (k === 'write') { $('#inDate').value = today(); $('#inDate').dispatchEvent(new Event('change')); goInput('input'); }
+    else if (k === 'preset') recordPresetNow(b.dataset.id);
+  });
+  $('#homeImg').addEventListener('change', async (ev) => {
+    const files = Array.from(ev.target.files || []);
+    ev.target.value = '';
+    if (!files.length) return;
+    for (const f of files) {
+      if (images.length >= MAX_IMAGES) break;
+      try { images.push(await fileToImage(f)); } catch (e) { toast(e.message); }
+    }
+    showTab('input');
+    $('#inDate').value = today(); $('#inDate').dispatchEvent(new Event('change'));
+    renderImages();
+    toast('写真を入れました。ひと言添えるなら書いて「記録する」');
+  });
+}
+
+/* ---- 体重・体脂肪率・腹囲の切り替え ---- */
+let metric = 'weight';
+function renderMetric() {
+  $$('#metricSeg button').forEach((b) => b.classList.toggle('on', b.dataset.mt === metric));
+  $('#wPane').style.display = metric === 'weight' ? '' : 'none';
+  $('#bPane').style.display = metric === 'weight' ? 'none' : '';
+  if (metric === 'weight') renderChart();
+  else { bodyMetric = metric; renderBodyChart(); }
+}
+
 let todayDate = null;
+
+function ringSVG(pct) {
+  const r = 48, c = 2 * Math.PI * r, p = Math.max(0, Math.min(1, pct));
+  return `<svg viewBox="0 0 112 112" aria-hidden="true"><circle cx="56" cy="56" r="${r}" fill="none" stroke="var(--line)" stroke-width="10"/>
+    ${p > 0 ? `<circle cx="56" cy="56" r="${r}" fill="none" stroke="${pct > 1 ? 'var(--c-meal)' : 'var(--accent)'}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(c * p).toFixed(1)} ${c.toFixed(1)}"/>` : ''}</svg>`;
+}
 
 function renderToday() {
   const t = today();
@@ -3773,45 +3950,40 @@ function renderToday() {
   let html = `<div class="today-head"><h2>${title}</h2><div class="today-nav">
     <button class="ghost" data-day-nav="-1" aria-label="前の日">‹</button><button class="ghost" data-day-nav="1" aria-label="次の日" ${isToday ? 'disabled' : ''}>›</button></div></div>`;
 
-  const intakeSub = s.kcal != null ? `目安 ${fmtNum(s.kcal)}kcal` : (st.meals.length ? `食事${st.meals.length}件` : '');
-  const burnNum = st.burn != null ? `${fmtNum(st.burn)}<small>kcal</small>` : '<small>—</small>';
+  // 摂取：リング＋PFCのミニバー
+  let rest = '';
+  if (s.kcal != null) {
+    const r = Math.round(s.kcal - st.intake.kcal);
+    rest = r >= 0 ? `<span class="rest">あと${fmtNum(r)}</span>` : `<span class="rest over">目安より+${fmtNum(-r)}</span>`;
+  }
+  const ring = `<div class="ring">${ringSVG(s.kcal ? st.intake.kcal / s.kcal : 0)}<div class="c"><small>摂取</small><b>${fmtNum(st.intake.kcal)}</b><small>${s.kcal != null ? `/ ${fmtNum(s.kcal)}kcal` : 'kcal'}</small>${rest}</div></div>`;
+  const bars = [['P', 'p'], ['F', 'f'], ['C', 'c']].map(([l, k]) => {
+    const v = st.intake[k], tg = s[k];
+    const pct = tg ? Math.min(100, Math.round(v / tg * 100)) : 0;
+    const diff = tg != null ? Math.round(tg - v) : null;
+    return `<div class="pm"><div class="pb"><i style="width:${tg ? pct : 0}%; background:var(--c-${k})"></i></div>
+      <div class="v"><span>${l} ${fmtNum(v)}${tg != null ? `/${fmtNum(tg)}` : ''}g</span>${diff != null && (st.meals.length || diff < tg) ? (diff >= 0 ? `<span>あと${fmtNum(diff)}g</span>` : `<span class="over">目安より+${fmtNum(-diff)}g</span>`) : ''}</div></div>`;
+  }).join('');
+  html += `<div class="today-main">${ring}<div>${bars}${s.p == null && s.f == null && s.c == null ? '<div class="small muted">設定で目安を入れると、あと何gかが出ます。</div>' : ''}</div></div>`;
+
+  // 消費・収支
   const burnSub = st.burn != null
     ? (st.walkKcal != null
       ? `基礎 ${fmtNum(st.base * SEDENTARY)} ＋ 歩行 ${fmtNum(st.walkKcal)}${st.exKcal ? ` ＋ 運動 ${fmtNum(st.exKcal)}` : ''}`
       : `ふだん ${fmtNum(st.daily)}${st.exKcal ? ` ＋ 運動 ${fmtNum(st.exKcal)}` : ''}`)
     : '設定のプロフィールで表示';
-  html += `<div class="kcal-grid">
-    <div class="kcal-box"><div class="lbl">摂取</div><div class="num">${fmtNum(st.intake.kcal)}<small>kcal</small></div><div class="sub">${esc(intakeSub)}</div></div>
-    <div class="kcal-box"><div class="lbl">消費（概算）</div><div class="num">${burnNum}</div><div class="sub">${esc(burnSub)}</div></div>
-  </div>`;
-  if (s.kcal != null) {
-    const pct = Math.round((st.intake.kcal / s.kcal) * 100);
-    html += `<div class="bar" style="margin:2px 0 8px"><i style="width:${Math.min(100, pct)}%"></i></div>`;
-  }
-  if (st.meals.length) {
-    html += `<div class="today-line"><span class="k">PFC</span>${[['P', 'p'], ['F', 'f'], ['C', 'c']].map(([l, k]) =>
-      `${l} ${fmtNum(st.intake[k])}${s[k] != null ? `/${fmtNum(s[k])}` : ''}g`).join('　')}</div>`;
-  }
-  const rem = [['kcal', 'kcal', ''], ['P', 'p', 'g'], ['F', 'f', 'g'], ['C', 'c', 'g']].filter(([, k]) => s[k] != null).map(([l, k, u]) => {
-    const d = Math.round(s[k] - st.intake[k]);
-    return d >= 0 ? `<span>${l} あと${fmtNum(d)}${u}</span>` : `<span class="over">${l} 目安より+${fmtNum(-d)}${u}</span>`;
-  });
-  if (rem.length) html += `<div class="remain">${rem.join('')}</div>`;
+  html += `<div class="burn-line"><div><span class="k">消費（概算）</span><small>${esc(burnSub)}</small></div><b>${st.burn != null ? `${fmtNum(st.burn)}<small style="display:inline">kcal</small>` : '—'}</b></div>`;
   if (st.burn != null && st.meals.length) {
     const bal = Math.round(st.intake.kcal - st.burn);
     html += `<div class="today-line"><span class="k">収支（概算）</span>${bal > 0 ? '+' : ''}${fmtNum(bal)} kcal</div>`;
   }
-  if (st.steps) {
-    html += `<div class="today-line"><span class="k">歩数</span>${esc(stepsText(st.steps))}</div>`;
-  }
-  if (st.workouts.length) {
-    html += `<div class="today-line"><span class="k">運動</span>${esc(st.workouts.map((w) => workoutText(w.items)).join(' / '))}</div>`;
-  }
+  if (st.steps) html += `<div class="today-line"><span class="k">歩数</span>${esc(stepsText(st.steps))}</div>`;
+  if (st.workouts.length) html += `<div class="today-line"><span class="k">運動</span>${esc(st.workouts.map((w) => workoutText(w.items)).join(' / '))}</div>`;
   const avg = movingAvg7(weightMap(), d);
   if (st.weight || avg != null) {
     html += `<div class="today-line"><span class="k">体重</span>${st.weight ? `${fmtNum(st.weight.kg, 1)}kg　` : ''}${avg != null ? `<span class="muted">7日平均 ${fmtNum(avg, 1)}kg</span>` : ''}</div>`;
   }
-  html += '<div class="hint">消費は基礎代謝の推定式と運動の強さの目安から出した概算です。</div>';
+  html += '<div class="hint">数値は記録から出した概算です。消費は基礎代謝の推定式と運動の強さの目安から。</div>';
   $('#todayCard').innerHTML = html;
 }
 
@@ -3839,8 +4011,8 @@ function duePrompts(now = new Date()) {
 }
 
 function renderAsks() {
-  $('#askArea').innerHTML = duePrompts().map((p) => `<div class="card ask-card"><div class="ask-text">${esc(p.text)}</div>
-    <div class="btns"><button class="ghost" data-ask-ok="${esc(p.id)}">今日はOK</button><button class="primary" data-ask-go="${esc(p.id)}">${p.action === 'weight' ? '体重を入れる' : p.action === 'steps' ? '貼り付けて記録' : '送る'}</button></div></div>`).join('');
+  $('#askArea').innerHTML = duePrompts().map((p) => `<div class="ask-card"><button type="button" class="ask-go" data-ask-go="${esc(p.id)}" aria-label="${esc(p.text)}（${p.action === 'weight' ? '体重を入れる' : p.action === 'steps' ? '貼り付けて記録' : '送る'}）">${esc(p.text)}</button>
+    <button type="button" class="ask-x" data-ask-ok="${esc(p.id)}">今日はOK</button></div>`).join('');
 }
 
 function markPrompt(id) { state.promptLog[id] = today(); saveState(); }
@@ -3924,6 +4096,7 @@ const REVIEWS = {
 };
 const REVIEW_INTERVAL_DAYS = 7;
 let reviewResult = null; // { type, text }
+let reviewOpen = false;
 
 function reviewDue(type, t = today()) {
   const log = state.reviewLog || {};
@@ -3944,9 +4117,9 @@ function renderReview() {
   const el = $('#reviewArea');
   if (!due.length && !reviewResult) { el.innerHTML = ''; return; }
   const hasKey = !!loadApi().key;
-  let html = '<div class="card"><h2>ふりかえる？</h2>';
+  let html = `<details class="rv-mini" ${reviewResult || reviewOpen ? 'open' : ''}><summary><span>ふりかえる？</span><small>記録がたまってきました・気が向いたら</small></summary>`;
   if (due.length) {
-    html += '<div class="small muted">記録がたまってきました。気が向いたらどうぞ。</div><div class="review-btns">'
+    html += '<div class="review-btns">'
       + due.map((k) => `<button class="${REVIEWS[k].ai ? 'primary' : ''}" data-review="${k}">${REVIEWS[k].label}</button>`).join('') + '</div>';
     if (!hasKey && due.some((k) => REVIEWS[k].ai)) html += '<div class="hint">APIキーがないときは、チャットに貼る文章をコピーします。</div>';
   }
@@ -3955,7 +4128,7 @@ function renderReview() {
     html += `<div class="btns" style="margin-top:8px">${reviewResult.type === 'beauty' ? '<button class="primary" data-review-answer>答えを書く</button>' : ''}<button class="ghost" data-review-close>閉じる</button></div>`;
   }
   if (due.length) html += '<button class="ghost" data-review-snooze style="width:100%; margin-top:8px">今はいい</button>';
-  el.innerHTML = html + '</div>';
+  el.innerHTML = html + '</details>';
 }
 
 function beautyAnswerTemplate() {
@@ -4000,6 +4173,7 @@ function setupHomeCards() {
       const p = state.prompts.find((x) => x.id === go.getAttribute('data-ask-go'));
       if (p.action === 'steps') { pasteSteps(today()).then((ok) => { if (ok) { markPrompt(p.id); renderAsks(); } }); return; }
       markPrompt(p.id);
+      if (p.action === 'weight') { renderAsks(); openWeightSheet(); return; }
       goInput(p.action);
     }
   });
@@ -4008,6 +4182,7 @@ function setupHomeCards() {
     const ok = await copyText(buildWeekText());
     toast(ok ? '今週のデータをコピーしました' : 'コピーできませんでした');
   });
+  $('#reviewArea').addEventListener('toggle', (ev) => { if (ev.target.matches('.rv-mini')) reviewOpen = ev.target.open; }, true);
   $('#reviewArea').addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-review]');
     if (b) { runReview(b.getAttribute('data-review'), b); return; }
@@ -4209,6 +4384,7 @@ let currentTab = 'home';
 
 function showTab(tab) {
   if (!VIEW_TITLES[tab]) tab = 'home';
+  if ($('#toast').classList.contains('act')) $('#toast').classList.remove('show', 'act');
   currentTab = tab;
   $$('.view').forEach((el) => el.classList.toggle('active', el.id === `view-${tab}`));
   $$('#tabbar button').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
@@ -4239,20 +4415,15 @@ function init() {
     $$('#rangeSeg button').forEach((x) => x.classList.toggle('on', x === b));
     renderChart();
   });
-  $('#pfcSeg').addEventListener('click', (ev) => { const x = ev.target.closest('button[data-r]'); if (x) { pfcRange = Number(x.dataset.r); renderPfc(); } });
-  $('#bodySeg').addEventListener('click', (ev) => {
-    const b = ev.target.closest('button[data-m]');
-    if (!b) return;
-    bodyMetric = b.dataset.m;
-    $$('#bodySeg button').forEach((x) => x.classList.toggle('on', x === b));
-    renderBodyChart();
-  });
+  $('#pfcSeg').addEventListener('click', (ev) => { const x = ev.target.closest('button[data-r]'); if (x) { pfcRange = x.dataset.r === 'month' ? 'month' : Number(x.dataset.r); renderPfc(); } });
+  $('#metricSeg').addEventListener('click', (ev) => { const b = ev.target.closest('[data-mt]'); if (b) { metric = b.dataset.mt; renderMetric(); } });
   $('#overlay').addEventListener('click', (ev) => { if (ev.target.id === 'overlay') closeSheet(); });
   setupInput();
   setupFavorites();
   setupPresets();
   setupWq();
   setupHomeCards();
+  setupNow();
   setupToday();
   setupUpdate();
   setupSteps();
