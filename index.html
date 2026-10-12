@@ -290,6 +290,14 @@
   .diff { font-size: 13px; margin-top: 8px; }
   .diff .old { color: var(--muted); text-decoration: line-through; }
   .chip.fix { background: var(--accent-strong); }
+  .wish { display: flex; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); cursor: pointer; }
+  .wish:first-of-type { border-top: none; }
+  .wish .w-main { flex: 1; min-width: 0; }
+  .wish .w-name { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wish .w-sub { font-size: 12px; color: var(--muted); }
+  .wish .w-kg { flex: 0 0 auto; text-align: right; font-size: 13px; font-weight: 700; color: var(--accent-strong); }
+  .wish .w-kg small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+  .chip.wish-c { background: var(--c-beauty); }
   .sub-h { font-size: 12px; color: var(--muted); margin: 4px 0 6px; font-weight: 600; }
   .sub-h + .fav-chips { margin-bottom: 12px; }
   .today-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -376,6 +384,8 @@
       <div class="chart-wrap" id="chartWrap"><canvas id="weightChart"></canvas></div>
       <div class="hint" id="chartHint"></div>
     </div>
+
+    <div class="card" id="wishCard" style="display:none"></div>
 
     <div class="card" id="bodyCard">
       <h2>体脂肪率・腹囲 <span class="right"><span class="seg" id="bodySeg"><button data-m="fatPct" class="on">体脂肪率</button><button data-m="waistCm">腹囲</button></span></span></h2>
@@ -651,7 +661,7 @@
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
 // 公開のたびに上げる（CLAUDE.md の「公開のルール」参照）
-const APP_VERSION = '2026.10.12-12';
+const APP_VERSION = '2026.10.12-13';
 const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'condition'];
 const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
 const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: 'ツール' };
@@ -728,7 +738,7 @@ const clonePrompts = (list) => list.map((x) => ({ ...x, days: [...x.days] }));
 function defaultState() {
   const settings = {};
   SETTING_KEYS.forEach((k) => { settings[k] = null; });
-  return { version: 1, entries: [], comments: [], favorites: [], workoutPresets: [], links: {}, prompts: clonePrompts(DEFAULT_PROMPTS), promptLog: {}, reviewLog: {}, settings };
+  return { version: 1, entries: [], comments: [], favorites: [], workoutPresets: [], wishes: [], links: {}, prompts: clonePrompts(DEFAULT_PROMPTS), promptLog: {}, reviewLog: {}, settings };
 }
 
 function normalizePrompt(o) {
@@ -757,6 +767,7 @@ function loadState() {
       comments: Array.isArray(s.comments) ? s.comments : [],
       favorites: Array.isArray(s.favorites) ? s.favorites : [],
       workoutPresets: Array.isArray(s.workoutPresets) ? s.workoutPresets : [],
+      wishes: Array.isArray(s.wishes) ? s.wishes : [],
       links: asObj(s.links),
       prompts: Array.isArray(s.prompts)
         ? [...s.prompts.map(normalizePrompt).filter(Boolean), ...(s.prompts.some((x) => x && x.id === 'p-steps') ? [] : clonePrompts(DEFAULT_PROMPTS.filter((x) => x.id === 'p-steps')))]
@@ -976,11 +987,12 @@ function extractPayload(text) {
     if (v === undefined) continue;
     parsed.push({ start: c.start, end: c.end, value: v });
   }
-  const entries = [], updates = [], deletes = [];
+  const entries = [], updates = [], deletes = [], wishes = [];
   let comment = null;
   for (const p of parsed) {
     const v = p.value;
     if (v && typeof v === 'object' && !Array.isArray(v)) {
+      if (Array.isArray(v.wishes)) wishes.push(...v.wishes.filter((w) => w && typeof w === 'object'));
       if (Array.isArray(v.updates)) updates.push(...v.updates.filter((u) => u && typeof u === 'object' && u.id));
       if (Array.isArray(v.deletes)) deletes.push(...v.deletes.map(String));
       if (Array.isArray(v.entries)) {
@@ -988,16 +1000,16 @@ function extractPayload(text) {
         if (typeof v.comment === 'string' && v.comment.trim()) comment = comment ? comment + '\n' + v.comment.trim() : v.comment.trim();
       } else if (v.type) {
         entries.push(v);
-      } else if (typeof v.comment === 'string') {
+      } else if (typeof v.comment === 'string' && !Array.isArray(v.wishes)) {
         comment = comment ? comment + '\n' + v.comment.trim() : v.comment.trim();
       }
-      if (!Array.isArray(v.entries) && (v.updates || v.deletes) && typeof v.comment === 'string' && !comment) comment = v.comment.trim();
+      if (!Array.isArray(v.entries) && (v.updates || v.deletes || v.wishes) && typeof v.comment === 'string' && !comment) comment = v.comment.trim();
     } else if (Array.isArray(v) && v.some((x) => x && typeof x === 'object' && x.type)) {
       entries.push(...v);
     }
   }
-  if (!entries.length && !comment && !updates.length && !deletes.length) return null;
-  return { entries, comment, updates, deletes };
+  if (!entries.length && !comment && !updates.length && !deletes.length && !wishes.length) return null;
+  return { entries, comment, updates, deletes, wishes };
 }
 
 /* ========== 表示用テキスト ========== */
@@ -1307,6 +1319,7 @@ function renderHome() {
   renderReview();
   renderToday();
   renderChart();
+  renderWishes();
   renderBodyChart();
   renderMonth();
   renderTreat();
@@ -1398,7 +1411,8 @@ function setPendingFromPayload(payload) {
     return { before, after: n.entry ? { ...n.entry, id: before.id, createdAt: before.createdAt } : null, errors: n.errors || null };
   }).filter(Boolean);
   const deletes = [...new Set(payload.deletes || [])].map((id) => state.entries.find((x) => x.id === id)).filter(Boolean);
-  pending = { items, comment: payload.comment, updates, deletes };
+  const wishes = (payload.wishes || []).map(normalizeWish).filter(Boolean);
+  pending = { items, comment: payload.comment, updates, deletes, wishes };
   renderPreview();
 }
 
@@ -1431,10 +1445,14 @@ function renderPreview() {
   (pending.deletes || []).forEach((d) => {
     html += `<div class="entry"><span class="chip error">削除</span><div class="body">${fmtMDW(d.date)} ${entryBodyHTML(d)}</div></div>`;
   });
+  (pending.wishes || []).forEach((w) => {
+    html += `<div class="entry"><span class="chip wish-c">着たい服</span><div class="body">${esc(w.name)}<div class="meta">${esc(wishMeta(w))}</div>
+      <div class="meta">今からの目安：あと約${fmtKgRange(w.loseMin, w.loseMax)}</div>${w.basis ? `<div class="meta">${esc(w.basis)}</div>` : ''}${w.exercise ? `<div class="meta">運動の目安：${esc(w.exercise)}</div>` : ''}</div></div>`;
+  });
   if (pending.comment) {
     html += `<div class="entry"><span class="chip comment">コメント</span><div class="body comment-text">${esc(pending.comment)}</div></div>`;
   }
-  const nChange = ok.length + ups.length + (pending.deletes || []).length;
+  const nChange = ok.length + ups.length + (pending.deletes || []).length + (pending.wishes || []).length;
   const canSave = nChange > 0 || !!pending.comment;
   html += `<div class="btns" style="margin-top:12px"><button class="ghost" id="pvCancel">やめる</button>
     <button class="primary" id="pvSave" ${canSave ? '' : 'disabled'}>${nChange ? `${nChange}件を反映` : 'コメントを保存'}</button></div>`;
@@ -1456,6 +1474,15 @@ function savePending() {
   });
   const delIds = new Set((pending.deletes || []).map((d) => d.id));
   if (delIds.size) { const n0 = state.entries.length; state.entries = state.entries.filter((x) => !delIds.has(x.id)); removed = n0 - state.entries.length; }
+  const nowKg = bodyWeightFor(today());
+  let wished = 0;
+  (pending.wishes || []).forEach((w) => {
+    // 「あと何kg」は保存した時点の体重から目標体重に直して持つ（体重が変わると自動で減っていく）
+    state.wishes.push({ id: uid(), name: w.name, brand: w.brand, size: w.size, sizeInfo: w.sizeInfo, basis: w.basis, exercise: w.exercise,
+      targetLow: nowKg != null ? round1(nowKg - w.loseMax) : null, targetHigh: nowKg != null ? round1(nowKg - w.loseMin) : null,
+      loseMin: w.loseMin, loseMax: w.loseMax, addedOn: today(), createdAt: Date.now() });
+    wished++;
+  });
   const hasComment = pending.comment ? addComment(pending.comment, today()) : false;
   if (saveState()) {
     const parts = [];
@@ -1463,6 +1490,7 @@ function savePending() {
     if (r.replaced) parts.push(`${r.replaced}件を更新`);
     if (fixed) parts.push(`${fixed}件を修正`);
     if (removed) parts.push(`${removed}件を削除`);
+    if (wished) parts.push(`着たい服を${wished}件登録`);
     if (hasComment) parts.push('コメントを保存');
     toast(parts.join('・') + 'しました');
     pending = null;
@@ -1945,7 +1973,9 @@ function parseImport(text) {
   const workoutPresets = (Array.isArray(obj.workoutPresets) ? obj.workoutPresets : []).map((x) => ({ x, r: normalizePreset(x) })).filter((o) => o.r.preset)
     .map((o) => ({ ...o.r.preset, id: o.x.id ? String(o.x.id) : uid() }));
   const links = obj.links && typeof obj.links.projectUrl === 'string' && /^https:\/\/claude\.ai\//.test(obj.links.projectUrl) ? { projectUrl: obj.links.projectUrl } : null;
-  return { entries, comments, favorites, workoutPresets, links, prompts, settings, bad };
+  const wishes = (Array.isArray(obj.wishes) ? obj.wishes : []).filter((w) => w && typeof w === 'object' && toStr(w.name))
+    .map((w) => ({ ...w, id: w.id ? String(w.id) : uid() }));
+  return { entries, comments, favorites, workoutPresets, wishes, links, prompts, settings, bad };
 }
 
 function doImport(mode) {
@@ -1955,7 +1985,7 @@ function doImport(mode) {
     if (!confirm(`今のデータをすべて消して、${data.entries.length}件の記録に置き換えます。よろしいですか？`)) return;
     const base = defaultState();
     state = {
-      version: 1, entries: [], comments: data.comments, favorites: data.favorites, workoutPresets: data.workoutPresets,
+      version: 1, entries: [], comments: data.comments, favorites: data.favorites, workoutPresets: data.workoutPresets, wishes: data.wishes,
       links: data.links || state.links || {},
       prompts: data.prompts || state.prompts, promptLog: {}, reviewLog: {},
       settings: data.settings ? { ...base.settings, ...data.settings } : state.settings,
@@ -2107,6 +2137,9 @@ function buildContext() {
   if (s.fatTarget != null) lines.push(`からだの目標: 体脂肪率 ${s.fatTarget}%`);
   const bodies = state.entries.filter((e) => e.type === 'body').sort((a, b) => a.date.localeCompare(b.date)).slice(-5);
   if (bodies.length) lines.push(`体脂肪率・腹囲の推移: ${bodies.map((e) => `${e.date} ${bodyText(e, true)}`).join(' → ')}`);
+  if (s.heightCm != null) lines.push(`身長: ${s.heightCm}cm`);
+  const ws = (state.wishes || []).filter((w) => !w.done);
+  if (ws.length) lines.push(`着たい服: ${ws.map((w) => `${w.name}（${wishMeta(w)}、あと約${fmtKgRange(...wishRemaining(w))}）`).join('、')}`);
   const presets = state.workoutPresets || [];
   if (presets.length) lines.push(`いつもの運動: ${presets.map((p) => `${p.name}（${workoutText(p.items)}）`).join('、')}`);
   const ef = estimateFat(bodyWeightFor(t));
@@ -2145,6 +2178,7 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
   ],
   "updates":[{"id":"既存の記録のid","entry":{直したあとの記録（上と同じ形）}}],
   "deletes":["消してほしいと言われた記録のid"],
+  "wishes":[{"name":"商品名","brand":"ブランド","size":"サイズ","sizeInfo":"サイズ表の要点","loseKgMin":数値,"loseKgMax":数値,"basis":"何から判断したか","exercise":"運動の目安"}],
   "comment":"提案コメント"
 }
 
@@ -2157,6 +2191,15 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 - 体や肌の状態についての言及は condition にする。
 - 「【コスメの所感】」として書かれた内容は、アイテムごとに condition にする（note は「アイテム名：所感」）。使用回数は増やさない。
 - 記録にあたる内容がなければ entries は空配列にして、comment だけ返す。
+
+# 着たい服（ZOZOTOWN などの商品ページのスクショ）
+- 服の商品ページやサイズ表のスクショなら、記録（entries）は作らずに wishes に入れる。
+- 商品名・ブランド・選んでいるサイズ・サイズ表（ウエスト・ヒップ・着丈など）を読み取る。サイズが分からなければ、いちばん一般的なサイズとして考える。
+- 下の状況（身長・体重の7日平均・体脂肪率の推定・腹囲の記録）とサイズ表を比べて、そのサイズを無理なく着られる目安までに減らすとよい体重を、幅で loseKgMin〜loseKgMax（kg、0以上）として出す。すでに着られそうなら 0。
+- サイズ表が読めないときは、ブランドやアイテムの一般的な傾向（細身・ゆったりなど）から推定し、basis にそう書く。
+- 腹囲1cmあたり約0.5〜1kg など、一般的な目安で幅を持たせて考える。正確さより目安でよい。
+- exercise には、いつもの運動や種目をもとに、無理のない週あたりの目安を短く書く（例：「いつもの筋トレを週3回＋エアロバイク20分を週2回」）。
+- comment は、楽しみな目標として前向きに短く。責めたり急かしたりしない。
 
 # 既存の記録の修正
 - 「昨日のパンケーキ、2枚だった」のように、すでにある記録を直す内容なら、新しい記録は作らずに updates に入れる。id は下の「最近の記録」から選び、entry には直したあとの記録全体を入れる。量が変わったら kcal・P・F・C も計算し直す。
@@ -2266,7 +2309,7 @@ function setupAI() {
     // JSON（ショートカットやチャットの返答）ならAPIを使わずに読む
     if (!images.length) {
       const local = extractPayload(text);
-      if (local && (local.entries.length || local.updates.length || local.deletes.length)) { setPendingFromPayload(local); return; }
+      if (local && (local.entries.length || local.updates.length || local.deletes.length || local.wishes.length)) { setPendingFromPayload(local); return; }
     }
     const api = loadApi();
     if (!api.key) { toast('設定でAPIキーを入れてください'); return; }
@@ -3295,6 +3338,88 @@ function setupHomeCards() {
 
 
 
+
+/* ========== 着たい服 ========== */
+const fmtKgRange = (a, b) => {
+  const lo = Math.max(0, round1(Math.min(a, b))), hi = Math.max(0, round1(Math.max(a, b)));
+  return lo === hi ? `${fmtNum(lo, 1)}kg` : `${fmtNum(lo, 1)}〜${fmtNum(hi, 1)}kg`;
+};
+const wishMeta = (w) => [w.brand, w.size ? `サイズ ${w.size}` : '', w.sizeInfo].filter(Boolean).join('・');
+
+function normalizeWish(raw) {
+  const name = toStr(raw.name) || toStr(raw.brand);
+  if (!name) return null;
+  const errs = [];
+  let a = toNum(raw.loseKgMin, 'loseKgMin', errs), b = toNum(raw.loseKgMax, 'loseKgMax', errs);
+  if (a == null && b == null) { a = 0; b = 0; }
+  if (a == null) a = b;
+  if (b == null) b = a;
+  a = Math.min(30, a); b = Math.min(30, b);
+  return { name, brand: toStr(raw.brand), size: toStr(raw.size), sizeInfo: toStr(raw.sizeInfo), basis: toStr(raw.basis), exercise: toStr(raw.exercise),
+    loseMin: Math.min(a, b), loseMax: Math.max(a, b) };
+}
+
+// 今の7日平均から見た「あと何kg」
+function wishRemaining(w) {
+  const now = bodyWeightFor(today());
+  if (now == null || w.targetLow == null || w.targetHigh == null) return [w.loseMin || 0, w.loseMax || 0];
+  return [Math.max(0, now - w.targetHigh), Math.max(0, now - w.targetLow)];
+}
+
+function wishWeeks(w) {
+  const [lo, hi] = wishRemaining(w);
+  const pace = state.settings.pace != null ? state.settings.pace : 0.25;
+  if (hi <= 0) return '';
+  const a = Math.max(1, Math.round(lo / pace)), b = Math.max(1, Math.round(hi / pace));
+  return a === b ? `約${a}週間` : `約${a}〜${b}週間`;
+}
+
+function renderWishes() {
+  const list = (state.wishes || []).filter((w) => !w.done);
+  const el = $('#wishCard');
+  if (!list.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = '';
+  el.innerHTML = '<h2>着たい服 <span class="right small">目安</span></h2>' + list.map((w) => {
+    const [lo, hi] = wishRemaining(w);
+    const kg = hi <= 0 ? '着られそう' : `あと約${fmtKgRange(lo, hi)}`;
+    return `<div class="wish" data-wish="${esc(w.id)}"><div class="w-main"><div class="w-name">${esc(w.name)}</div><div class="w-sub">${esc(wishMeta(w))}</div></div>
+      <div class="w-kg">${kg}<small>${esc(wishWeeks(w))}</small></div></div>`;
+  }).join('') + '<div class="hint">体重の7日平均とサイズ表・ブランドの傾向から出した目安です。</div>';
+}
+
+function openWish(id) {
+  const w = state.wishes.find((x) => x.id === id);
+  if (!w) return;
+  const [lo, hi] = wishRemaining(w);
+  openSheet(`<h3>${esc(w.name)}</h3>
+    <div class="plan">
+      ${wishMeta(w) ? `<div class="row2"><span class="k">ブランド・サイズ</span><span>${esc(wishMeta(w))}</span></div>` : ''}
+      <div class="row2"><span class="k">今からの目安</span><span><b>${hi <= 0 ? '着られそう' : `あと約${fmtKgRange(lo, hi)}`}</b></span></div>
+      ${wishWeeks(w) ? `<div class="row2"><span class="k">今のペースで</span><span>${esc(wishWeeks(w))}</span></div>` : ''}
+      ${w.exercise ? `<div class="row2"><span class="k">運動の目安</span><span>${esc(w.exercise)}</span></div>` : ''}
+    </div>
+    ${w.basis ? `<div class="hint">${esc(w.basis)}</div>` : ''}
+    <div class="hint">登録した日：${fmtMD(w.addedOn || today())}（そのときの目安 あと約${fmtKgRange(w.loseMin || 0, w.loseMax || 0)}）</div>
+    <div class="btns" style="margin-top:12px"><button class="danger" id="wsDel">削除</button><button class="ghost" id="wsClose">閉じる</button><button class="primary" id="wsDone">着られた！</button></div>`);
+  $('#wsClose').addEventListener('click', closeSheet);
+  $('#wsDel').addEventListener('click', () => {
+    if (!confirm('この服をリストから消しますか？')) return;
+    state.wishes = state.wishes.filter((x) => x.id !== id);
+    saveState(); closeSheet(); refreshAll();
+  });
+  $('#wsDone').addEventListener('click', () => {
+    w.done = today();
+    saveState(); closeSheet(); toast('おめでとうございます！'); refreshAll();
+  });
+}
+
+function setupWishes() {
+  $('#wishCard').addEventListener('click', (ev) => {
+    const r = ev.target.closest('[data-wish]');
+    if (r) openWish(r.getAttribute('data-wish'));
+  });
+}
+
 /* ========== 歩数の入力 ========== */
 const STEPS_OPTS = Array.from({ length: 30 }, (_, i) => (i + 1) * 1000);
 function renderStepsPicker() {
@@ -3423,6 +3548,7 @@ function init() {
   setupToday();
   setupUpdate();
   setupSteps();
+  setupWishes();
   setupList();
   setupBeauty();
   setupSettings();
