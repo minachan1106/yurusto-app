@@ -35,6 +35,9 @@
     --c-body: #4fb0a8;
     --c-steps: #6aa3d8;
     --c-comment: #9a8c8e;
+    --c-p: #ff6fa8;
+    --c-f: #e3b25f;
+    --c-c: #a58ac9;
     --shadow: 0 2px 8px rgba(255, 79, 151, 0.08);
     --radius: 14px;
     --tabbar-h: 58px;
@@ -310,6 +313,29 @@
   .seg-tabs { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 3px; margin-bottom: 12px; }
   .seg-tabs button { flex: 1; min-height: 38px; background: transparent; color: var(--muted); font-weight: 600; border-radius: 9px; }
   .seg-tabs button.on { background: var(--grad); color: #fff; }
+  .pfc-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; white-space: nowrap; font-size: 12px; color: var(--muted); margin: 6px 0 2px; }
+  .pfc-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+  .ratio { margin-top: 10px; }
+  .ratio .rl { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+  .ratio .rb { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--line); }
+  .ratio .rb i { display: block; height: 100%; }
+  .ratio .rb.target { height: 6px; margin-top: 4px; opacity: 0.55; }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .cal-head .m { font-weight: 700; font-size: 15px; }
+  .cal-head button { min-height: 36px; min-width: 44px; padding: 4px 10px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-grid .wd { text-align: center; font-size: 11px; color: var(--muted); padding: 2px 0 4px; }
+  .cal-grid .wd.sun { color: var(--accent-strong); }
+  .cal-day { min-height: 54px; border-radius: 10px; padding: 4px 2px 3px; display: flex; flex-direction: column; align-items: center; gap: 2px; background: transparent; border: 1px solid transparent; color: var(--text); font: inherit; }
+  .cal-day .n { font-size: 13px; line-height: 1.2; }
+  .cal-day .ds { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 34px; }
+  .cal-day .ds .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .cal-day .k { font-size: 10px; color: var(--muted); line-height: 1.1; }
+  .cal-day.today .n { color: var(--accent-strong); font-weight: 700; }
+  .cal-day.sel { background: var(--accent-soft); border-color: var(--accent); }
+  .cal-day.out { visibility: hidden; }
+  .cal-day.future { opacity: 0.45; }
+  .dot { display: inline-block; }
   .item-card { display: flex; gap: 8px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
   .card h2 + .item-card, .slot-h + .item-card { border-top: none; }
   .item-card .ic-main { flex: 1; min-width: 0; }
@@ -420,6 +446,13 @@
       <div class="hint" id="bodyHint"></div>
     </div>
 
+    <div class="card" id="pfcCard">
+      <h2>PFCバランス（概算） <span class="right"><span class="seg" id="pfcSeg"><button data-r="7" class="on">7日</button><button data-r="14">14日</button><button data-r="30">30日</button></span></span></h2>
+      <div id="pfcBody"></div>
+      <div class="chart-wrap" id="pfcWrap" style="height:190px"><canvas id="pfcChart"></canvas></div>
+      <div id="pfcRatio"></div>
+      <div class="hint" id="pfcHint"></div>
+    </div>
     <div class="card" id="monthCard"></div>
     <div class="card" id="treatCard"></div>
     <div class="card comment-card" id="commentCard"></div>
@@ -486,9 +519,11 @@
       <button class="primary" id="rvRun" style="width:100%">レビューしてもらう</button>
       <div id="rvResult"></div>
     </details>
+    <div class="seg-tabs" id="listMode"><button data-m="list" class="on">リスト</button><button data-m="cal">カレンダー</button></div>
     <div class="list-filter" id="listFilter">
       <button data-f="all" class="on">すべて</button><button data-f="meal">食事</button><button data-f="workout">運動</button><button data-f="body">からだ</button><button data-f="beauty">美容</button><button data-f="memo">メモ</button>
     </div>
+    <div class="card" id="calCard" style="display:none"></div>
     <div id="listBody"></div>
     <button class="ghost" id="listMore" style="width:100%; display:none">もっと見る</button>
   </section>
@@ -712,7 +747,7 @@
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
 // 公開のたびに上げる（CLAUDE.md の「公開のルール」参照）
-const APP_VERSION = '2026.10.12-16';
+const APP_VERSION = '2026.10.12-17';
 const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'condition'];
 const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
 const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: '美容ツール' };
@@ -1367,6 +1402,78 @@ function renderChart() {
   else chart = new Chart($('#weightChart'), { type: 'line', data, options, plugins: [bandPlugin] });
 }
 
+/* ========== PFCバランス ========== */
+let pfcChart = null;
+let pfcRange = 7;
+const PFC_KCAL = { p: 4, f: 9, c: 4 };
+
+// 期間内で PFC が入っている食事の日ごと合計（記録のある日だけ）
+function pfcDays(n, t = today()) {
+  const from = addDays(t, -(n - 1));
+  const map = new Map();
+  state.entries.filter((e) => e.type === 'meal' && e.date >= from && e.date <= t && (e.p != null || e.f != null || e.c != null)).forEach((m) => {
+    if (!map.has(m.date)) map.set(m.date, { p: 0, f: 0, c: 0, kcal: 0 });
+    const d = map.get(m.date);
+    ['p', 'f', 'c'].forEach((k) => { if (m[k] != null) d[k] += Number(m[k]); });
+    if (m.kcal != null) d.kcal += Number(m.kcal);
+  });
+  return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, v]) => ({ date, ...v }));
+}
+
+function ratioOf(o) {
+  const k = { p: (o.p || 0) * 4, f: (o.f || 0) * 9, c: (o.c || 0) * 4 };
+  const tot = k.p + k.f + k.c;
+  if (!tot) return null;
+  return { p: Math.round(k.p / tot * 100), f: Math.round(k.f / tot * 100), c: 100 - Math.round(k.p / tot * 100) - Math.round(k.f / tot * 100) };
+}
+
+function ratioBar(r, cls = '') {
+  return `<div class="rb ${cls}">${['p', 'f', 'c'].map((k) => `<i style="width:${Math.max(0, r[k])}%; background:var(--c-${k})"></i>`).join('')}</div>`;
+}
+
+function renderPfc() {
+  $$('#pfcSeg button').forEach((b) => b.classList.toggle('on', Number(b.dataset.r) === pfcRange));
+  const days = pfcDays(pfcRange);
+  const s = state.settings;
+  const wrap = $('#pfcWrap'), body = $('#pfcBody'), ratioEl = $('#pfcRatio'), hint = $('#pfcHint');
+  if (!days.length) {
+    if (pfcChart) { pfcChart.destroy(); pfcChart = null; }
+    wrap.style.display = 'none'; ratioEl.innerHTML = '';
+    body.innerHTML = '<div class="empty-soft">食事を記録すると、ここにPFCのバランスがグラフで出ます。</div>';
+    hint.textContent = '';
+    return;
+  }
+  const sum = days.reduce((a, d) => ({ p: a.p + d.p, f: a.f + d.f, c: a.c + d.c }), { p: 0, f: 0, c: 0 });
+  const avg = { p: sum.p / days.length, f: sum.f / days.length, c: sum.c / days.length };
+  const r = ratioOf(sum);
+  const hasT = s.p != null && s.f != null && s.c != null;
+  const tr = hasT ? ratioOf(s) : null;
+  body.innerHTML = `<div class="pfc-legend"><span><i style="background:var(--c-p)"></i>P たんぱく質</span><span><i style="background:var(--c-f)"></i>F 脂質</span><span><i style="background:var(--c-c)"></i>C 炭水化物</span></div>`;
+  ratioEl.innerHTML = r ? `<div class="ratio"><div class="rl"><span>カロリーの割合（約）</span><span>P ${r.p}%・F ${r.f}%・C ${r.c}%</span></div>${ratioBar(r)}
+    ${tr ? `${ratioBar(tr, 'target')}<div class="rl" style="margin-top:3px"><span>目安</span><span>P ${tr.p}%・F ${tr.f}%・C ${tr.c}%</span></div>` : ''}
+    <div class="rl" style="margin-top:6px"><span>1日あたり（記録した日の平均）</span><span>P ${fmtNum(avg.p)}g・F ${fmtNum(avg.f)}g・C ${fmtNum(avg.c)}g</span></div>
+    ${hasT ? `<div class="rl"><span>目安</span><span>P ${fmtNum(s.p)}g・F ${fmtNum(s.f)}g・C ${fmtNum(s.c)}g</span></div>` : ''}</div>` : '';
+  hint.textContent = `記録した食事のPFCから出した概算です（1g＝P・C 約4kcal、F 約9kcal）。${hasT ? '点線は1日の目安のカロリー。' : '設定で1日の目安を入れると比べられます。'}`;
+  if (typeof Chart === 'undefined') { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const labels = days.map((d) => fmtMD(d.date));
+  const muted = cssVar('--muted'), line = cssVar('--line');
+  const ds = ['p', 'f', 'c'].map((k) => ({ type: 'bar', label: { p: 'P', f: 'F', c: 'C' }[k], data: days.map((d) => Math.round(d[k] * PFC_KCAL[k])), grams: days.map((d) => d[k]),
+    backgroundColor: cssVar('--c-' + k), stack: 'pfc', borderRadius: 3, maxBarThickness: 26 }));
+  if (s.kcal != null) ds.push({ type: 'line', label: '目安', data: days.map(() => s.kcal), borderColor: cssVar('--accent-strong'), borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0 });
+  const data = { labels, datasets: ds };
+  const options = {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => c.dataset.grams ? `${c.dataset.label} 約${fmtNum(c.dataset.grams[c.dataIndex])}g（約${fmtNum(c.parsed.y)}kcal）` : `目安 ${fmtNum(c.parsed.y)}kcal` } } },
+    scales: {
+      x: { stacked: true, grid: { display: false }, ticks: { color: muted, maxRotation: 0, autoSkip: true, maxTicksLimit: 7, font: { size: 11 } }, border: { color: line } },
+      y: { stacked: true, beginAtZero: true, grid: { color: line }, ticks: { color: muted, font: { size: 11 }, maxTicksLimit: 5 }, border: { display: false }, title: { display: true, text: 'kcal', color: muted, font: { size: 10 } } },
+    },
+  };
+  if (pfcChart) { pfcChart.data = data; pfcChart.options = options; pfcChart.update(); }
+  else pfcChart = new Chart($('#pfcChart'), { type: 'bar', data, options });
+}
+
 function renderMonth() {
   const t = today();
   const { sum, days, mealCount } = monthStats(t);
@@ -1440,6 +1547,7 @@ function renderHome() {
   renderChart();
   renderWishes();
   renderBodyChart();
+  renderPfc();
   renderMonth();
   renderTreat();
   renderComment();
@@ -1689,21 +1797,22 @@ function daySummary(es) {
 }
 
 function renderList() {
-  const types = LIST_FILTERS[listFilter];
-  const showComments = listFilter === 'all' || listFilter === 'memo';
-  const groups = new Map();
-  const add = (d) => { if (!groups.has(d)) groups.set(d, { entries: [], comments: [] }); return groups.get(d); };
-  state.entries.filter((e) => !types || types.includes(e.type)).forEach((e) => add(e.date).entries.push(e));
-  if (showComments) state.comments.forEach((c) => add(c.date).comments.push(c));
+  $$('#listMode button').forEach((b) => b.classList.toggle('on', b.dataset.m === listMode));
+  $('#calCard').style.display = listMode === 'cal' ? '' : 'none';
+  if (listMode === 'cal') { renderCalendar(); return; }
+  const groups = listGroups();
   const dates = Array.from(groups.keys()).sort().reverse();
   const body = $('#listBody');
   if (!dates.length) {
-    body.innerHTML = `<div class="card"><div class="empty-soft">${listFilter === 'all' ? '記録はまだありません。「投げ込み」から気軽にどうぞ。' : 'この種類の記録はまだありません。'}</div></div>`;
+    body.innerHTML = `<div class="card"><div class="empty-soft">${listFilter === 'all' ? '「投げ込み」から記録すると、ここに日ごとに並びます。' : 'この種類を記録すると、ここに日ごとに並びます。'}</div></div>`;
     $('#listMore').style.display = 'none';
     return;
   }
-  body.innerHTML = dates.slice(0, listLimit).map((d) => {
-    const g = groups.get(d);
+  body.innerHTML = dates.slice(0, listLimit).map((d) => dayCardHTML(d, groups.get(d))).join('');
+  $('#listMore').style.display = dates.length > listLimit ? '' : 'none';
+}
+
+function dayCardHTML(d, g, extra = '') {
     const meals = g.entries.filter((e) => e.type === 'meal');
     const others = g.entries.filter((e) => e.type !== 'meal').sort(sortEntriesInDay);
     let rows = others.filter((e) => ['weight', 'body', 'steps'].includes(e.type)).map(listRowHTML).join('');
@@ -1714,9 +1823,60 @@ function renderList() {
     });
     rows += others.filter((e) => !['weight', 'body', 'steps'].includes(e.type)).map(listRowHTML).join('');
     rows += g.comments.map((c) => `<div class="lrow" data-edit-comment="${esc(c.id)}"><span class="dot comment"></span><span class="txt">${esc(c.text)}</span><span class="val">コメント</span></div>`).join('');
-    return `<div class="card"><div class="day-head"><span class="d">${fmtMDW(d)}</span><span class="small muted">${d.slice(0, 4)}</span></div>${listFilter === 'all' ? daySummary(g.entries) : ''}${rows}</div>`;
-  }).join('');
-  $('#listMore').style.display = dates.length > listLimit ? '' : 'none';
+    return `<div class="card"><div class="day-head"><span class="d">${fmtMDW(d)}</span><span class="small muted">${d.slice(0, 4)}</span></div>${listFilter === 'all' ? daySummary(g.entries) : ''}${rows}${extra}</div>`;
+}
+
+// 表示中の種類で日ごとにまとめる
+function listGroups() {
+  const types = LIST_FILTERS[listFilter];
+  const showComments = listFilter === 'all' || listFilter === 'memo';
+  const groups = new Map();
+  const add = (d) => { if (!groups.has(d)) groups.set(d, { entries: [], comments: [] }); return groups.get(d); };
+  state.entries.filter((e) => !types || types.includes(e.type)).forEach((e) => add(e.date).entries.push(e));
+  if (showComments) state.comments.forEach((c) => add(c.date).comments.push(c));
+  return groups;
+}
+
+/* ---- カレンダー ---- */
+let listMode = 'list';
+let calMonth = today().slice(0, 7);
+let calSel = today();
+const DOT_ORDER = ['meal', 'workout', 'weight', 'body', 'steps', 'beauty', 'condition', 'comment'];
+
+function renderCalendar() {
+  const groups = listGroups();
+  const [y, m] = calMonth.split('-').map(Number);
+  const first = new Date(y, m - 1, 1), nDays = new Date(y, m, 0).getDate();
+  const t = today();
+  let cells = ['日', '月', '火', '水', '木', '金', '土'].map((w, i) => `<div class="wd ${i === 0 ? 'sun' : ''}">${w}</div>`).join('');
+  for (let i = 0; i < first.getDay(); i++) cells += '<div class="cal-day out"></div>';
+  for (let d = 1; d <= nDays; d++) {
+    const ds = `${calMonth}-${String(d).padStart(2, '0')}`;
+    const g = groups.get(ds);
+    let dots = '', k = '';
+    if (g) {
+      const types = new Set(g.entries.map((e) => e.type));
+      if (g.comments.length) types.add('comment');
+      dots = DOT_ORDER.filter((x) => types.has(x)).map((x) => `<span class="dot ${x}"></span>`).join('');
+      const kc = g.entries.filter((e) => e.type === 'meal' && e.kcal != null).reduce((a, e) => a + Number(e.kcal), 0);
+      if (kc > 0 && (listFilter === 'all' || listFilter === 'meal')) k = fmtNum(kc);
+    }
+    cells += `<button type="button" class="cal-day ${ds === t ? 'today' : ''} ${ds === calSel ? 'sel' : ''} ${ds > t ? 'future' : ''}" data-cal="${ds}"><span class="n">${d}</span><span class="ds">${dots}</span>${k ? `<span class="k">${k}</span>` : ''}</button>`;
+  }
+  $('#calCard').innerHTML = `<div class="cal-head"><button type="button" class="ghost" data-cal-mv="-1" aria-label="前の月">‹</button><span class="m">${y}年${m}月</span><button type="button" class="ghost" data-cal-mv="1" aria-label="次の月">›</button></div>
+    <div class="cal-grid">${cells}</div>${listFilter === 'all' || listFilter === 'meal' ? '<div class="hint">数字は食事の合計kcal（概算）。日付をタップするとその日の記録が下に出ます。</div>' : '<div class="hint">日付をタップするとその日の記録が下に出ます。</div>'}`;
+  const g = groups.get(calSel);
+  const addBtn = `<button type="button" class="ghost" data-cal-add="${calSel}" style="width:100%; margin-top:8px">${fmtMDW(calSel)}に記録する</button>`;
+  $('#listBody').innerHTML = g ? dayCardHTML(calSel, g, addBtn)
+    : `<div class="card"><div class="day-head"><span class="d">${fmtMDW(calSel)}</span><span class="small muted">${calSel.slice(0, 4)}</span></div>${addBtn}</div>`;
+  $('#listMore').style.display = 'none';
+}
+
+function goInputOn(date) {
+  showTab('input');
+  $('#inDate').value = date;
+  $('#inDate').dispatchEvent(new Event('change'));
+  window.scrollTo(0, 0);
 }
 
 function setupList() {
@@ -1724,9 +1884,23 @@ function setupList() {
     const a = ev.target.closest('[data-edit]');
     if (a) { openEditor(a.getAttribute('data-edit')); return; }
     const c = ev.target.closest('[data-edit-comment]');
-    if (c) openCommentEditor(c.getAttribute('data-edit-comment'));
+    if (c) { openCommentEditor(c.getAttribute('data-edit-comment')); return; }
+    const ad = ev.target.closest('[data-cal-add]');
+    if (ad) goInputOn(ad.dataset.calAdd);
   });
   $('#listMore').addEventListener('click', () => { listLimit += 30; renderList(); });
+  $('#listMode').addEventListener('click', (ev) => { const b = ev.target.closest('[data-m]'); if (b) { listMode = b.dataset.m; renderList(); } });
+  $('#calCard').addEventListener('click', (ev) => {
+    const mv = ev.target.closest('[data-cal-mv]');
+    if (mv) {
+      const [y, m] = calMonth.split('-').map(Number);
+      const d = new Date(y, m - 1 + Number(mv.dataset.calMv), 1);
+      calMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      renderList(); return;
+    }
+    const c = ev.target.closest('[data-cal]');
+    if (c) { calSel = c.dataset.cal; renderList(); }
+  });
   $('#rvRun').addEventListener('click', runRecordReview);
   $('#listFilter').addEventListener('click', (ev) => {
     const b = ev.target.closest('button[data-f]');
@@ -1972,7 +2146,7 @@ function renderBeauty() {
   if (!items.length) {
     html = '<div class="card"><div class="empty-soft">投げ込みに「◯◯をアイテムに登録」と書くか、コスメの写真を入れると、ここに並びます。</div></div>';
   } else if (!list.length) {
-    html = `<div class="card"><div class="empty-soft">「${ITEM_STATUS[itemFilter]}」のアイテムはありません。</div></div>`;
+    html = `<div class="card"><div class="empty-soft">状態を「${ITEM_STATUS[itemFilter]}」にしたアイテムが、ここに並びます。</div></div>`;
   } else {
     CAT_ORDER.forEach((cat) => {
       const inCat = list.filter((i) => i.category === cat);
@@ -2857,7 +3031,7 @@ function renderFavList() {
   const favs = sortedFavorites();
   $('#favList').innerHTML = favs.length
     ? favs.map((f) => `<div class="entry tap" data-fav="${esc(f.id)}"><span class="chip meal">食事</span><div class="body">${esc(f.label)}${f.treat ? '<span class="treat-mark">ご褒美</span>' : ''}<div class="meta">${esc(pfcText(f))}</div></div></div>`).join('')
-    : '<div class="empty-soft">まだ登録はありません。</div>';
+    : '<div class="empty-soft">記録一覧の食事をタップして「いつものメニューに登録」すると、ここに並びます。</div>';
 }
 
 function openFavEditor(id) {
@@ -2992,7 +3166,7 @@ function renderPresetList() {
   const list = sortedPresets();
   $('#presetList').innerHTML = list.length
     ? list.map((p) => `<div class="entry tap" data-preset="${esc(p.id)}"><span class="chip workout">運動</span><div class="body">${esc(p.name)}<div class="meta">${esc(workoutText(p.items))}</div></div></div>`).join('')
-    : '<div class="empty-soft">まだ登録はありません。</div>';
+    : '<div class="empty-soft">記録一覧の運動をタップして「いつもの運動に登録」すると、ここに並びます。</div>';
 }
 function openPresetEditor(id) {
   const p = id ? state.workoutPresets.find((x) => x.id === id) : { name: '', items: [{}] };
@@ -4065,6 +4239,7 @@ function init() {
     $$('#rangeSeg button').forEach((x) => x.classList.toggle('on', x === b));
     renderChart();
   });
+  $('#pfcSeg').addEventListener('click', (ev) => { const x = ev.target.closest('button[data-r]'); if (x) { pfcRange = Number(x.dataset.r); renderPfc(); } });
   $('#bodySeg').addEventListener('click', (ev) => {
     const b = ev.target.closest('button[data-m]');
     if (!b) return;
