@@ -259,6 +259,30 @@
   .linkish { background: none; border: none; color: var(--muted); font-size: 12.5px; font-weight: 500; text-decoration: underline; min-height: 32px; padding: 4px 0; }
   details.more { margin: 2px 0 10px; }
   details.more summary { padding: 6px 0; }
+  details.sgroup { margin-bottom: 10px; }
+  details.sgroup > summary { list-style: none; cursor: pointer; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px 16px; font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); }
+  details.sgroup > summary::-webkit-details-marker { display: none; }
+  details.sgroup > summary::after { content: "＋"; color: var(--accent); font-weight: 700; }
+  details.sgroup[open] > summary { margin-bottom: 10px; }
+  details.sgroup[open] > summary::after { content: "−"; }
+  .update-bar { position: sticky; top: calc(env(safe-area-inset-top) + 58px); z-index: 9; margin: 0 0 10px; padding: 10px 14px; border-radius: 12px;
+    background: var(--grad); color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
+  .update-bar button { background: #fff; color: var(--accent-strong); min-height: 34px; padding: 6px 14px; }
+  .list-filter { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 12px; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+  .list-filter button { flex: 0 0 auto; min-height: 34px; padding: 6px 14px; border-radius: 99px; background: var(--card); color: var(--muted); border: 1px solid var(--line); font-weight: 500; font-size: 13.5px; }
+  .list-filter button.on { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); font-weight: 700; }
+  .day-sum { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--muted); margin: 2px 0 6px; }
+  .slot-h { font-size: 11.5px; color: var(--accent-strong); font-weight: 700; margin: 8px 0 0; }
+  .lrow { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); cursor: pointer; }
+  .lrow:active { background: var(--accent-soft); }
+  .lrow .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+  .lrow .txt { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lrow .val { flex: 0 0 auto; font-size: 12.5px; color: var(--muted); }
+  .dot.weight { background: var(--c-weight); } .dot.body { background: var(--c-body); } .dot.steps { background: var(--c-steps); }
+  .dot.meal { background: var(--c-meal); } .dot.workout { background: var(--c-workout); } .dot.beauty { background: var(--c-beauty); }
+  .dot.condition { background: var(--c-condition); } .dot.comment { background: var(--c-comment); }
+  .search { margin-bottom: 8px; }
   .sub-h { font-size: 12px; color: var(--muted); margin: 4px 0 6px; font-weight: 600; }
   .sub-h + .fav-chips { margin-bottom: 12px; }
   .today-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -331,6 +355,7 @@
 </header>
 
 <main>
+  <div class="update-bar" id="updateBar" style="display:none"><span>新しいバージョンがあります</span><button id="doUpdate">更新する</button></div>
   <!-- ホーム -->
   <section class="view" id="view-home">
     <div id="askArea"></div>
@@ -397,13 +422,16 @@
     </div>
 
     <div class="card">
-      <h2>よく頼むメニュー</h2>
+      <h2>いつものメニュー</h2>
       <div class="fav-chips" id="favChips"></div>
     </div>
   </section>
 
   <!-- 記録一覧 -->
   <section class="view" id="view-list">
+    <div class="list-filter" id="listFilter">
+      <button data-f="all" class="on">すべて</button><button data-f="meal">食事</button><button data-f="workout">運動</button><button data-f="body">からだ</button><button data-f="beauty">美容</button><button data-f="memo">メモ</button>
+    </div>
     <div id="listBody"></div>
     <button class="ghost" id="listMore" style="width:100%; display:none">もっと見る</button>
   </section>
@@ -417,48 +445,20 @@
 
   <!-- 設定 -->
   <section class="view" id="view-settings">
-    <div class="card">
-      <h2>問いかけ</h2>
-      <p class="small muted" style="margin:0 0 10px">設定した時間を過ぎてアプリを開くと、ホームに表示されます。</p>
-      <div id="askList"></div>
-      <button class="ghost" id="askAdd" style="width:100%">問いかけを追加</button>
-    </div>
-
-    <div class="card">
-      <h2>ヘルスケアの歩数を取り込む</h2>
-      <p class="small" style="margin:0 0 8px">iPhoneの「ショートカット」で、今日の歩数と距離をユルストの形式でコピーできます。最初に一度だけ作ってください。</p>
-      <ol class="steps">
-        <li>「ショートカット」アプリで ＋ を押し、新規ショートカットを作る（名前の例：「ユルスト歩数」）</li>
-        <li>「ヘルスケアサンプルを検索」を追加し、種類を「歩数」、開始日を「今日」にする</li>
-        <li>「統計を計算」を追加し、「合計」にする</li>
-        <li>もう一度「ヘルスケアサンプルを検索」を追加し、種類を「ウォーキング＋ランニングの距離」、開始日を「今日」にする</li>
-        <li>「統計を計算」を追加し、「合計」にする</li>
-        <li>「テキスト」を追加して下の文をコピーして貼り、空の "" の間に、3・5の「統計」をそれぞれ変数として入れる</li>
-        <li>「クリップボードにコピー」を追加する</li>
-      </ol>
-      <pre class="tmpl" id="stepsTmpl">{"entries":[{"type":"steps","steps":"","km":""}]}</pre>
-      <button class="ghost" id="copyStepsTmpl" style="width:100%">この文をコピー</button>
-      <div class="hint">使うとき：ショートカットを実行 → ユルストの投げ込みで「クリップボードから貼り付けて解析」→ 保存。日付は自動で今日になります。歩数がある日は、消費の概算が「座りがち＋歩いた分」で計算されます。</div>
-    </div>
-
-    <div class="card">
-      <h2>通知でお知らせしたいとき</h2>
-      <p class="small" style="margin:0 0 8px">このアプリはサーバーを持たないので、閉じている間に通知は出せません。iPhoneの「リマインダー」を使うと、決まった時間に通知できます。</p>
-      <ol class="steps">
-        <li>「リマインダー」アプリで新規リマインダーを作る（例：「ユルスト：今日何食べた？」）</li>
-        <li>詳細（ⓘ）で「日付」「時刻」をオンにして、問いかけと同じ時間にする</li>
-        <li>「繰り返し」を「毎日」などにする</li>
-        <li>通知が来たら、ホーム画面のユルストを開く（問いかけがホームに出ています）</li>
-      </ol>
-      <div class="hint">ホーム画面のユルストとSafariで開いたユルストは、iPhoneでは保存場所が別になります。いつもホーム画面のアイコンから開いてください。</div>
-    </div>
-
+    <details class="sgroup" data-group="目標とからだ">
+      <summary>目標とからだ</summary>
     <div class="card">
       <h2>目標体重の範囲</h2>
       <div class="row">
         <label class="field"><span>下限（kg）</span><input type="number" inputmode="decimal" step="0.1" data-set="weightMin"></label>
         <label class="field"><span>上限（kg）</span><input type="number" inputmode="decimal" step="0.1" data-set="weightMax"></label>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>からだの目標</h2>
+      <label class="field"><span>体脂肪率（%）</span><input type="number" inputmode="decimal" step="0.1" data-set="fatTarget"></label>
+      <div class="hint">グラフに目標の線を表示します。</div>
     </div>
 
     <div class="card">
@@ -472,12 +472,6 @@
         <label class="field"><span>ふだんの活動量</span><select data-set="activity"><option value="">—</option><option value="1.2">座りがち</option><option value="1.375">少し動く</option><option value="1.55">よく動く</option><option value="1.725">かなり動く</option></select></label>
       </div>
       <div class="hint">消費カロリーの概算（基礎代謝×ふだんの活動量＋運動）に使います。活動量は運動を除いた日常の動きで選んでください。この端末にだけ保存されます。</div>
-    </div>
-
-    <div class="card">
-      <h2>からだの目標</h2>
-      <label class="field"><span>体脂肪率（%）</span><input type="number" inputmode="decimal" step="0.1" data-set="fatTarget"></label>
-      <div class="hint">グラフに目標の線を表示します。</div>
     </div>
 
     <div class="card">
@@ -500,11 +494,33 @@
       </details>
     </div>
 
+    </details>
+
+    <details class="sgroup" data-group="食事と運動">
+      <summary>食事と運動</summary>
     <div class="card">
       <h2>ご褒美ごはん</h2>
       <div class="small">ご褒美は月の枠の中の「予定」として数えます。<span id="treatAutoHint"></span></div>
     </div>
 
+    <div class="card">
+      <h2>いつものメニュー</h2>
+      <div id="favList"></div>
+      <button class="ghost" id="favAdd" style="width:100%; margin-top:8px">メニューを追加</button>
+      <div class="hint">記録一覧の食事からも「いつものメニューに登録」できます。写真から記録するときも、同じメニューはここの値を使います。</div>
+    </div>
+
+    <div class="card">
+      <h2>いつもの運動</h2>
+      <div id="presetList"></div>
+      <button class="ghost" id="presetAdd" style="width:100%; margin-top:8px">運動セットを追加</button>
+      <div class="hint">記録一覧の運動からも「いつもの運動に登録」できます。投げ込みで「いつもの」と書いても、この内容で記録されます。</div>
+    </div>
+
+    </details>
+
+    <details class="sgroup" data-group="Claude">
+      <summary>Claude</summary>
     <div class="card">
       <h2>Claude API</h2>
       <label class="field"><span>APIキー</span><input type="password" id="apiKey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-..."></label>
@@ -516,20 +532,54 @@
       <div class="link-btns" id="linkBtns"></div>
     </div>
 
+    </details>
+
+    <details class="sgroup" data-group="問いかけと通知">
+      <summary>問いかけと通知</summary>
     <div class="card">
-      <h2>よく頼むメニュー</h2>
-      <div id="favList"></div>
-      <button class="ghost" id="favAdd" style="width:100%; margin-top:8px">メニューを追加</button>
-      <div class="hint">記録一覧の食事からも「よく頼むに登録」できます。写真から記録するときも、同じメニューはここの値を使います。</div>
+      <h2>問いかけ</h2>
+      <p class="small muted" style="margin:0 0 10px">設定した時間を過ぎてアプリを開くと、ホームに表示されます。</p>
+      <div id="askList"></div>
+      <button class="ghost" id="askAdd" style="width:100%">問いかけを追加</button>
     </div>
 
     <div class="card">
-      <h2>いつもの運動</h2>
-      <div id="presetList"></div>
-      <button class="ghost" id="presetAdd" style="width:100%; margin-top:8px">運動セットを追加</button>
-      <div class="hint">記録一覧の運動からも「いつもの運動に登録」できます。投げ込みで「いつもの」と書いても、この内容で記録されます。</div>
+      <h2>通知でお知らせしたいとき</h2>
+      <p class="small" style="margin:0 0 8px">このアプリはサーバーを持たないので、閉じている間に通知は出せません。iPhoneの「リマインダー」を使うと、決まった時間に通知できます。</p>
+      <ol class="steps">
+        <li>「リマインダー」アプリで新規リマインダーを作る（例：「ユルスト：今日何食べた？」）</li>
+        <li>詳細（ⓘ）で「日付」「時刻」をオンにして、問いかけと同じ時間にする</li>
+        <li>「繰り返し」を「毎日」などにする</li>
+        <li>通知が来たら、ホーム画面のユルストを開く（問いかけがホームに出ています）</li>
+      </ol>
+      <div class="hint">ホーム画面のユルストとSafariで開いたユルストは、iPhoneでは保存場所が別になります。いつもホーム画面のアイコンから開いてください。</div>
     </div>
 
+    </details>
+
+    <details class="sgroup" data-group="歩数（ヘルスケア）">
+      <summary>歩数（ヘルスケア）</summary>
+    <div class="card">
+      <h2>ヘルスケアの歩数を取り込む</h2>
+      <p class="small" style="margin:0 0 8px">iPhoneの「ショートカット」で、今日の歩数と距離をユルストの形式でコピーできます。最初に一度だけ作ってください。</p>
+      <ol class="steps">
+        <li>「ショートカット」アプリで ＋ を押し、新規ショートカットを作る（名前の例：「ユルスト歩数」）</li>
+        <li>「ヘルスケアサンプルを検索」を追加し、種類を「歩数」、開始日を「今日」にする</li>
+        <li>「統計を計算」を追加し、「合計」にする</li>
+        <li>もう一度「ヘルスケアサンプルを検索」を追加し、種類を「ウォーキング＋ランニングの距離」、開始日を「今日」にする</li>
+        <li>「統計を計算」を追加し、「合計」にする</li>
+        <li>「テキスト」を追加して下の文をコピーして貼り、空の "" の間に、3・5の「統計」をそれぞれ変数として入れる</li>
+        <li>「クリップボードにコピー」を追加する</li>
+      </ol>
+      <pre class="tmpl" id="stepsTmpl">{"entries":[{"type":"steps","steps":"","km":""}]}</pre>
+      <button class="ghost" id="copyStepsTmpl" style="width:100%">この文をコピー</button>
+      <div class="hint">使うとき：ショートカットを実行 → ユルストの投げ込みで「クリップボードから貼り付けて解析」→ 保存。日付は自動で今日になります。歩数がある日は、消費の概算が「座りがち＋歩いた分」で計算されます。</div>
+    </div>
+
+    </details>
+
+    <details class="sgroup" data-group="データとアプリ">
+      <summary>データとアプリ</summary>
     <div class="card">
       <h2>エクスポート</h2>
       <div class="btns">
@@ -551,6 +601,15 @@
       <div class="hint">「追加」は同じ記録を除いて足します。「置き換え」は今のデータをすべて入れ替えます。</div>
     </div>
 
+    <div class="card">
+      <h2>アプリの更新</h2>
+      <div class="small" id="versionInfo"></div>
+      <button class="ghost" id="checkUpdate" style="width:100%; margin-top:8px">更新を確認</button>
+      <div class="hint">新しいバージョンが公開されると、開いたときに上に「更新する」が出ます。</div>
+    </div>
+
+    </details>
+
     <p class="small muted" style="text-align:center">データはこの端末のブラウザ内にだけ保存されます。</p>
   </section>
 </main>
@@ -571,6 +630,8 @@
 
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
+// 公開のたびに上げる（CLAUDE.md の「公開のルール」参照）
+const APP_VERSION = '2026.10.12-11';
 const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'condition'];
 const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
 const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: 'ツール' };
@@ -742,6 +803,7 @@ function normalizeEntry(raw) {
     e.f = toNum(raw.f, 'f', errors);
     e.c = toNum(raw.c, 'c', errors);
     e.treat = toBool(raw.treat);
+    e.slot = SLOTS[toStr(raw.slot)] ? toStr(raw.slot) : '';
     e.note = note;
     if (!e.label && e.kcal === null && !note) errors.push('label・kcal・noteがすべて空です');
   } else if (type === 'workout') {
@@ -1360,25 +1422,79 @@ function savePending() {
 
 /* ========== 記録一覧 ========== */
 let listLimit = 30;
+let listFilter = 'all';
+const LIST_FILTERS = {
+  all: null, meal: ['meal'], workout: ['workout'], body: ['weight', 'body', 'steps'], beauty: ['beauty'], memo: ['condition'],
+};
+const SLOTS = { breakfast: '朝', lunch: '昼', dinner: '夜', snack: '間食' };
+const SLOT_ORDER = ['breakfast', 'lunch', 'snack', 'dinner', ''];
+
+// 一覧の1行（短く・右に数値）
+function listRowHTML(e) {
+  let txt = '', val = '';
+  switch (e.type) {
+    case 'meal': txt = `${esc(e.label || '（食事）')}${e.treat ? '<span class="treat-mark">ご褒美</span>' : ''}`; val = e.kcal != null ? `${fmtNum(e.kcal)}kcal` : ''; break;
+    case 'workout': {
+      txt = esc(workoutText(e.items) || '（運動）');
+      const kg = bodyWeightFor(e.date);
+      const k = kg != null ? workoutKcal(e.items, kg) : 0;
+      val = k >= 1 ? `約${fmtNum(k)}kcal` : '';
+      break;
+    }
+    case 'weight': txt = '体重'; val = `${fmtNum(e.kg, 1)}kg`; break;
+    case 'body': txt = '体組成'; val = esc(bodyText(e, true)); break;
+    case 'steps': txt = '歩数'; val = esc(stepsText(e)); break;
+    case 'beauty': txt = `${esc(e.item)} <span class="muted small">${esc(ACTIONS[e.action] || e.action)}</span>`; val = esc(CATEGORIES[e.category] || ''); break;
+    case 'condition': txt = esc(e.note); break;
+    default: txt = '';
+  }
+  return `<div class="lrow" data-edit="${esc(e.id)}"><span class="dot ${e.type}"></span><span class="txt">${txt}</span><span class="val">${val}</span></div>`;
+}
+
+function daySummary(es) {
+  const parts = [];
+  const meals = es.filter((e) => e.type === 'meal');
+  if (meals.length) parts.push(`食事 ${fmtNum(meals.reduce((a, m) => a + (Number(m.kcal) || 0), 0))}kcal`);
+  const w = es.find((e) => e.type === 'weight');
+  if (w) parts.push(`体重 ${fmtNum(w.kg, 1)}kg`);
+  const wk = es.filter((e) => e.type === 'workout');
+  if (wk.length) {
+    const kg = bodyWeightFor(wk[0].date);
+    const k = kg != null ? wk.reduce((a, x) => a + workoutKcal(x.items, kg), 0) : 0;
+    parts.push(k >= 1 ? `運動 約${fmtNum(k)}kcal` : '運動あり');
+  }
+  const st = es.find((e) => e.type === 'steps');
+  if (st && st.steps != null) parts.push(`${fmtNum(st.steps)}歩`);
+  return parts.length ? `<div class="day-sum">${parts.map((x) => `<span>${x}</span>`).join('')}</div>` : '';
+}
 
 function renderList() {
+  const types = LIST_FILTERS[listFilter];
+  const showComments = listFilter === 'all' || listFilter === 'memo';
   const groups = new Map();
-  state.entries.forEach((e) => { if (!groups.has(e.date)) groups.set(e.date, { entries: [], comments: [] }); groups.get(e.date).entries.push(e); });
-  state.comments.forEach((c) => { if (!groups.has(c.date)) groups.set(c.date, { entries: [], comments: [] }); groups.get(c.date).comments.push(c); });
+  const add = (d) => { if (!groups.has(d)) groups.set(d, { entries: [], comments: [] }); return groups.get(d); };
+  state.entries.filter((e) => !types || types.includes(e.type)).forEach((e) => add(e.date).entries.push(e));
+  if (showComments) state.comments.forEach((c) => add(c.date).comments.push(c));
   const dates = Array.from(groups.keys()).sort().reverse();
   const body = $('#listBody');
   if (!dates.length) {
-    body.innerHTML = '<div class="card"><div class="empty-soft">記録はまだありません。「投げ込み」から気軽にどうぞ。</div></div>';
+    body.innerHTML = `<div class="card"><div class="empty-soft">${listFilter === 'all' ? '記録はまだありません。「投げ込み」から気軽にどうぞ。' : 'この種類の記録はまだありません。'}</div></div>`;
     $('#listMore').style.display = 'none';
     return;
   }
   body.innerHTML = dates.slice(0, listLimit).map((d) => {
     const g = groups.get(d);
-    const rows = g.entries.slice().sort(sortEntriesInDay).map((e) =>
-      `<div class="entry tap" data-edit="${esc(e.id)}"><span class="chip ${e.type}">${TYPE_LABEL[e.type]}</span><div class="body">${entryBodyHTML(e)}</div></div>`).join('')
-      + g.comments.map((c) =>
-        `<div class="entry tap" data-edit-comment="${esc(c.id)}"><span class="chip comment">コメント</span><div class="body comment-text">${esc(c.text)}</div></div>`).join('');
-    return `<div class="card"><div class="day-head"><span class="d">${fmtMDW(d)}</span><span class="small muted">${d.slice(0, 4)}</span></div>${rows}</div>`;
+    const meals = g.entries.filter((e) => e.type === 'meal');
+    const others = g.entries.filter((e) => e.type !== 'meal').sort(sortEntriesInDay);
+    let rows = others.filter((e) => ['weight', 'body', 'steps'].includes(e.type)).map(listRowHTML).join('');
+    SLOT_ORDER.forEach((sl) => {
+      const list = meals.filter((m) => (m.slot || '') === sl).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      if (!list.length) return;
+      rows += `<div class="slot-h">${sl ? SLOTS[sl] : (meals.some((m) => m.slot) ? 'そのほか' : '食事')}</div>` + list.map(listRowHTML).join('');
+    });
+    rows += others.filter((e) => !['weight', 'body', 'steps'].includes(e.type)).map(listRowHTML).join('');
+    rows += g.comments.map((c) => `<div class="lrow" data-edit-comment="${esc(c.id)}"><span class="dot comment"></span><span class="txt">${esc(c.text)}</span><span class="val">コメント</span></div>`).join('');
+    return `<div class="card"><div class="day-head"><span class="d">${fmtMDW(d)}</span><span class="small muted">${d.slice(0, 4)}</span></div>${listFilter === 'all' ? daySummary(g.entries) : ''}${rows}</div>`;
   }).join('');
   $('#listMore').style.display = dates.length > listLimit ? '' : 'none';
 }
@@ -1391,6 +1507,14 @@ function setupList() {
     if (c) openCommentEditor(c.getAttribute('data-edit-comment'));
   });
   $('#listMore').addEventListener('click', () => { listLimit += 30; renderList(); });
+  $('#listFilter').addEventListener('click', (ev) => {
+    const b = ev.target.closest('button[data-f]');
+    if (!b) return;
+    listFilter = b.dataset.f;
+    listLimit = 30;
+    $$('#listFilter button').forEach((x) => x.classList.toggle('on', x === b));
+    renderList();
+  });
 }
 
 /* ========== 編集シート ========== */
@@ -1435,9 +1559,10 @@ function openEditor(id) {
         <label class="field"><span>F</span><input type="number" inputmode="decimal" id="edF" value="${v(e.f)}"></label>
         <label class="field"><span>C</span><input type="number" inputmode="decimal" id="edC" value="${v(e.c)}"></label>
       </div>
-      <label class="check"><input type="checkbox" id="edTreat" ${e.treat ? 'checked' : ''}>ご褒美ごはん</label>
+      <div class="row"><label class="field"><span>時間帯</span><select id="edSlot"><option value="">—</option>${Object.entries(SLOTS).map(([k, l]) => `<option value="${k}" ${e.slot === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label class="check" style="margin-top:18px"><input type="checkbox" id="edTreat" ${e.treat ? 'checked' : ''}>ご褒美ごはん</label></div>
       <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>
-      <button class="ghost" type="button" id="edFav" style="width:100%; margin-bottom:10px">${findFavorite(e.label) ? '♥ よく頼むメニューを更新' : '♡ よく頼むに登録'}</button>`;
+      <button class="ghost" type="button" id="edFav" style="width:100%; margin-bottom:10px">${findFavorite(e.label) ? '♥ いつものメニューを更新' : '♡ いつものメニューに登録'}</button>`;
   } else if (e.type === 'workout') {
     fields += `<div class="field"><span class="small muted">種目</span><div id="wkList">${(e.items || []).map(wkItemHTML).join('')}</div>
       <button class="ghost" type="button" id="wkAdd" style="width:100%">種目を追加</button></div>
@@ -1467,7 +1592,7 @@ function openEditor(id) {
     $('#edFav').addEventListener('click', () => {
       const r = upsertFavorite({ label: $('#edLabel').value, kcal: $('#edKcal').value, p: $('#edP').value, f: $('#edF').value, c: $('#edC').value, treat: $('#edTreat').checked });
       if (r.error) { $('#edErr').textContent = r.error; return; }
-      if (saveState()) { toast(r.updated ? 'よく頼むメニューを更新しました' : 'よく頼むに登録しました'); $('#edFav').textContent = '♥ よく頼むメニューを更新'; }
+      if (saveState()) { toast(r.updated ? 'いつものメニューを更新しました' : 'いつものメニューに登録しました'); $('#edFav').textContent = '♥ いつものメニューを更新'; }
     });
   }
   if (e.type === 'workout') {
@@ -1496,7 +1621,7 @@ function openEditor(id) {
     const val = (sel) => { const el = $(sel); return el ? el.value : undefined; };
     if (e.type === 'weight') raw.kg = val('#edKg');
     if (e.type === 'steps') Object.assign(raw, { steps: val('#edSteps'), km: val('#edKm') });
-    if (e.type === 'meal') Object.assign(raw, { label: val('#edLabel'), kcal: val('#edKcal'), p: val('#edP'), f: val('#edF'), c: val('#edC'), treat: $('#edTreat').checked, note: val('#edNote') });
+    if (e.type === 'meal') Object.assign(raw, { label: val('#edLabel'), kcal: val('#edKcal'), p: val('#edP'), f: val('#edF'), c: val('#edC'), treat: $('#edTreat').checked, slot: val('#edSlot'), note: val('#edNote') });
     if (e.type === 'workout') {
       raw.items = readWkItems('#wkList');
       raw.note = val('#edNote');
@@ -1850,7 +1975,7 @@ function buildContext() {
   const t = today();
   const s = state.settings;
   const lines = [];
-  lines.push(`今日の日付: ${t}（${WEEKDAYS[parseYMD(t).getDay()]}曜日）`);
+  lines.push(`今日の日付: ${t}（${WEEKDAYS[parseYMD(t).getDay()]}曜日）、今の時刻: ${nowHM()}`);
 
   const goal = [];
   if (s.weightMin != null && s.weightMax != null) goal.push(`目標体重 ${Math.min(s.weightMin, s.weightMax)}〜${Math.max(s.weightMin, s.weightMax)}kg`);
@@ -1884,7 +2009,7 @@ function buildContext() {
   if (td.steps) lines.push(`今日の歩数: ${stepsText(td.steps)}`);
   lines.push(`今日の摂取（概算）: ${Math.round(td.intake.kcal)}kcal、P ${Math.round(td.intake.p)}g、F ${Math.round(td.intake.f)}g、C ${Math.round(td.intake.c)}g${td.burn != null ? `／消費の概算 ${Math.round(td.burn)}kcal（運動 ${Math.round(td.exKcal || 0)}kcal を含む）` : ''}`);
   const favs = state.favorites || [];
-  lines.push(`よく頼むメニュー: ${favs.length ? favs.map((f) => `${f.label}（${[['kcal', f.kcal], ['P', f.p], ['F', f.f], ['C', f.c]].map(([k, n]) => `${k} ${n ?? '?'}`).join(' / ')}${f.treat ? '・ご褒美' : ''}）`).join('、') : '（なし）'}`);
+  lines.push(`いつものメニュー: ${favs.length ? favs.map((f) => `${f.label}（${[['kcal', f.kcal], ['P', f.p], ['F', f.f], ['C', f.c]].map(([k, n]) => `${k} ${n ?? '?'}`).join(' / ')}${f.treat ? '・ご褒美' : ''}）`).join('、') : '（なし）'}`);
 
   const conds = state.entries.filter((e) => e.type === 'condition').sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
   if (conds.length) lines.push(`最近の体や肌の状態メモ: ${conds.map((e) => `${e.date} ${e.note}`).join(' / ')}`);
@@ -1901,7 +2026,7 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 {
   "entries": [
     {"date":"YYYY-MM-DD","type":"weight","kg":数値},
-    {"date":"YYYY-MM-DD","type":"meal","label":"料理名","kcal":数値,"p":数値,"f":数値,"c":数値,"treat":真偽値,"note":"任意"},
+    {"date":"YYYY-MM-DD","type":"meal","label":"料理名","slot":"breakfast|lunch|dinner|snack","kcal":数値,"p":数値,"f":数値,"c":数値,"treat":真偽値,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"workout","items":[{"name":"種目名","reps":数値,"sets":数値,"minutes":数値}],"note":"任意"},
     {"date":"YYYY-MM-DD","type":"beauty","item":"アイテム名","category":"skincare|makeup|hair|tool","action":"use|start|finish","note":"任意"},
     {"date":"YYYY-MM-DD","type":"condition","note":"体や肌の状態メモ"},
@@ -1914,6 +2039,7 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 # 変換のルール
 - 日付は今日を基準に解決する（「昨日」「今朝」など）。日付の手がかりがなければ今日にする。
 - 食事のkcal・P・F・C（g）は、量や写真から妥当な概算を入れる。どうしても見当がつかない値だけ null にする。
+- slot は食事の時間帯（breakfast=朝 / lunch=昼 / dinner=夜 / snack=間食）。「朝」「ランチ」などの言葉や、今の時刻・注文時刻から判断する。分からなければ省略する。
 - treat は、ユーザーがご褒美・チートと言っているか、明らかに特別な外食やスイーツのときに true。
 - 美容アイテムは、すでに使用中のアイテムと同じものなら同じ名前に揃える。新しく使い始めたら start、使い切ったら finish、それ以外は use。
 - 体や肌の状態についての言及は condition にする。
@@ -1936,8 +2062,8 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 # いつもの運動
 - 「いつもの」「いつものセット」や、下の「いつもの運動」の名前で書かれていたら、その種目・回数・セット数を items にそのまま使う。
 
-# よく頼むメニュー
-- 下の「よく頼むメニュー」と同じ品（名前が一致、またはほぼ同じ）なら、label・kcal・p・f・c・treat はその登録値をそのまま使う。
+# いつものメニュー
+- 下の「いつものメニュー」と同じ品（名前が一致、またはほぼ同じ）なら、label・kcal・p・f・c・treat はその登録値をそのまま使う。
 
 # commentのトーン
 ${TONE_RULES}
@@ -2050,7 +2176,12 @@ function setupAI() {
 }
 
 
-/* ========== よく頼むメニュー ========== */
+/* ========== いつものメニュー ========== */
+function slotByTime(d = new Date()) {
+  const h = d.getHours();
+  return h < 10 ? 'breakfast' : h < 15 ? 'lunch' : h < 17 ? 'snack' : 'dinner';
+}
+const FAV_CHIP_MAX = 8;
 const favKey = (label) => toStr(label).replace(/\s+/g, '').toLowerCase();
 function findFavorite(label) {
   const k = favKey(label);
@@ -2091,11 +2222,38 @@ function sortedFavorites() {
     .sort((a, b) => b.n - a.n || a.f.label.localeCompare(b.f.label, 'ja')).map((x) => x.f);
 }
 
+const favChipHTML = (f) => `<button class="fav-chip" data-addfav="${esc(f.id)}">${esc(f.label)}${f.kcal != null ? `<small>${fmtNum(f.kcal)}kcal</small>` : ''}</button>`;
+
+// よく使う上位だけボタンで出し、残りは検索して選ぶ
 function renderFavChips() {
   const favs = sortedFavorites();
-  $('#favChips').innerHTML = favs.length
-    ? favs.map((f) => `<button class="fav-chip" data-addfav="${esc(f.id)}">${esc(f.label)}${f.kcal != null ? `<small>${fmtNum(f.kcal)}kcal</small>` : ''}</button>`).join('')
-    : '<div class="empty-soft">記録一覧の食事をタップして「よく頼むに登録」すると、ここからワンタップで記録できます。</div>';
+  if (!favs.length) {
+    $('#favChips').innerHTML = '<div class="empty-soft">記録一覧の食事をタップして「いつものメニューに登録」すると、ここからワンタップで記録できます。</div>';
+    return;
+  }
+  $('#favChips').innerHTML = favs.slice(0, FAV_CHIP_MAX).map(favChipHTML).join('')
+    + (favs.length > FAV_CHIP_MAX ? `<button class="fav-chip" data-fav-search style="background:var(--card);border:1px dashed var(--accent)">ほかを探す（全${favs.length}件）</button>` : '');
+}
+
+function openFavSearch() {
+  openSheet(`<h3>いつものメニューから選ぶ</h3>
+    <input type="text" class="search" id="fsQuery" placeholder="名前で探す" autocomplete="off">
+    <div class="fav-chips" id="fsList"></div>
+    <div class="btns" style="margin-top:12px"><button class="ghost" id="fsClose">閉じる</button></div>`);
+  const draw = () => {
+    const q = favKey($('#fsQuery').value);
+    const list = sortedFavorites().filter((f) => !q || favKey(f.label).includes(q));
+    $('#fsList').innerHTML = list.length ? list.map(favChipHTML).join('') : '<div class="empty-soft">見つかりませんでした。</div>';
+  };
+  draw();
+  $('#fsQuery').addEventListener('input', draw);
+  $('#fsClose').addEventListener('click', closeSheet);
+  $('#fsList').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-addfav]');
+    if (!b) return;
+    recordFavorite(b.getAttribute('data-addfav'));
+    closeSheet();
+  });
 }
 
 function renderFavList() {
@@ -2108,7 +2266,7 @@ function renderFavList() {
 function openFavEditor(id) {
   const f = id ? state.favorites.find((x) => x.id === id) : { label: '', kcal: null, p: null, f: null, c: null, treat: false };
   if (!f) return;
-  openSheet(`<h3>${id ? 'よく頼むメニューを編集' : 'よく頼むメニューを追加'}</h3>
+  openSheet(`<h3>${id ? 'いつものメニューを編集' : 'いつものメニューを追加'}</h3>
     <label class="field"><span>料理名</span><input type="text" id="fvLabel" value="${v(f.label)}"></label>
     <div class="grid4">
       <label class="field"><span>kcal</span><input type="number" inputmode="numeric" id="fvKcal" value="${v(f.kcal)}"></label>
@@ -2134,16 +2292,20 @@ function openFavEditor(id) {
 
 function setupFavorites() {
   $('#favChips').addEventListener('click', (ev) => {
+    if (ev.target.closest('[data-fav-search]')) { openFavSearch(); return; }
     const b = ev.target.closest('[data-addfav]');
-    if (!b) return;
-    const f = state.favorites.find((x) => x.id === b.getAttribute('data-addfav'));
-    if (!f) return;
-    const date = $('#inDate').value || today();
-    const { entry, errors } = normalizeEntry({ type: 'meal', date, label: f.label, kcal: f.kcal, p: f.p, f: f.f, c: f.c, treat: f.treat });
-    if (errors) { toast(errors[0]); return; }
-    addEntries([entry]);
-    if (saveState()) { toast(`${fmtMD(date)}に「${f.label}」を記録しました`); refreshAll(); }
+    if (b) recordFavorite(b.getAttribute('data-addfav'));
   });
+}
+
+function recordFavorite(id) {
+  const f = state.favorites.find((x) => x.id === id);
+  if (!f) return;
+  const date = inputDate();
+  const { entry, errors } = normalizeEntry({ type: 'meal', date, label: f.label, kcal: f.kcal, p: f.p, f: f.f, c: f.c, treat: f.treat, slot: date === today() ? slotByTime() : '' });
+  if (errors) { toast(errors[0]); return; }
+  addEntries([entry]);
+  if (saveState()) { toast(`${fmtMD(date)}に「${f.label}」を記録しました`); refreshAll(); }
 }
 
 
@@ -3011,6 +3173,39 @@ function setupHomeCards() {
   });
 }
 
+
+/* ========== アプリの更新 ========== */
+// 公開中の index.html を取り直して APP_VERSION を比べる（サーバーなしで新しい版を知らせる）
+let lastUpdateCheck = 0;
+async function fetchLatestVersion() {
+  const res = await fetch(`./index.html?v=${Date.now()}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(String(res.status));
+  const m = (await res.text()).match(/const APP_VERSION = '([^']+)'/);
+  return m ? m[1] : null;
+}
+async function checkUpdate({ manual = false } = {}) {
+  if (!manual && Date.now() - lastUpdateCheck < 30 * 60 * 1000) return;
+  lastUpdateCheck = Date.now();
+  try {
+    const latest = await fetchLatestVersion();
+    const newer = latest && latest !== APP_VERSION;
+    $('#updateBar').style.display = newer ? '' : 'none';
+    if (manual) toast(newer ? '新しいバージョンがあります' : '最新のバージョンです');
+  } catch (e) {
+    if (manual) toast('確認できませんでした（通信環境をご確認ください）');
+  }
+}
+function setupUpdate() {
+  $('#versionInfo').textContent = `いまのバージョン：${APP_VERSION}`;
+  $('#checkUpdate').addEventListener('click', () => checkUpdate({ manual: true }));
+  $('#doUpdate').addEventListener('click', async () => {
+    try { await fetch('./index.html', { cache: 'reload' }); } catch (e) { /* そのまま再読み込み */ }
+    location.reload();
+  });
+  checkUpdate();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(); });
+}
+
 /* ========== ナビゲーション ========== */
 let currentTab = 'home';
 
@@ -3060,6 +3255,7 @@ function init() {
   setupWq();
   setupHomeCards();
   setupToday();
+  setupUpdate();
   setupList();
   setupBeauty();
   setupSettings();
