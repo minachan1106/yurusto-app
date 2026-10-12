@@ -33,6 +33,7 @@
   ],
   "updates":[{"id":"既存の記録のid","entry":{直したあとの記録}}],
   "deletes":["既存の記録のid"],
+  "wishes":[{"name":"商品名","brand":"ブランド","size":"S","sizeInfo":"サイズ表の要点","loseKgMin":0,"loseKgMax":0,"basis":"判断の根拠","exercise":"運動の目安"}],
   "comment":"Claudeからのコメント（任意）"
 }
 ```
@@ -55,6 +56,7 @@
   favorites: [ { id, label, kcal, p, f, c, treat } ],   // よく頼むメニュー
   workoutPresets: [ { id, name, items: [ { name, reps, sets, minutes } ] } ],   // いつもの運動
   links: { projectUrl },      // claude.ai のチャットのプロジェクト
+  wishes: [ { id, name, brand, size, sizeInfo, basis, exercise, loseMin, loseMax, targetLow, targetHigh, addedOn, done } ],   // 着たい服
   settings: {
     weightMin, weightMax,       // 目標体重の範囲（kg）
     fatTarget, waistTarget,     // 目標の体脂肪率（%）・腹囲（cm）
@@ -215,3 +217,8 @@
   - ショートカットは3アクション（歩数を検索 → 統計の合計 → クリップボードにコピー）＋時刻のオートメーション。手順を設定に表示。
   - 問いかけの開く先に「歩数を貼り付け」（`action: "steps"`）。初期値「今日の歩数を取り込む？」21:30（オフ）。既存のデータにもオフで追加。今日の歩数があれば表示しない。
   - ヘルスケアの歩数画面のスクショでも記録できる（Claude が steps にする）。
+
+### フェーズG3（着たい服）
+- ZOZOTOWN などの商品ページ・サイズ表のスクショを「記録する」に入れると、Claude が `wishes` として返す（記録は作らない）。商品名・ブランド・サイズ・サイズ表の要点を読み、身長・体重の7日平均・体脂肪率の推定・腹囲の記録と比べて「あと約◯〜◯kg」（loseKgMin〜Max）を幅で出す。サイズ表がなければブランドやアイテムの傾向から推定し、根拠を basis に書く。運動の目安（いつもの運動をもとに週あたり）も添える。
+- 保存時に、その時点の7日平均から目標体重（targetLow〜targetHigh）に直して持つ。ホームの「着たい服」カードは今の7日平均との差で「あと約◯kg」と、減らすペース（未設定は0.25kg/週）での週数を表示。差がなくなれば「着られそう」。
+- タップで詳細（根拠・運動の目安・登録時の目安）、「着られた！」で非表示、削除。エクスポート対象。
