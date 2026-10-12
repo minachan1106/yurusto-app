@@ -282,6 +282,14 @@
   .link-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
   .link-btns a { display: block; text-align: center; padding: 11px 16px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-strong); font-weight: 600; text-decoration: none; font-size: 15px; }
   .usage { font-size: 13.5px; margin: 8px 0 0; }
+  .wq-row { border: 1px solid var(--line); border-radius: 12px; padding: 8px; margin-bottom: 8px; }
+  .wq-row .wq-top { display: flex; gap: 6px; align-items: center; }
+  .wq-row .wq-top select { flex: 1; min-width: 0; }
+  .wq-row .wq-del { min-height: 36px; width: 36px; padding: 0; flex: 0 0 auto; }
+  .wq-row .wq-nums { display: flex; gap: 6px; margin-top: 6px; }
+  .wq-row .wq-nums label { flex: 1; min-width: 0; }
+  .wq-row .wq-nums .mini { display: block; margin-bottom: 2px; }
+  .wq-kcal { font-size: 14px; margin: 4px 0 10px; }
   .fav-chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .fav-chip { min-height: 38px; padding: 7px 14px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); font-size: 14px; font-weight: 600; }
   .fav-chip small { font-weight: 400; color: var(--muted); margin-left: 4px; font-size: 11px; }
@@ -358,6 +366,16 @@
       <div class="sub-h">いつもの運動</div>
       <div class="fav-chips" id="wkChips"></div>
       <div class="row"><label class="field" style="margin-bottom:0"><span>記録する日</span><input type="date" id="favDate"></label></div>
+    </div>
+
+    <div class="card">
+      <h2>運動をさっと記録</h2>
+      <div id="wqRows"></div>
+      <button class="ghost" type="button" id="wqAddRow" style="width:100%; margin-bottom:10px">種目を追加</button>
+      <div class="row"><label class="field"><span>日付</span><input type="date" id="wqDate"></label></div>
+      <div class="wq-kcal" id="wqKcal"></div>
+      <button class="primary" id="wqSave" style="width:100%">記録する</button>
+      <div class="hint">選んだ種目は次回も残ります。</div>
     </div>
 
     <div class="card">
@@ -487,8 +505,8 @@
 
     <div class="card">
       <h2>ご褒美ごはん</h2>
-      <label class="field"><span>月の枠（回）</span><input type="number" inputmode="numeric" step="1" min="0" data-set="treatPerMonth"></label>
-      <div class="hint">ご褒美は月の枠の中の「予定」として数えます。</div>
+      <label class="field"><span>月の枠（回）</span><input type="number" inputmode="numeric" step="1" min="0" data-set="treatPerMonth" placeholder="空欄なら自動"></label>
+      <div class="hint">ご褒美は月の枠の中の「予定」として数えます。<span id="treatAutoHint"></span></div>
     </div>
 
     <div class="card">
@@ -923,7 +941,11 @@ function entryBodyHTML(e) {
   switch (e.type) {
     case 'weight': return `<b>${fmtNum(e.kg, 1)}</b> kg`;
     case 'meal': return `${esc(e.label || '（食事）')}${e.treat ? '<span class="treat-mark">ご褒美</span>' : ''}<div class="meta">${esc(pfcText(e))}</div>${note}`;
-    case 'workout': return `${esc(workoutText(e.items)) || '（運動）'}${note}`;
+    case 'workout': {
+      const kg = bodyWeightFor(e.date);
+      const k = kg != null ? workoutKcal(e.items, kg) : 0;
+      return `${esc(workoutText(e.items)) || '（運動）'}${k >= 1 ? `<div class="meta">消費の目安 約${fmtNum(k)}kcal</div>` : ''}${note}`;
+    }
     case 'beauty': return `${esc(e.item)} <span class="meta">${esc(CATEGORIES[e.category] || e.category)}・${esc(ACTIONS[e.action] || e.action)}</span>${note}`;
     case 'condition': return esc(e.note);
     case 'body': return `${bodyText(e)}${note}`;
@@ -1161,8 +1183,9 @@ function renderMonth() {
 
 function renderTreat() {
   const { treats } = monthStats();
-  const limit = state.settings.treatPerMonth;
-  let html = '<h2>ご褒美ごはん（今月）</h2>';
+  const tl = treatLimit();
+  const limit = tl.limit;
+  let html = `<h2>ご褒美ごはん（今月）${tl.auto ? ' <span class="right small">枠は自動</span>' : ''}</h2>`;
   if (limit != null) {
     html += `<div class="big">${treats}<small> / ${fmtNum(limit)} 回</small></div>`;
     const n = Math.max(limit, treats);
@@ -1171,7 +1194,7 @@ function renderTreat() {
         `<i class="${i < treats ? (i < limit ? 'on' : 'extra') : ''}"></i>`).join('') + '</div>';
     }
     const rest = limit - treats;
-    html += `<div class="hint">${rest > 0 ? `今月の予定枠はあと${rest}回。楽しみに取っておけます。` : rest === 0 ? '今月の予定枠をちょうど使いました。' : `今月は枠より${-rest}回多め。次のごはんを軽めにして整えれば十分です。`}</div>`;
+    html += `<div class="hint">${rest > 0 ? `今月の予定枠はあと${rest}回。楽しみに取っておけます。` : rest === 0 ? '今月の予定枠をちょうど使いました。' : `今月は枠より${-rest}回多め。次のごはんを軽めにして整えれば十分です。`}${tl.auto ? `<br>${tl.months ? `これまで${tl.months}か月の記録` : '記録がたまるまでは週1回の目安'}から決めています。` : ''}</div>`;
   } else {
     html += `<div class="big">${treats}<small> 回</small></div><div class="hint">設定で月の枠を決めると、予定として数えられます。</div>`;
   }
@@ -1577,6 +1600,8 @@ function setupBeauty() {
 function renderSettings() {
   const api = loadApi();
   if (document.activeElement !== $('#apiKey')) $('#apiKey').value = api.key || '';
+  const at = autoTreatLimit();
+  $('#treatAutoHint').textContent = `空欄のときは記録から自動で決めます（今の自動の枠：${at.limit}回）。`;
   renderUsage();
   renderLinks();
   renderPlan();
@@ -1763,7 +1788,7 @@ function buildWeekText() {
 
   const ms = monthStats(t);
   const monthLine = [`今月の食事合計（概算・${ms.days}日目）${fmtNum(ms.sum.kcal)}kcal P${fmtNum(ms.sum.p)} F${fmtNum(ms.sum.f)} C${fmtNum(ms.sum.c)}`];
-  monthLine.push(`ご褒美ごはん ${ms.treats}回${s.treatPerMonth != null ? ` / 枠${fmtNum(s.treatPerMonth)}回` : ''}`);
+  monthLine.push(`ご褒美ごはん ${ms.treats}回 / 枠${fmtNum(treatLimit().limit)}回`);
   lines.push(monthLine.join(' / '));
 
   const { active } = beautyStats(t);
@@ -1845,13 +1870,13 @@ function buildContext() {
   if (s.weightMin != null && s.weightMax != null) goal.push(`目標体重 ${Math.min(s.weightMin, s.weightMax)}〜${Math.max(s.weightMin, s.weightMax)}kg`);
   const daily = [['kcal', s.kcal], ['P', s.p], ['F', s.f], ['C', s.c]].filter(([, n]) => n != null).map(([k, n]) => `${k} ${n}`);
   if (daily.length) goal.push(`1日の目安 ${daily.join(' / ')}`);
-  if (s.treatPerMonth != null) goal.push(`月のご褒美枠 ${s.treatPerMonth}回`);
+  goal.push(`月のご褒美枠 ${treatLimit().limit}回${treatLimit().auto ? '（記録から自動）' : ''}`);
   lines.push(`設定: ${goal.length ? goal.join('、') : '（未設定）'}`);
 
   const ms = monthStats(t);
   const target = (k) => (s[k] != null ? `（目安×${ms.days}日 = ${Math.round(s[k] * ms.days)}）` : '');
   lines.push(`今月の食事合計（${ms.days}日目・記録した${ms.mealCount}件の概算）: ${Math.round(ms.sum.kcal)}kcal${target('kcal')}、P ${Math.round(ms.sum.p)}g${target('p')}、F ${Math.round(ms.sum.f)}g${target('f')}、C ${Math.round(ms.sum.c)}g${target('c')}`);
-  lines.push(`今月のご褒美ごはん: ${ms.treats}回${s.treatPerMonth != null ? ` / 枠${s.treatPerMonth}回` : ''}`);
+  lines.push(`今月のご褒美ごはん: ${ms.treats}回 / 枠${treatLimit().limit}回`);
 
   const map = weightMap();
   const avgs = [0, 7, 14, 21].map((d) => ({ d, v: movingAvg7(map, addDays(t, -d)) })).filter((x) => x.v != null);
@@ -1918,6 +1943,9 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 - 健康診断の結果（画像でも文章でも）：書かれている日付ごとに weight と body（体脂肪率・腹囲）を作る。過去の日付でもそのまま使う。
 - 運動アプリ・フィットネス機器のスクショ：workout にする。
 - ヘルスケアやスマートウォッチの歩数・距離のスクショ：steps にする（1日1件）。散歩やウォーキングでも、歩数として記録されているものは workout にしない。
+
+# 運動の種目名
+- 次の名前に当てはまる種目は、この表記に揃える：${EXERCISES.map((x) => x.name).join('、')}
 
 # いつもの運動
 - 「いつもの」「いつものセット」や、下の「いつもの運動」の名前で書かれていたら、その種目・回数・セット数を items にそのまま使う。
@@ -2461,6 +2489,144 @@ function renderLinks() {
     ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener">チャットのプロジェクトを開く</a>` : ''}`;
 }
 
+
+/* ========== 運動をさっと記録 ========== */
+const WQ_KEY = 'yurusto.wqrows';
+const REPS_OPTS = [5, 8, 10, 12, 15, 20, 25, 30, 40, 50];
+const SETS_OPTS = [1, 2, 3, 4, 5];
+const MIN_OPTS = [1, 2, 3, 5, 10, 15, 20, 25, 30, 40, 45, 50, 60, 75, 90];
+let wqRows = [];
+
+function loadWqRows() {
+  try { const r = JSON.parse(localStorage.getItem(WQ_KEY) || 'null'); if (Array.isArray(r) && r.length) return r; } catch (e) { /* 初期値へ */ }
+  return [{ name: '', reps: null, sets: null, minutes: null }];
+}
+function saveWqRows() { try { localStorage.setItem(WQ_KEY, JSON.stringify(wqRows)); } catch (e) { /* 次回の初期値なので無視 */ } }
+
+// 一覧にない名前（過去の記録・いつもの運動）も選べるようにする
+function customExerciseNames() {
+  const names = new Set();
+  state.entries.filter((e) => e.type === 'workout').forEach((e) => (e.items || []).forEach((it) => it.name && names.add(it.name)));
+  (state.workoutPresets || []).forEach((p) => p.items.forEach((it) => it.name && names.add(it.name)));
+  wqRows.forEach((r) => r.name && names.add(r.name));
+  return [...names].filter((n) => !exerciseOf(n)).sort((a, b) => a.localeCompare(b, 'ja'));
+}
+
+const numSelect = (cls, opts, val, unit) => `<select class="${cls}"><option value="">—</option>${opts.map((n) => `<option value="${n}" ${Number(val) === n ? 'selected' : ''}>${n}${unit}</option>`).join('')}</select>`;
+
+function wqRowHTML(r, i) {
+  const ex = exerciseOf(r.name);
+  const groups = {};
+  EXERCISES.forEach((x) => { (groups[x.group] = groups[x.group] || []).push(x.name); });
+  const customs = customExerciseNames();
+  const opt = (n) => `<option value="${esc(n)}" ${r.name === n ? 'selected' : ''}>${esc(n)}</option>`;
+  const nameSel = `<select class="wq-name" aria-label="種目"><option value="">種目を選ぶ</option>
+    ${Object.entries(groups).map(([g, list]) => `<optgroup label="${g}">${list.map(opt).join('')}</optgroup>`).join('')}
+    ${customs.length ? `<optgroup label="自分の種目">${customs.map(opt).join('')}</optgroup>` : ''}
+    <option value="__new">その他（名前を入れる）</option></select>`;
+  const showReps = !ex || ex.unit === 'reps';
+  const showMin = !ex || ex.unit === 'min';
+  return `<div class="wq-row" data-i="${i}"><div class="wq-top">${nameSel}<button type="button" class="ghost wq-del" aria-label="削除">×</button></div>
+    <div class="wq-nums">
+      ${showReps ? `<label><span class="mini">回数${ex && ex.side ? '（片側）' : ''}</span>${numSelect('wq-reps', REPS_OPTS, r.reps, '回')}</label><label><span class="mini">セット</span>${numSelect('wq-sets', SETS_OPTS, r.sets, 'セット')}</label>` : ''}
+      ${showMin ? `<label><span class="mini">時間</span>${numSelect('wq-min', MIN_OPTS, r.minutes, '分')}</label>` : ''}
+    </div></div>`;
+}
+
+function wqItems() {
+  return wqRows.filter((r) => r.name).map((r) => ({ name: r.name, reps: r.reps, sets: r.sets, minutes: r.minutes }));
+}
+
+function renderWqKcal() {
+  const items = wqItems();
+  const kg = bodyWeightFor($('#wqDate').value || today());
+  const el = $('#wqKcal');
+  if (!items.length) { el.textContent = ''; return; }
+  if (kg == null) { el.innerHTML = '<span class="muted">体重を記録すると、消費の目安が出ます。</span>'; return; }
+  const per = items.map((it) => ({ it, k: workoutKcal([it], kg) }));
+  el.innerHTML = `消費の目安 <b>約${fmtNum(per.reduce((a, x) => a + x.k, 0))}kcal</b>
+    <div class="small muted">${per.map((x) => `${esc(x.it.name)} ${fmtNum(x.k)}`).join(' ・ ')}</div>`;
+}
+
+function renderWq() {
+  $('#wqRows').innerHTML = wqRows.map(wqRowHTML).join('');
+  renderWqKcal();
+}
+
+function setupWq() {
+  wqRows = loadWqRows();
+  $('#wqDate').value = today();
+  const box = $('#wqRows');
+  box.addEventListener('change', (ev) => {
+    const row = ev.target.closest('.wq-row');
+    if (!row) return;
+    const r = wqRows[Number(row.getAttribute('data-i'))];
+    const t = ev.target;
+    if (t.classList.contains('wq-name')) {
+      let name = t.value;
+      if (name === '__new') {
+        name = toStr(window.prompt('種目の名前', '') || '');
+        if (!name) { t.value = r.name; return; }
+      }
+      const ex = exerciseOf(name);
+      r.name = name;
+      // 種目に合わせて入力欄を切り替え、よく使う値を初期値にする
+      if (ex && ex.unit === 'min') { r.reps = null; r.sets = null; if (r.minutes == null) r.minutes = 20; }
+      if (ex && ex.unit === 'reps') { r.minutes = null; if (r.reps == null) r.reps = 15; if (r.sets == null) r.sets = 3; }
+      saveWqRows(); renderWq();
+      return;
+    }
+    const num = (x) => (x === '' ? null : Number(x));
+    if (t.classList.contains('wq-reps')) r.reps = num(t.value);
+    if (t.classList.contains('wq-sets')) r.sets = num(t.value);
+    if (t.classList.contains('wq-min')) r.minutes = num(t.value);
+    saveWqRows(); renderWqKcal();
+  });
+  box.addEventListener('click', (ev) => {
+    const b = ev.target.closest('.wq-del');
+    if (!b) return;
+    wqRows.splice(Number(b.closest('.wq-row').getAttribute('data-i')), 1);
+    if (!wqRows.length) wqRows.push({ name: '', reps: null, sets: null, minutes: null });
+    saveWqRows(); renderWq();
+  });
+  $('#wqAddRow').addEventListener('click', () => { wqRows.push({ name: '', reps: null, sets: null, minutes: null }); saveWqRows(); renderWq(); });
+  $('#wqDate').addEventListener('change', renderWqKcal);
+  $('#wqSave').addEventListener('click', () => {
+    const items = wqItems();
+    if (!items.length) { toast('種目を選んでください'); return; }
+    const date = $('#wqDate').value || today();
+    const { entry, errors } = normalizeEntry({ type: 'workout', date, items, note: '' });
+    if (errors) { toast(errors[0]); return; }
+    addEntries([entry]);
+    if (saveState()) {
+      const kg = bodyWeightFor(date);
+      toast(`${fmtMD(date)}の運動を記録しました${kg != null ? `（約${fmtNum(workoutKcal(entry.items, kg))}kcal）` : ''}`);
+      refreshAll();
+    }
+  });
+}
+
+/* ========== ご褒美の月の枠（自動） ========== */
+const TREAT_DEFAULT = 4; // 記録が少ないうちは週1回くらい
+function autoTreatLimit(t = today()) {
+  const first = parseYMD(t.slice(0, 7) + '-01');
+  const counts = [];
+  for (let k = 1; k <= 3; k++) {
+    const m = toYMD(new Date(first.getFullYear(), first.getMonth() - k, 1)).slice(0, 7);
+    const meals = state.entries.filter((e) => e.type === 'meal' && e.date.startsWith(m));
+    if (meals.length >= 10) counts.push(meals.filter((e) => e.treat).length);
+  }
+  let base = counts.length ? Math.round(counts.reduce((a, b) => a + b, 0) / counts.length) : TREAT_DEFAULT;
+  const pl = calcPlan();
+  if (pl && pl.losing && pl.pace >= 0.5) base -= 1;
+  return { limit: Math.min(8, Math.max(2, base)), months: counts.length };
+}
+function treatLimit() {
+  const v = state.settings.treatPerMonth;
+  if (v != null) return { limit: v, auto: false };
+  return { ...autoTreatLimit(), auto: true };
+}
+
 /* ========== 今日のダッシュボード ========== */
 // 運動の強さ（METs）の目安。名前に含まれる語で判定し、当てはまらなければ筋トレ相当とする
 const METS_RULES = [
@@ -2474,14 +2640,41 @@ const METS_RULES = [
 ];
 const STRENGTH_METS = 3.5;
 
+// よくある種目の一覧（METs は運動強度の一般的な目安、sec は1回あたりの秒数、side は左右それぞれ行う種目）
+const EXERCISES = [
+  { name: 'ダンベル＋スクワット（頭上から下ろす）', group: '筋トレ', mets: 5.0, unit: 'reps', sec: 4 },
+  { name: 'スクワット', group: '筋トレ', mets: 3.8, unit: 'reps', sec: 3 },
+  { name: 'ファイヤーハイドラント', group: '筋トレ', mets: 2.8, unit: 'reps', sec: 2, side: true },
+  { name: 'クロスクランチ', group: '筋トレ', mets: 3.8, unit: 'reps', sec: 2 },
+  { name: 'クランチ（腹筋）', group: '筋トレ', mets: 3.8, unit: 'reps', sec: 2 },
+  { name: 'ランジ', group: '筋トレ', mets: 3.8, unit: 'reps', sec: 3, side: true },
+  { name: '腕立て伏せ', group: '筋トレ', mets: 3.8, unit: 'reps', sec: 3 },
+  { name: 'ヒップリフト', group: '筋トレ', mets: 2.8, unit: 'reps', sec: 3 },
+  { name: 'プランク', group: '筋トレ', mets: 3.8, unit: 'min' },
+  { name: 'エアロバイク', group: '有酸素', mets: 6.8, unit: 'min' },
+  { name: 'ウォーキング', group: '有酸素', mets: 3.5, unit: 'min' },
+  { name: 'ジョギング', group: '有酸素', mets: 7.0, unit: 'min' },
+  { name: 'ヨガ', group: 'ストレッチ', mets: 2.5, unit: 'min' },
+  { name: 'ストレッチ', group: 'ストレッチ', mets: 2.3, unit: 'min' },
+];
+const exerciseOf = (name) => EXERCISES.find((x) => x.name === toStr(name)) || null;
+
 function itemMets(name) {
+  const ex = exerciseOf(name);
+  if (ex) return ex.mets;
   const hit = METS_RULES.find(([re]) => re.test(name || ''));
   return hit ? hit[1] : STRENGTH_METS;
 }
 
-// 時間の記録がない筋トレは「1回3秒＋セット間1分」でおおよその時間を出す
+// 時間の記録がない筋トレは、一覧の種目なら「1回の秒数＋セット間30秒」、それ以外は「1回3秒＋セット間1分」でおおよその時間を出す
 function itemMinutes(it) {
   if (it.minutes != null) return Number(it.minutes);
+  const ex = exerciseOf(it.name);
+  if (ex && ex.unit === 'reps') {
+    const sets = it.sets != null ? Number(it.sets) : (it.reps != null ? 1 : 0);
+    const reps = it.reps != null ? Number(it.reps) : 10;
+    return sets * (reps * ex.sec * (ex.side ? 2 : 1) + 30) / 60;
+  }
   const sets = it.sets != null ? Number(it.sets) : (it.reps != null ? 1 : 0);
   const reps = it.reps != null ? Number(it.reps) : 10;
   return sets ? sets * (reps * 3 + 60) / 60 : 0;
@@ -2808,7 +3001,7 @@ function renderCurrent() {
   if (currentTab === 'list') renderList();
   if (currentTab === 'beauty') renderBeauty();
   if (currentTab === 'settings') renderSettings();
-  if (currentTab === 'input') { renderFavChips(); renderPresetChips(); renderWeightPicker(); }
+  if (currentTab === 'input') { renderFavChips(); renderPresetChips(); renderWeightPicker(); renderWq(); }
 }
 
 function refreshAll() { renderCurrent(); }
@@ -2833,6 +3026,7 @@ function init() {
   setupInput();
   setupFavorites();
   setupPresets();
+  setupWq();
   setupHomeCards();
   setupToday();
   setupList();
@@ -2846,6 +3040,7 @@ function init() {
       if (!$('#qWeight').value) $('#qDate').value = today();
       $('#favDate').value = today();
       todayDate = null;
+      $('#wqDate').value = today();
       showTab(currentTab);
     }
   });
