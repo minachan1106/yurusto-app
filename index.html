@@ -283,6 +283,13 @@
   .dot.meal { background: var(--c-meal); } .dot.workout { background: var(--c-workout); } .dot.beauty { background: var(--c-beauty); }
   .dot.condition { background: var(--c-condition); } .dot.comment { background: var(--c-comment); }
   .search { margin-bottom: 8px; }
+  .fix-box { border: 1px dashed var(--accent); border-radius: 12px; padding: 10px; margin: 4px 0 12px; background: var(--accent-soft); }
+  .fix-box .mini { display: block; margin-bottom: 4px; color: var(--accent-strong); font-weight: 600; font-size: 12px; }
+  .fix-box textarea { min-height: 56px; background: var(--card); }
+  .fix-box button { width: 100%; margin-top: 6px; }
+  .diff { font-size: 13px; margin-top: 8px; }
+  .diff .old { color: var(--muted); text-decoration: line-through; }
+  .chip.fix { background: var(--accent-strong); }
   .sub-h { font-size: 12px; color: var(--muted); margin: 4px 0 6px; font-weight: 600; }
   .sub-h + .fav-chips { margin-bottom: 12px; }
   .today-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -400,7 +407,7 @@
     <div class="card" id="previewCard" style="display:none"></div>
 
     <div class="card">
-      <h2>体重</h2>
+      <h2>体重・歩数</h2>
       <div class="wrow">
         <div class="wpick" id="wPick"><select id="qWInt" aria-label="体重（整数）"></select><span>.</span><select id="qWDec" aria-label="体重（小数）"></select><span class="unit">kg</span></div>
         <input type="number" id="qWeight" inputmode="decimal" step="0.1" min="0" placeholder="00.0" style="display:none">
@@ -408,6 +415,11 @@
       </div>
       <div class="sub-actions"><button type="button" class="linkish" id="qManual">数字を直接入力する</button></div>
       <div class="hint" id="qHint"></div>
+      <div class="wrow" style="margin-top:10px">
+        <div class="wpick"><select id="qSteps" aria-label="歩数"></select><span class="unit">歩</span></div>
+        <button class="primary" id="qStepsSave">保存</button>
+      </div>
+      <div class="sub-actions"><button type="button" class="linkish" id="qStepsPaste">ヘルスケアから貼り付け</button><span class="small muted" id="qStepsNow"></span></div>
     </div>
 
     <div class="card">
@@ -561,19 +573,27 @@
       <summary>歩数（ヘルスケア）</summary>
     <div class="card">
       <h2>ヘルスケアの歩数を取り込む</h2>
-      <p class="small" style="margin:0 0 8px">iPhoneの「ショートカット」で、今日の歩数と距離をユルストの形式でコピーできます。最初に一度だけ作ってください。</p>
+      <p class="small" style="margin:0 0 8px">iPhoneの「ショートカット」で、今日の歩数をコピーする小さなショートカットを作ります。アクションは3つだけです。</p>
+      <div class="sub-h">① ショートカットを作る（1回だけ）</div>
       <ol class="steps">
-        <li>「ショートカット」アプリで ＋ を押し、新規ショートカットを作る（名前の例：「ユルスト歩数」）</li>
-        <li>「ヘルスケアサンプルを検索」を追加し、種類を「歩数」、開始日を「今日」にする</li>
-        <li>「統計を計算」を追加し、「合計」にする</li>
-        <li>もう一度「ヘルスケアサンプルを検索」を追加し、種類を「ウォーキング＋ランニングの距離」、開始日を「今日」にする</li>
-        <li>「統計を計算」を追加し、「合計」にする</li>
-        <li>「テキスト」を追加して下の文をコピーして貼り、空の "" の間に、3・5の「統計」をそれぞれ変数として入れる</li>
-        <li>「クリップボードにコピー」を追加する</li>
+        <li>「ショートカット」アプリ → 右上の ＋</li>
+        <li>「ヘルスケアサンプルを検索」を追加 → 種類を「歩数」、条件の「開始日」を「今日」にする</li>
+        <li>「統計を計算」を追加 → 「合計」にする</li>
+        <li>「クリップボードにコピー」を追加</li>
+        <li>名前を「ユルスト歩数」にして完了（初回はヘルスケアへのアクセスを許可）</li>
       </ol>
-      <pre class="tmpl" id="stepsTmpl">{"entries":[{"type":"steps","steps":"","km":""}]}</pre>
-      <button class="ghost" id="copyStepsTmpl" style="width:100%">この文をコピー</button>
-      <div class="hint">使うとき：ショートカットを実行 → ユルストの投げ込みで「クリップボードから貼り付けて解析」→ 保存。日付は自動で今日になります。歩数がある日は、消費の概算が「座りがち＋歩いた分」で計算されます。</div>
+      <div class="sub-h" style="margin-top:10px">② 毎日自動で動かす</div>
+      <ol class="steps">
+        <li>ショートカットアプリの「オートメーション」→ ＋ →「時刻」</li>
+        <li>時刻（例：21:00）と「毎日」を選び、「すぐに実行」にする</li>
+        <li>実行するショートカットに「ユルスト歩数」を選ぶ</li>
+      </ol>
+      <div class="sub-h" style="margin-top:10px">③ ユルストに入れる</div>
+      <ol class="steps">
+        <li>ユルストを開き、投げ込みの「ヘルスケアから貼り付け」を押す（iPhoneが「ペーストを許可」を聞いたら許可）</li>
+        <li>設定の「問いかけ」で「今日の歩数を取り込む？」をオンにすると、ホームに貼り付けボタンが出ます</li>
+      </ol>
+      <div class="hint">ヘルスケアの歩数画面のスクショを「記録する」に入れても記録できます。歩数のプルダウンからも入れられます。歩数がある日は、消費の概算が「座りがち＋歩いた分」になります。</div>
     </div>
 
     </details>
@@ -631,7 +651,7 @@
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
 // 公開のたびに上げる（CLAUDE.md の「公開のルール」参照）
-const APP_VERSION = '2026.10.12-11';
+const APP_VERSION = '2026.10.12-12';
 const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'condition'];
 const TYPE_LABEL = { weight: '体重', body: '体組成', steps: '歩数', meal: '食事', workout: '運動', beauty: '美容', condition: '体調', comment: 'コメント' };
 const CATEGORIES = { skincare: 'スキンケア', makeup: 'メイク', hair: 'ヘア', tool: 'ツール' };
@@ -701,6 +721,7 @@ const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 const DEFAULT_PROMPTS = [
   { id: 'p-weight', text: '今日体重測った？スクショがあれば送ってね', time: '08:00', days: ALL_DAYS, action: 'weight', enabled: true },
   { id: 'p-meal', text: '今日何食べた？写真やUberの画面をポンと送ってね', time: '21:00', days: ALL_DAYS, action: 'input', enabled: true },
+  { id: 'p-steps', text: '今日の歩数を取り込む？（ショートカットのあとに）', time: '21:30', days: ALL_DAYS, action: 'steps', enabled: false },
 ];
 const clonePrompts = (list) => list.map((x) => ({ ...x, days: [...x.days] }));
 
@@ -718,7 +739,7 @@ function normalizePrompt(o) {
     text: toStr(o.text),
     time: /^\d{2}:\d{2}$/.test(o.time) ? o.time : '21:00',
     days,
-    action: o.action === 'weight' ? 'weight' : 'input',
+    action: ['weight', 'steps'].includes(o.action) ? o.action : 'input',
     enabled: o.enabled !== false,
   };
 }
@@ -737,7 +758,9 @@ function loadState() {
       favorites: Array.isArray(s.favorites) ? s.favorites : [],
       workoutPresets: Array.isArray(s.workoutPresets) ? s.workoutPresets : [],
       links: asObj(s.links),
-      prompts: Array.isArray(s.prompts) ? s.prompts.map(normalizePrompt).filter(Boolean) : base.prompts,
+      prompts: Array.isArray(s.prompts)
+        ? [...s.prompts.map(normalizePrompt).filter(Boolean), ...(s.prompts.some((x) => x && x.id === 'p-steps') ? [] : clonePrompts(DEFAULT_PROMPTS.filter((x) => x.id === 'p-steps')))]
+        : base.prompts,
       promptLog: asObj(s.promptLog),
       reviewLog: asObj(s.reviewLog),
       settings: { ...base.settings, ...(s.settings || {}) },
@@ -953,11 +976,13 @@ function extractPayload(text) {
     if (v === undefined) continue;
     parsed.push({ start: c.start, end: c.end, value: v });
   }
-  const entries = [];
+  const entries = [], updates = [], deletes = [];
   let comment = null;
   for (const p of parsed) {
     const v = p.value;
     if (v && typeof v === 'object' && !Array.isArray(v)) {
+      if (Array.isArray(v.updates)) updates.push(...v.updates.filter((u) => u && typeof u === 'object' && u.id));
+      if (Array.isArray(v.deletes)) deletes.push(...v.deletes.map(String));
       if (Array.isArray(v.entries)) {
         entries.push(...v.entries);
         if (typeof v.comment === 'string' && v.comment.trim()) comment = comment ? comment + '\n' + v.comment.trim() : v.comment.trim();
@@ -966,12 +991,13 @@ function extractPayload(text) {
       } else if (typeof v.comment === 'string') {
         comment = comment ? comment + '\n' + v.comment.trim() : v.comment.trim();
       }
+      if (!Array.isArray(v.entries) && (v.updates || v.deletes) && typeof v.comment === 'string' && !comment) comment = v.comment.trim();
     } else if (Array.isArray(v) && v.some((x) => x && typeof x === 'object' && x.type)) {
       entries.push(...v);
     }
   }
-  if (!entries.length && !comment) return null;
-  return { entries, comment };
+  if (!entries.length && !comment && !updates.length && !deletes.length) return null;
+  return { entries, comment, updates, deletes };
 }
 
 /* ========== 表示用テキスト ========== */
@@ -1299,7 +1325,7 @@ function setupInput() {
     const exists = state.entries.some((e) => e.type === 'weight' && e.date === d);
     $('#qHint').textContent = exists ? 'この日の体重はすでにあるので、上書きされます。' : '';
   };
-  $('#inDate').addEventListener('change', () => { updateHint(); renderWqKcal(); });
+  $('#inDate').addEventListener('change', () => { updateHint(); renderWqKcal(); renderStepsPicker(); });
   const save = () => {
     const kgRaw = readWeightInput();
     const date = inputDate();
@@ -1363,7 +1389,16 @@ function setPendingFromPayload(payload) {
     if (batchWeightDates.get(it.entry.date) !== i) it.supersededInBatch = true;
     else if (state.entries.some((e) => e.type === 'weight' && e.date === it.entry.date)) it.overwrite = true;
   });
-  pending = { items, comment: payload.comment };
+  const updates = (payload.updates || []).map((u) => {
+    const before = state.entries.find((x) => x.id === String(u.id));
+    if (!before) return null;
+    const raw = u.entry && typeof u.entry === 'object' ? u.entry : u.changes && typeof u.changes === 'object' ? { ...stripMeta(before), ...u.changes } : null;
+    if (!raw) return null;
+    const n = normalizeEntry({ date: before.date, ...raw, type: before.type });
+    return { before, after: n.entry ? { ...n.entry, id: before.id, createdAt: before.createdAt } : null, errors: n.errors || null };
+  }).filter(Boolean);
+  const deletes = [...new Set(payload.deletes || [])].map((id) => state.entries.find((x) => x.id === id)).filter(Boolean);
+  pending = { items, comment: payload.comment, updates, deletes };
   renderPreview();
 }
 
@@ -1372,7 +1407,7 @@ function renderPreview() {
   if (!pending) { card.style.display = 'none'; card.innerHTML = ''; return; }
   const ok = pending.items.filter((it) => it.entry);
   const ng = pending.items.filter((it) => !it.entry);
-  let html = `<h2>プレビュー <span class="right small">${ok.length}件${ng.length ? `・除外${ng.length}件` : ''}</span></h2>`;
+  let html = `<h2>プレビュー <span class="right small">${[ok.length ? `追加${ok.length}件` : '', (pending.updates || []).filter((u) => u.after).length ? `修正${pending.updates.filter((u) => u.after).length}件` : '', (pending.deletes || []).length ? `削除${pending.deletes.length}件` : '', ng.length ? `除外${ng.length}件` : ''].filter(Boolean).join('・')}</span></h2>`;
   const byDate = new Map();
   ok.forEach((it) => { const d = it.entry.date; if (!byDate.has(d)) byDate.set(d, []); byDate.get(d).push(it); });
   Array.from(byDate.keys()).sort().reverse().forEach((d) => {
@@ -1388,12 +1423,21 @@ function renderPreview() {
       <div class="err-list">${it.errors.map(esc).join('<br>')}</div>
       <div class="meta" style="word-break:break-all">${esc(JSON.stringify(it.raw))}</div></div></div>`).join('') + '</div>';
   }
+  const ups = (pending.updates || []).filter((u) => u.after);
+  ups.forEach((u) => {
+    const diff = diffEntries(u.before, u.after);
+    html += `<div class="entry"><span class="chip fix">修正</span><div class="body">${fmtMDW(u.before.date)} ${entryBodyHTML(u.before)}<div class="diff">${diff.length ? diff.join('<br>') : '変更なし'}</div></div></div>`;
+  });
+  (pending.deletes || []).forEach((d) => {
+    html += `<div class="entry"><span class="chip error">削除</span><div class="body">${fmtMDW(d.date)} ${entryBodyHTML(d)}</div></div>`;
+  });
   if (pending.comment) {
     html += `<div class="entry"><span class="chip comment">コメント</span><div class="body comment-text">${esc(pending.comment)}</div></div>`;
   }
-  const canSave = ok.length > 0 || !!pending.comment;
+  const nChange = ok.length + ups.length + (pending.deletes || []).length;
+  const canSave = nChange > 0 || !!pending.comment;
   html += `<div class="btns" style="margin-top:12px"><button class="ghost" id="pvCancel">やめる</button>
-    <button class="primary" id="pvSave" ${canSave ? '' : 'disabled'}>${ok.length ? `${ok.length}件を保存` : 'コメントを保存'}</button></div>`;
+    <button class="primary" id="pvSave" ${canSave ? '' : 'disabled'}>${nChange ? `${nChange}件を反映` : 'コメントを保存'}</button></div>`;
   card.innerHTML = html;
   card.style.display = '';
   $('#pvCancel').addEventListener('click', () => { pending = null; renderPreview(); });
@@ -1405,11 +1449,20 @@ function savePending() {
   if (!pending) return;
   const ok = pending.items.filter((it) => it.entry).map((it) => it.entry);
   const r = addEntries(ok);
+  let fixed = 0, removed = 0;
+  (pending.updates || []).filter((u) => u.after).forEach((u) => {
+    const idx = state.entries.findIndex((x) => x.id === u.before.id);
+    if (idx >= 0) { state.entries[idx] = u.after; fixed++; }
+  });
+  const delIds = new Set((pending.deletes || []).map((d) => d.id));
+  if (delIds.size) { const n0 = state.entries.length; state.entries = state.entries.filter((x) => !delIds.has(x.id)); removed = n0 - state.entries.length; }
   const hasComment = pending.comment ? addComment(pending.comment, today()) : false;
   if (saveState()) {
     const parts = [];
     if (r.added) parts.push(`${r.added}件を保存`);
     if (r.replaced) parts.push(`${r.replaced}件を更新`);
+    if (fixed) parts.push(`${fixed}件を修正`);
+    if (removed) parts.push(`${removed}件を削除`);
     if (hasComment) parts.push('コメントを保存');
     toast(parts.join('・') + 'しました');
     pending = null;
@@ -1540,7 +1593,7 @@ function wkItemHTML(it = {}) {
     </div></div>`;
 }
 
-function openEditor(id) {
+function openEditor(id, opts = {}) {
   const e = state.entries.find((x) => x.id === id);
   if (!e) return;
   let fields = `<label class="field"><span>日付</span><input type="date" id="edDate" value="${v(e.date)}"></label>`;
@@ -1584,10 +1637,21 @@ function openEditor(id) {
       </div>
       <label class="field"><span>メモ</span><input type="text" id="edNote" value="${v(e.note)}"></label>`;
   }
-  openSheet(`<h3>${TYPE_LABEL[e.type]}を編集</h3>${fields}
+  const fixBox = loadApi().key ? `<div class="fix-box"><span class="mini">Claudeで直す</span>
+      <textarea id="edFixText" placeholder="例：2枚分だった／半分残した／夜ごはんだった"></textarea>
+      <button type="button" id="edFixBtn">Claudeで直す</button></div>` : '';
+  const diffHTML = opts.diff ? `<div class="diff">${opts.diff}</div>${opts.undo ? '<button class="ghost" type="button" id="edUndo" style="width:100%;margin:6px 0 10px">元に戻す</button>' : ''}` : '';
+  openSheet(`<h3>${TYPE_LABEL[e.type]}を編集</h3>${diffHTML}${fixBox}${fields}
     <div class="err-list" id="edErr"></div>
     <div class="btns" style="margin-top:8px"><button class="danger" id="edDel">削除</button><button class="ghost" id="edClose">閉じる</button><button class="primary" id="edSave">保存</button></div>`);
 
+  if ($('#edFixBtn')) $('#edFixBtn').addEventListener('click', () => fixWithClaude(id));
+  if ($('#edUndo')) $('#edUndo').addEventListener('click', () => {
+    const idx = state.entries.findIndex((x) => x.id === id);
+    if (idx < 0) return;
+    state.entries[idx] = opts.undo;
+    saveState(); toast('元に戻しました'); refreshAll(); openEditor(id);
+  });
   if (e.type === 'meal') {
     $('#edFav').addEventListener('click', () => {
       const r = upsertFavorite({ label: $('#edLabel').value, kcal: $('#edKcal').value, p: $('#edP').value, f: $('#edF').value, c: $('#edC').value, treat: $('#edTreat').checked });
@@ -1663,6 +1727,54 @@ function openCommentEditor(id) {
     Object.assign(c, { date, text });
     saveState(); closeSheet(); toast('保存しました'); refreshAll();
   });
+}
+
+
+/* ========== Claudeで直す ========== */
+const stripMeta = (e) => { const o = { ...e }; delete o.id; delete o.createdAt; return o; };
+const FIELD_LABEL = { label: '名前', kcal: 'kcal', p: 'P', f: 'F', c: 'C', treat: 'ご褒美', slot: '時間帯', note: 'メモ', kg: '体重', steps: '歩数', km: '距離',
+  fatPct: '体脂肪率', waistCm: '腹囲', item: 'アイテム', category: 'カテゴリ', action: 'アクション', items: '種目', date: '日付' };
+function fieldText(k, v) {
+  if (k === 'treat') return v ? 'あり' : 'なし';
+  if (v === null || v === undefined || v === '') return '—';
+  if (k === 'items') return workoutText(v);
+  if (k === 'slot') return SLOTS[v] || '—';
+  return String(v);
+}
+function diffEntries(a, b) {
+  const keys = [...new Set([...Object.keys(stripMeta(a)), ...Object.keys(stripMeta(b))])].filter((k) => k !== 'type');
+  return keys.filter((k) => fieldText(k, a[k]) !== fieldText(k, b[k]))
+    .map((k) => `${esc(FIELD_LABEL[k] || k)}：<span class="old">${esc(fieldText(k, a[k]))}</span> → <b>${esc(fieldText(k, b[k]))}</b>`);
+}
+
+async function fixWithClaude(id) {
+  const e = state.entries.find((x) => x.id === id);
+  const instr = $('#edFixText').value.trim();
+  if (!e) return;
+  if (!instr) { toast('どう直すかを書いてください'); return; }
+  const btn = $('#edFixBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="loading"></span>直しています…';
+  try {
+    const text = `【記録の修正】次の記録を、指示に合わせて直してください。entries には直した記録を1件だけ入れてください。type は変えないでください（指示に日付の変更があるときだけ date を変える）。量が変わったら kcal・P・F・C も量に合わせて計算し直してください。comment には変更点を短く。\n記録：${JSON.stringify(stripMeta(e))}\n指示：${instr}`;
+    const r = await callClaude({ key: loadApi().key, text, imgs: [] });
+    const payload = extractPayload(r.text);
+    const raw = payload && payload.entries.find((x) => x && x.type === e.type);
+    if (!raw) throw new Error('直した内容を受け取れませんでした。言い方を変えて試してください。');
+    const n = normalizeEntry({ date: e.date, ...raw, type: e.type });
+    if (n.errors) throw new Error(n.errors[0]);
+    const next = { ...n.entry, id: e.id, createdAt: e.createdAt };
+    const diff = diffEntries(e, next);
+    if (!diff.length) { toast('変わったところはありませんでした'); btn.disabled = false; btn.textContent = 'Claudeで直す'; return; }
+    const idx = state.entries.findIndex((x) => x.id === id);
+    state.entries[idx] = next;
+    saveState();
+    refreshAll();
+    toast('直しました');
+    openEditor(id, { diff: `<div class="small muted">Claudeが直した内容</div>${diff.join('<br>')}`, undo: e });
+  } catch (err) {
+    toast(err instanceof TypeError ? '通信できませんでした' : err.message);
+    btn.disabled = false; btn.textContent = 'Claudeで直す';
+  }
 }
 
 /* ========== 美容 ========== */
@@ -1781,10 +1893,6 @@ function setupSettings() {
     toast('APIキーを削除しました');
   });
   setupAskSettings();
-  $('#copyStepsTmpl').addEventListener('click', async () => {
-    const ok = await copyText($('#stepsTmpl').textContent);
-    toast(ok ? 'コピーしました' : 'コピーできませんでした');
-  });
   $('#projectUrl').addEventListener('change', () => {
     const u = $('#projectUrl').value.trim();
     if (u && !/^https:\/\/claude\.ai\//.test(u)) { toast('claude.ai のURLを入れてください'); $('#projectUrl').value = projectUrl(); return; }
@@ -2008,6 +2116,8 @@ function buildContext() {
   const td = dayStats(t);
   if (td.steps) lines.push(`今日の歩数: ${stepsText(td.steps)}`);
   lines.push(`今日の摂取（概算）: ${Math.round(td.intake.kcal)}kcal、P ${Math.round(td.intake.p)}g、F ${Math.round(td.intake.f)}g、C ${Math.round(td.intake.c)}g${td.burn != null ? `／消費の概算 ${Math.round(td.burn)}kcal（運動 ${Math.round(td.exKcal || 0)}kcal を含む）` : ''}`);
+  const recent = state.entries.filter((e) => e.date >= addDays(t, -3) && e.type !== 'weight').sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 40);
+  if (recent.length) lines.push(`最近の記録（修正用、直近3日）:\n${recent.map((e) => `- id=${e.id} ${JSON.stringify(stripMeta(e))}`).join('\n')}`);
   const favs = state.favorites || [];
   lines.push(`いつものメニュー: ${favs.length ? favs.map((f) => `${f.label}（${[['kcal', f.kcal], ['P', f.p], ['F', f.f], ['C', f.c]].map(([k, n]) => `${k} ${n ?? '?'}`).join(' / ')}${f.treat ? '・ご褒美' : ''}）`).join('、') : '（なし）'}`);
 
@@ -2033,6 +2143,8 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
     {"date":"YYYY-MM-DD","type":"body","fatPct":体脂肪率の数値,"waistCm":腹囲cmの数値,"note":"任意"},
     {"date":"YYYY-MM-DD","type":"steps","steps":歩数,"km":歩いた距離kmの数値}
   ],
+  "updates":[{"id":"既存の記録のid","entry":{直したあとの記録（上と同じ形）}}],
+  "deletes":["消してほしいと言われた記録のid"],
   "comment":"提案コメント"
 }
 
@@ -2045,6 +2157,12 @@ JSONオブジェクトを1つだけ出力してください。前後に説明文
 - 体や肌の状態についての言及は condition にする。
 - 「【コスメの所感】」として書かれた内容は、アイテムごとに condition にする（note は「アイテム名：所感」）。使用回数は増やさない。
 - 記録にあたる内容がなければ entries は空配列にして、comment だけ返す。
+
+# 既存の記録の修正
+- 「昨日のパンケーキ、2枚だった」のように、すでにある記録を直す内容なら、新しい記録は作らずに updates に入れる。id は下の「最近の記録」から選び、entry には直したあとの記録全体を入れる。量が変わったら kcal・P・F・C も計算し直す。
+- 「消して」とはっきり言われたときだけ deletes に id を入れる。
+- どの記録か分からないときは、何もせず comment で確認する。
+- updates・deletes が不要なら省略する。
 
 # 画像の読み取り
 - 画像は複数届くことがある。1枚ずつ何の画像かを見分けて、すべて記録にする。
@@ -2148,7 +2266,7 @@ function setupAI() {
     // JSON（ショートカットやチャットの返答）ならAPIを使わずに読む
     if (!images.length) {
       const local = extractPayload(text);
-      if (local && local.entries.length) { setPendingFromPayload(local); return; }
+      if (local && (local.entries.length || local.updates.length || local.deletes.length)) { setPendingFromPayload(local); return; }
     }
     const api = loadApi();
     if (!api.key) { toast('設定でAPIキーを入れてください'); return; }
@@ -2991,13 +3109,14 @@ function duePrompts(now = new Date()) {
   const t = today();
   const hm = nowHM(now);
   const weighedToday = state.entries.some((e) => e.type === 'weight' && e.date === t);
+  const stepsToday = state.entries.some((e) => e.type === 'steps' && e.date === t);
   return (state.prompts || []).filter((p) => p.enabled && p.text && p.days.includes(now.getDay()) && hm >= p.time
-    && state.promptLog[p.id] !== t && !(p.action === 'weight' && weighedToday));
+    && state.promptLog[p.id] !== t && !(p.action === 'weight' && weighedToday) && !(p.action === 'steps' && stepsToday));
 }
 
 function renderAsks() {
   $('#askArea').innerHTML = duePrompts().map((p) => `<div class="card ask-card"><div class="ask-text">${esc(p.text)}</div>
-    <div class="btns"><button class="ghost" data-ask-ok="${esc(p.id)}">今日はOK</button><button class="primary" data-ask-go="${esc(p.id)}">${p.action === 'weight' ? '体重を入れる' : '送る'}</button></div></div>`).join('');
+    <div class="btns"><button class="ghost" data-ask-ok="${esc(p.id)}">今日はOK</button><button class="primary" data-ask-go="${esc(p.id)}">${p.action === 'weight' ? '体重を入れる' : p.action === 'steps' ? '貼り付けて記録' : '送る'}</button></div></div>`).join('');
 }
 
 function markPrompt(id) { state.promptLog[id] = today(); saveState(); }
@@ -3024,7 +3143,7 @@ function renderAskList() {
     <input type="text" class="pText" value="${v(p.text)}" placeholder="例：今日何食べた？">
     <div class="row">
       <input type="time" class="pTime" value="${v(p.time)}">
-      <select class="pAction"><option value="input" ${p.action === 'input' ? 'selected' : ''}>投げ込みを開く</option><option value="weight" ${p.action === 'weight' ? 'selected' : ''}>体重入力を開く</option></select>
+      <select class="pAction"><option value="input" ${p.action === 'input' ? 'selected' : ''}>投げ込みを開く</option><option value="weight" ${p.action === 'weight' ? 'selected' : ''}>体重入力を開く</option><option value="steps" ${p.action === 'steps' ? 'selected' : ''}>歩数を貼り付け</option></select>
     </div>
     <div class="day-chips">${WEEKDAYS.map((w, i) => `<button type="button" data-day="${i}" class="${p.days.includes(i) ? 'on' : ''}">${w}</button>`).join('')}</div>
     <div class="row">
@@ -3155,6 +3274,7 @@ function setupHomeCards() {
     const go = ev.target.closest('[data-ask-go]');
     if (go) {
       const p = state.prompts.find((x) => x.id === go.getAttribute('data-ask-go'));
+      if (p.action === 'steps') { pasteSteps(today()).then((ok) => { if (ok) { markPrompt(p.id); renderAsks(); } }); return; }
       markPrompt(p.id);
       goInput(p.action);
     }
@@ -3173,6 +3293,52 @@ function setupHomeCards() {
   });
 }
 
+
+
+/* ========== 歩数の入力 ========== */
+const STEPS_OPTS = Array.from({ length: 30 }, (_, i) => (i + 1) * 1000);
+function renderStepsPicker() {
+  const sel = $('#qSteps');
+  sel.innerHTML = '<option value="">—</option>' + STEPS_OPTS.map((n) => `<option value="${n}">${fmtNum(n)}</option>`).join('');
+  const cur = state.entries.find((e) => e.type === 'steps' && e.date === inputDate());
+  $('#qStepsNow').textContent = cur ? `この日：${stepsText(cur)}` : '';
+}
+
+// クリップボードの文字（数字だけ・「8,234 歩」・JSON）から歩数を読む
+function parseStepsText(text) {
+  const payload = extractPayload(text);
+  const fromJson = payload && payload.entries.find((x) => x && x.type === 'steps');
+  if (fromJson) return { steps: fromJson.steps, km: fromJson.km };
+  const m = String(text || '').replace(/[,，]/g, '').match(/(\d+(?:\.\d+)?)/);
+  return m ? { steps: Math.round(Number(m[1])), km: null } : null;
+}
+
+function saveSteps(date, steps, km = null) {
+  const r = normalizeEntry({ type: 'steps', date, steps, km });
+  if (r.errors) { toast(r.errors[0]); return false; }
+  addEntries([r.entry]);
+  if (!saveState()) return false;
+  toast(`${fmtMD(date)}の歩数 ${stepsText(r.entry)}を記録しました`);
+  refreshAll();
+  return true;
+}
+
+async function pasteSteps(date) {
+  let text = '';
+  try { text = await navigator.clipboard.readText(); } catch (e) { text = ''; }
+  const st = text ? parseStepsText(text) : null;
+  if (!st || !st.steps) { toast('クリップボードに歩数がありませんでした。先にショートカットを実行してください'); return false; }
+  return saveSteps(date, st.steps, st.km);
+}
+
+function setupSteps() {
+  $('#qStepsSave').addEventListener('click', () => {
+    const v = $('#qSteps').value;
+    if (!v) { toast('歩数を選んでください'); return; }
+    saveSteps(inputDate(), Number(v));
+  });
+  $('#qStepsPaste').addEventListener('click', () => pasteSteps(inputDate()));
+}
 
 /* ========== アプリの更新 ========== */
 // 公開中の index.html を取り直して APP_VERSION を比べる（サーバーなしで新しい版を知らせる）
@@ -3227,7 +3393,7 @@ function renderCurrent() {
   if (currentTab === 'list') renderList();
   if (currentTab === 'beauty') renderBeauty();
   if (currentTab === 'settings') renderSettings();
-  if (currentTab === 'input') { renderFavChips(); renderPresetChips(); renderWeightPicker(); renderWq(); renderApiMeter(); }
+  if (currentTab === 'input') { renderFavChips(); renderPresetChips(); renderWeightPicker(); renderStepsPicker(); renderWq(); renderApiMeter(); }
 }
 
 function refreshAll() { syncTargets(); renderCurrent(); }
@@ -3256,6 +3422,7 @@ function init() {
   setupHomeCards();
   setupToday();
   setupUpdate();
+  setupSteps();
   setupList();
   setupBeauty();
   setupSettings();
