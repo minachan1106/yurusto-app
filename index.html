@@ -432,6 +432,7 @@
   details.day-card > summary::-webkit-details-marker { display: none; }
   details.day-card > summary .day-head .d::before { content: "›"; display: inline-block; margin-right: 6px; color: var(--muted); transition: transform .15s; }
   details.day-card[open] > summary .day-head .d::before { transform: rotate(90deg); }
+  details.day-card:not([open]) { padding-top: 10px; padding-bottom: 10px; margin-bottom: 8px; }
   details.day-card:not([open]) > summary .day-sum { margin-bottom: 0; }
   .now-act.busy { opacity: 0.85; pointer-events: none; }
   .now-mini { display: flex; gap: 8px; margin-top: 8px; }
