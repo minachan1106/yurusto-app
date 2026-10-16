@@ -1940,7 +1940,7 @@ function findFood(book, name) {
   if (!k) return null;
   if (book.has(k)) return book.get(k);
   // 一部だけ書いたとき：当てはまるものが1つだけなら使う
-  const hits = [...book.entries()].filter(([bk]) => k.length >= 2 && (bk.includes(k) || k.includes(bk)));
+  const hits = [...book.entries()].filter(([bk]) => k.length >= 2 && bk.includes(k));
   return hits.length === 1 ? hits[0][1] : null;
 }
 // 全部が辞書にある食べ物なら、記録の形にして返す（1つでも知らないものがあれば null）
