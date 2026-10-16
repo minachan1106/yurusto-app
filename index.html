@@ -314,13 +314,6 @@
   .seg-tabs { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 3px; margin-bottom: 12px; }
   .seg-tabs button { flex: 1; min-height: 38px; background: transparent; color: var(--muted); font-weight: 600; border-radius: 9px; }
   .seg-tabs button.on { background: var(--grad); color: #fff; }
-  .pfc-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; white-space: nowrap; font-size: 11.5px; color: var(--muted); margin: 6px 0 2px; }
-  .pfc-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
-  .ratio { margin-top: 10px; }
-  .ratio .rl { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
-  .ratio .rb { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--line); }
-  .ratio .rb i { display: block; height: 100%; }
-  .ratio .rb.target { height: 6px; margin-top: 4px; opacity: 0.55; }
   .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
   .cal-head .m { font-weight: 700; font-size: 15px; }
   .cal-head button { min-height: 36px; min-width: 44px; padding: 4px 10px; }
@@ -404,6 +397,43 @@
   .idea .k { font-size: 11px; color: var(--muted); }
   .idea .t { font-weight: 700; }
   .idea .d { font-size: 12.5px; color: var(--muted); }
+  .local-note { font-size: 12.5px; color: var(--sage); font-weight: 600; margin: -4px 0 6px; }
+  .qty-row { display: flex; align-items: center; gap: 6px; margin: 2px 0 10px; flex-wrap: wrap; }
+  .qty-row .mini { margin-right: 2px; }
+  .qty-row button { min-height: 36px; padding: 4px 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); color: var(--text); font-size: 13px; }
+  .qty-row button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-strong); font-weight: 700; }
+  .nb { margin: 8px 0 10px; }
+  .nb-l { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
+  .nb-s { font-size: 12px; padding: 0 8px; border-radius: 99px; }
+  .nb-s.ok { background: color-mix(in srgb, var(--sage) 20%, transparent); color: var(--text); }
+  .nb-s.low { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+  .nb-s.high { background: color-mix(in srgb, var(--c-meal) 22%, transparent); color: var(--text); }
+  .nb-t { position: relative; height: 10px; border-radius: 5px; background: var(--line); margin-top: 4px; }
+  .nb-t i { display: block; height: 100%; border-radius: 5px; background: var(--accent); }
+  .nb-t i.ok { background: var(--sage); } .nb-t i.high { background: var(--c-meal); }
+  .nb-t b { position: absolute; top: -3px; width: 2px; height: 16px; background: var(--text); opacity: .5; }
+  .nb-n { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .bal-r { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
+  .bal-r b { font-size: 13px; min-width: 60px; text-align: right; }
+  .bal-t { height: 14px; border-radius: 7px; background: var(--line); overflow: hidden; }
+  .bal-t i { display: block; height: 100%; border-radius: 7px; }
+  .bal-t i.out { background: var(--sage); } .bal-t i.in { background: var(--accent); }
+  .bal-m { font-size: 14px; font-weight: 700; color: var(--accent-strong); margin: 6px 0 2px; }
+  .eff { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .eff-big { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; font-size: 13px; }
+  .eff-big b { font-size: 24px; margin-right: 2px; }
+  .eff-big span { display: block; font-size: 11.5px; color: var(--muted); }
+  .eff-items { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .eff-items span { font-size: 12.5px; padding: 3px 10px; border-radius: 99px; background: color-mix(in srgb, var(--c-workout) 18%, transparent); }
+  .treat-line { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 13.5px; font-weight: 600; }
+  .treat-line .treat-dots { margin: 0; }
+  .treat-line .treat-dots i { font-size: 16px; }
+  details.day-card > summary { list-style: none; cursor: pointer; }
+  details.day-card > summary::-webkit-details-marker { display: none; }
+  details.day-card > summary .day-head .d::before { content: "›"; display: inline-block; margin-right: 6px; color: var(--muted); transition: transform .15s; }
+  details.day-card[open] > summary .day-head .d::before { transform: rotate(90deg); }
+  details.day-card:not([open]) { padding-top: 10px; padding-bottom: 10px; margin-bottom: 8px; }
+  details.day-card:not([open]) > summary .day-sum { margin-bottom: 0; }
   .now-act.busy { opacity: 0.85; pointer-events: none; }
   .now-mini { display: flex; gap: 8px; margin-top: 8px; }
   .now-mini button { flex: 1; min-height: 44px; font-size: 13px; padding: 6px 8px; background: var(--card); border: 1px solid var(--line); color: var(--accent-strong); font-weight: 600; border-radius: 12px; }
@@ -449,7 +479,9 @@
   .burn-line small { color: var(--muted); font-size: 11px; display: block; }
   .metric-seg { margin-bottom: 10px; }
   .stat-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .stat-row { flex-wrap: wrap; }
   .stat-row .seg { flex: 0 0 auto; }
+  #rangeSeg button { padding: 4px 8px; }
   .metric-seg button { min-height: 34px; font-size: 13px; }
   .remain { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .remain span { font-size: 12.5px; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-strong); }
@@ -520,18 +552,18 @@
       <div class="now-mini" id="nowMini"></div>
       <div class="now-favs" id="nowFavs"></div>
       <div id="nowCare"></div>
-      <div id="nowGood"></div>
       <div id="nowEasy"></div>
       <div id="reviewArea"></div>
     </div>
     <input type="file" id="homeImg" accept="image/*" multiple style="display:none">
     <input type="file" id="homeCam" accept="image/*" capture="environment" style="display:none">
     <div class="card" id="todayCard"></div>
+    <div class="card" id="effortCard"></div>
 
     <div class="card" id="bodyCard">
       <div class="seg-tabs metric-seg" id="metricSeg"><button data-mt="weight" class="on">体重</button><button data-mt="fatPct">体脂肪率</button></div>
       <div id="wPane">
-        <div class="stat-row"><div class="stat-line" id="weightStat"></div><span class="seg" id="rangeSeg"><button data-r="30" class="on">30日</button><button data-r="90">90日</button><button data-r="all">全期間</button></span></div>
+        <div class="stat-row"><div class="stat-line" id="weightStat"></div><span class="seg" id="rangeSeg"><button data-r="7">7日</button><button data-r="14" class="on">14日</button><button data-r="30">30日</button><button data-r="90">90日</button><button data-r="all">全部</button></span></div>
         <div class="chart-wrap" id="chartWrap"><canvas id="weightChart"></canvas></div>
         <div class="hint" id="chartHint"></div>
       </div>
@@ -543,17 +575,16 @@
     </div>
 
     <div class="card" id="pfcCard">
-      <h2>食事（概算） <span class="right"><span class="seg" id="pfcSeg"><button data-r="7" class="on">7日</button><button data-r="14">14日</button></span></span></h2>
+      <h2>食事のバランス <span class="right"><span class="seg" id="pfcSeg"><button data-r="7" class="on">7日</button><button data-r="14">14日</button><button data-r="30">30日</button></span></span></h2>
       <div id="pfcPane">
         <div id="pfcBody"></div>
-        <div class="chart-wrap" id="pfcWrap" style="height:190px"><canvas id="pfcChart"></canvas></div>
+        <div class="chart-wrap" id="pfcWrap" style="height:150px"><canvas id="pfcChart"></canvas></div>
         <div id="pfcRatio"></div>
         <div class="hint" id="pfcHint"></div>
       </div>
     </div>
 
     <div class="card" id="wishCard" style="display:none"></div>
-    <div class="card" id="treatCard"></div>
     <div class="card comment-card" id="commentCard"></div>
   </section>
 
@@ -809,7 +840,7 @@
 /* ========== 定数 ========== */
 const STORAGE_KEY = 'yurusto.v1';
 // 公開のたびに上げる（CLAUDE.md の「公開のルール」参照）
-const APP_VERSION = '2026.10.12-21';
+const APP_VERSION = '2026.10.16-22';
 const TYPES = ['weight', 'body', 'steps', 'meal', 'workout', 'beauty', 'care', 'condition'];
 const MEAL_SRC = { home: '自炊', conveni: 'コンビニ', delivery: 'デリバリー', out: '外食' };
 const CARE_LEVEL = { min: '最低限', full: 'しっかり', special: 'スペシャル' };
@@ -1392,7 +1423,7 @@ function beautyStats() {
 
 /* ========== ホーム ========== */
 let chart = null;
-let chartRange = '30';
+let chartRange = '14';
 
 const bandPlugin = {
   id: 'targetBand',
@@ -1495,93 +1526,108 @@ function renderChart() {
 /* ========== PFCバランス ========== */
 let pfcChart = null;
 let pfcRange = 7;
-const PFC_KCAL = { p: 4, f: 9, c: 4 };
-
-// 期間内で PFC が入っている食事の日ごと合計（記録のある日だけ）
-function pfcDays(n, t = today()) {
-  const from = addDays(t, -(n - 1));
-  const map = new Map();
-  state.entries.filter((e) => e.type === 'meal' && e.date >= from && e.date <= t && (e.p != null || e.f != null || e.c != null)).forEach((m) => {
-    if (!map.has(m.date)) map.set(m.date, { p: 0, f: 0, c: 0, kcal: 0 });
-    const d = map.get(m.date);
-    ['p', 'f', 'c'].forEach((k) => { if (m[k] != null) d[k] += Number(m[k]); });
-    if (m.kcal != null) d.kcal += Number(m.kcal);
-  });
-  return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, v]) => ({ date, ...v }));
-}
-
-function ratioOf(o) {
-  const k = { p: (o.p || 0) * 4, f: (o.f || 0) * 9, c: (o.c || 0) * 4 };
-  const tot = k.p + k.f + k.c;
-  if (!tot) return null;
-  return { p: Math.round(k.p / tot * 100), f: Math.round(k.f / tot * 100), c: 100 - Math.round(k.p / tot * 100) - Math.round(k.f / tot * 100) };
-}
-
-function ratioBar(r, cls = '') {
-  return `<div class="rb ${cls}">${['p', 'f', 'c'].map((k) => `<i style="width:${Math.max(0, r[k])}%; background:var(--c-${k})"></i>`).join('')}</div>`;
-}
+const PFC_NAME = { p: 'P たんぱく質', f: 'F 脂質', c: 'C 炭水化物' };
+function pfcStatus(pct) { return pct < 0.8 ? ['もう少し', 'low'] : pct <= 1.2 ? ['ちょうどいい', 'ok'] : ['多め', 'high']; }
 
 function renderPfc() {
   $$('#pfcSeg button').forEach((b) => b.classList.toggle('on', b.dataset.r === String(pfcRange)));
-  const days = pfcDays(pfcRange);
+  const t = today(), from = addDays(t, -(pfcRange - 1));
   const s = state.settings;
   const wrap = $('#pfcWrap'), body = $('#pfcBody'), ratioEl = $('#pfcRatio'), hint = $('#pfcHint');
+  const days = [];
+  for (let d = from; d <= t; d = addDays(d, 1)) { const st = dayStats(d); if (st.meals.length) days.push({ date: d, ...st.intake }); }
+  body.innerHTML = '';
   if (!days.length) {
     if (pfcChart) { pfcChart.destroy(); pfcChart = null; }
-    wrap.style.display = 'none'; ratioEl.innerHTML = '';
-    body.innerHTML = '<div class="empty-soft">ごはんを記録すると、ここにPFCのバランスが出るよ</div>';
-    hint.textContent = '';
+    wrap.style.display = 'none'; ratioEl.innerHTML = ''; hint.textContent = '';
+    body.innerHTML = '<div class="empty-soft">ごはんを記録すると、ここにバランスが出るよ</div>';
     return;
   }
-  const sum = days.reduce((a, d) => ({ p: a.p + d.p, f: a.f + d.f, c: a.c + d.c }), { p: 0, f: 0, c: 0 });
-  const avg = { p: sum.p / days.length, f: sum.f / days.length, c: sum.c / days.length };
-  const r = ratioOf(sum);
-  const hasT = s.p != null && s.f != null && s.c != null;
-  const tr = hasT ? ratioOf(s) : null;
-  body.innerHTML = `<div class="pfc-legend"><span><i style="background:var(--c-p)"></i>P たんぱく質</span><span><i style="background:var(--c-f)"></i>F 脂質</span><span><i style="background:var(--c-c)"></i>C 炭水化物</span></div>`;
-  ratioEl.innerHTML = r ? `<div class="ratio"><div class="rl"><span>カロリーの割合（約）</span><span>P ${r.p}%・F ${r.f}%・C ${r.c}%</span></div>${ratioBar(r)}
-    ${tr ? `${ratioBar(tr, 'target')}<div class="rl" style="margin-top:3px"><span>目安</span><span>P ${tr.p}%・F ${tr.f}%・C ${tr.c}%</span></div>` : ''}
-    <div class="rl" style="margin-top:6px"><span>1日あたり（記録した日の平均）</span><span>P ${fmtNum(avg.p)}g・F ${fmtNum(avg.f)}g・C ${fmtNum(avg.c)}g</span></div>
-    ${hasT ? `<div class="rl"><span>目安</span><span>P ${fmtNum(s.p)}g・F ${fmtNum(s.f)}g・C ${fmtNum(s.c)}g</span></div>` : ''}</div>` : '';
-  hint.textContent = `記録したごはんのPFCから出した概算だよ（1g＝P・C 約4kcal、F 約9kcal）。${hasT ? '点線は1日の目安のカロリー。' : '設定で1日の目安を入れると比べられるよ'}`;
+  // P・F・C：記録した日の平均を、目安を100%にしたバーで
+  ratioEl.innerHTML = ['p', 'f', 'c'].map((k) => {
+    const avg = days.reduce((a, d) => a + d[k], 0) / days.length, tg = s[k];
+    if (tg == null) return `<div class="nb"><div class="nb-l"><span>${PFC_NAME[k]}</span><span>約${fmtNum(avg)}g</span></div></div>`;
+    const pct = avg / tg, [label, cls] = pfcStatus(pct);
+    return `<div class="nb"><div class="nb-l"><span>${PFC_NAME[k]}</span><span class="nb-s ${cls}">${label}</span></div>
+      <div class="nb-t"><i class="${cls}" style="width:${Math.min(100, pct / 1.5 * 100)}%"></i><b style="left:${100 / 1.5}%"></b></div>
+      <div class="nb-n">約${fmtNum(avg)}g / 目安${fmtNum(tg)}g</div></div>`;
+  }).join('');
+  hint.textContent = `記録した${days.length}日の平均（概算）。線が目安だよ`;
   if (typeof Chart === 'undefined') { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
-  const labels = days.map((d) => fmtMD(d.date));
   const muted = cssVar('--muted'), line = cssVar('--line');
-  const ds = ['p', 'f', 'c'].map((k) => ({ type: 'bar', label: { p: 'P', f: 'F', c: 'C' }[k], data: days.map((d) => Math.round(d[k] * PFC_KCAL[k])), grams: days.map((d) => d[k]),
-    backgroundColor: cssVar('--c-' + k), stack: 'pfc', borderRadius: 3, maxBarThickness: 26 }));
-  if (s.kcal != null) ds.push({ type: 'line', label: '目安', data: days.map(() => s.kcal), borderColor: cssVar('--accent-strong'), borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0 });
-  const data = { labels, datasets: ds };
+  const kcalTarget = s.kcal;
+  const data = { labels: days.map((d) => fmtMD(d.date)), datasets: [
+    { type: 'bar', label: 'kcal', data: days.map((d) => Math.round(d.kcal)), borderRadius: 4, maxBarThickness: 22,
+      backgroundColor: days.map((d) => (kcalTarget == null || d.kcal <= kcalTarget * 1.1 ? cssVar('--accent') : cssVar('--c-meal'))) },
+  ] };
+  if (kcalTarget != null) data.datasets.push({ type: 'line', label: '目安', data: days.map(() => kcalTarget), borderColor: cssVar('--accent-strong'), borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0 });
   const options = {
     responsive: true, maintainAspectRatio: false, animation: false,
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => c.dataset.grams ? `${c.dataset.label} 約${fmtNum(c.dataset.grams[c.dataIndex])}g（約${fmtNum(c.parsed.y)}kcal）` : `目安 ${fmtNum(c.parsed.y)}kcal` } } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${c.dataset.label === '目安' ? '目安' : '約'} ${fmtNum(c.parsed.y)}kcal` } } },
     scales: {
-      x: { stacked: true, grid: { display: false }, ticks: { color: muted, maxRotation: 0, autoSkip: true, maxTicksLimit: 7, font: { size: 11 } }, border: { color: line } },
-      y: { stacked: true, beginAtZero: true, grid: { color: line }, ticks: { color: muted, font: { size: 11 }, maxTicksLimit: 5 }, border: { display: false }, title: { display: true, text: 'kcal', color: muted, font: { size: 10 } } },
+      x: { grid: { display: false }, ticks: { color: muted, maxRotation: 0, autoSkip: true, maxTicksLimit: 7, font: { size: 11 } }, border: { color: line } },
+      y: { beginAtZero: true, grid: { color: line }, ticks: { color: muted, font: { size: 11 }, maxTicksLimit: 4 }, border: { display: false } },
     },
   };
   if (pfcChart) { pfcChart.data = data; pfcChart.options = options; pfcChart.update(); }
   else pfcChart = new Chart($('#pfcChart'), { type: 'bar', data, options });
 }
 
-function renderTreat() {
-  const { treats } = monthStats();
-  const tl = treatLimit();
-  const limit = tl.limit;
-  let html = '<h2>ご褒美ごはん（今月）</h2>';
-  if (limit != null) {
-    html += `<div class="big">${treats}<small> / ${fmtNum(limit)} 回</small></div>`;
-    const n = Math.max(limit, treats);
-    if (n <= 40) {
-      html += '<div class="treat-dots">' + Array.from({ length: n }, (_, i) =>
-        `<i class="${i < treats ? (i < limit ? 'on' : 'extra') : ''}"></i>`).join('') + '</div>';
-    }
-    const rest = limit - treats;
-    html += `<div class="hint">${rest > 0 ? `今月のお楽しみはあと${rest}回。何食べるか考えるのも楽しいね` : rest === 0 ? '今月のお楽しみ、ぴったり楽しめたね！' : `今月は枠より${-rest}回多めだね。次のごはんをちょっと軽めにすれば大丈夫！`}${tl.auto ? `<br>${tl.months ? `これまで${tl.months}か月の記録` : 'はじめは週1回くらいの目安'}から決めてるよ` : ''}</div>`;
-  } else {
-    html += `<div class="big">${treats}<small> 回</small></div>`;
+// 今月の運動の累計（種目ごと：回数の種目は回、時間の種目は分）
+function workoutTotals(prefix) {
+  const ws = state.entries.filter((e) => e.type === 'workout' && e.date.startsWith(prefix));
+  const by = new Map();
+  let minutes = 0;
+  ws.forEach((w) => (w.items || []).forEach((it) => {
+    const name = toStr(it.name) || '運動';
+    const m = itemMinutes(it);
+    minutes += m;
+    const ex = exerciseOf(name);
+    const isReps = it.minutes == null && (it.reps != null || (ex && ex.unit === 'reps'));
+    const cur = by.get(name) || { name, n: 0, unit: isReps ? '回' : '分' };
+    cur.n += isReps ? (Number(it.reps) || 0) * (it.sets != null ? Number(it.sets) : 1) : m;
+    by.set(name, cur);
+  }));
+  return { count: ws.length, minutes, items: [...by.values()].filter((x) => x.n > 0).sort((a, b) => b.n - a.n) };
+}
+
+function renderEffort() {
+  const t = today(), prefix = t.slice(0, 7);
+  const el = $('#effortCard');
+  let html = `<h2>${Number(prefix.slice(5))}月のがんばり</h2>`;
+  // 消費と摂取：ごはんを記録した日だけで比べる
+  let inSum = 0, outSum = 0, nDays = 0;
+  for (let d = prefix + '-01'; d <= t; d = addDays(d, 1)) {
+    const st = dayStats(d);
+    if (!st.meals.length || st.burn == null) continue;
+    inSum += st.intake.kcal; outSum += st.burn; nDays++;
   }
-  $('#treatCard').innerHTML = html;
+  if (nDays) {
+    const max = Math.max(inSum, outSum) || 1, diff = Math.round(outSum - inSum);
+    const msg = diff > inSum * 0.03 ? `消費のほうが約${fmtNum(diff)}kcal多いね！いい感じ` : diff >= -inSum * 0.03 ? 'ほぼトントン！キープできてるね' : 'しっかり食べてる月だね。次のごはんで整えればOK';
+    html += `<div class="bal"><div class="bal-r"><span>消費</span><div class="bal-t"><i class="out" style="width:${outSum / max * 100}%"></i></div><b>約${fmtNum(outSum)}</b></div>
+      <div class="bal-r"><span>摂取</span><div class="bal-t"><i class="in" style="width:${inSum / max * 100}%"></i></div><b>約${fmtNum(inSum)}</b></div>
+      <div class="bal-m">${esc(msg)}</div><div class="small muted">ごはんを記録した${nDays}日分の概算（kcal）</div></div>`;
+  }
+  // 運動の累計
+  const wt = workoutTotals(prefix);
+  if (wt.count) {
+    const lastPrefix = toYMD(new Date(parseYMD(prefix + '-01').getFullYear(), parseYMD(prefix + '-01').getMonth() - 1, 1)).slice(0, 7);
+    const last = workoutTotals(lastPrefix);
+    html += `<div class="eff"><div class="eff-big"><b>${wt.count}</b>回<span>運動</span></div><div class="eff-big"><b>${fmtNum(wt.minutes)}</b>分<span>合計（約）</span></div></div>
+      <div class="eff-items">${wt.items.slice(0, 4).map((x) => `<span>${esc(x.name)} 累計${fmtNum(x.n)}${x.unit}</span>`).join('')}</div>
+      ${last.count && wt.count > last.count ? '<div class="bal-m">先月の運動回数を超えたよ！すごい</div>' : ''}`;
+  }
+  // 今週のいいこと
+  const good = weekGood(t);
+  if (good.items.length) html += `<div class="good-pills"><div class="gl">今週のいいこと</div>${good.items.map((x) => `<span>${esc(x)}</span>`).join('')}</div>`;
+  // ご褒美ごはん（月の枠の中の予定）
+  const { treats } = monthStats();
+  const limit = treatLimit().limit, n = Math.max(limit, treats), rest = limit - treats;
+  html += `<div class="treat-line"><span>ご褒美ごはん ${treats} / ${fmtNum(limit)}回</span>${n <= 20 ? `<span class="treat-dots">${Array.from({ length: n }, (_, i) => `<i class="${i < treats ? (i < limit ? 'on' : 'extra') : ''}"></i>`).join('')}</span>` : ''}</div>
+    <div class="small muted">${rest > 0 ? `お楽しみはあと${rest}回だよ` : rest === 0 ? 'ぴったり楽しめたね！' : '次のごはんをちょっと軽めにすれば大丈夫！'}</div>`;
+  el.innerHTML = html;
 }
 
 function chatButtonsHTML() {
@@ -1606,8 +1652,8 @@ function renderHome() {
   renderToday();
   renderMetric();
   renderWishes();
+  renderEffort();
   renderPfc();
-  renderTreat();
   renderComment();
 }
 
@@ -1697,7 +1743,7 @@ function setPendingFromPayload(payload, { show = true, date = null } = {}) {
     const n = before ? normalizeWish({ ...before, loseKgMin: undefined, loseKgMax: undefined, ...filled }) : null;
     return n ? { before, after: n } : null;
   }).filter(Boolean);
-  pending = { items, comment: payload.comment, updates, deletes, wishes, wishUps };
+  pending = { items, comment: payload.comment, updates, deletes, wishes, wishUps, local: !!payload.local };
   if (show) renderPreview();
 }
 
@@ -1716,6 +1762,7 @@ function renderPreview() {
   const ok = pending.items.filter((it) => it.entry);
   const ng = pending.items.filter((it) => !it.entry);
   let html = `<h2>プレビュー <span class="right small">${[ok.length ? `追加${ok.length}件` : '', (pending.updates || []).filter((u) => u.after).length ? `修正${pending.updates.filter((u) => u.after).length}件` : '', (pending.deletes || []).length ? `削除${pending.deletes.length}件` : '', ng.length ? `除外${ng.length}件` : ''].filter(Boolean).join('・')}</span></h2>`;
+  if (pending.local) html += '<div class="local-note">APIを使わずに計算したよ（これまでの記録といつものメニューから）</div>';
   const byDate = new Map();
   ok.forEach((it) => { const d = it.entry.date; if (!byDate.has(d)) byDate.set(d, []); byDate.get(d).push(it); });
   Array.from(byDate.keys()).sort().reverse().forEach((d) => {
@@ -1868,6 +1915,55 @@ function savePending(where = 'input') {
   }
 }
 
+/* ========== 自分の食品辞書（APIを使わずに計算） ========== */
+// これまでの記録（新しいものを優先）といつものメニューから、1人前の値を覚えておく
+function foodBook() {
+  const book = new Map();
+  state.entries.filter((e) => e.type === 'meal' && e.label && e.kcal != null && !/×\s*\d/.test(e.label))
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt || 0) - (b.createdAt || 0))
+    .forEach((e) => book.set(favKey(e.label), { label: e.label, kcal: e.kcal, p: e.p, f: e.f, c: e.c, src: e.src || '', treat: !!e.treat }));
+  (state.favorites || []).forEach((f) => book.set(favKey(f.label), { ...f }));
+  return book;
+}
+const SLOT_WORDS = [[/^(朝ごはん|朝食|朝)(に|は)?[、,:：\s]*/, 'breakfast'], [/^(昼ごはん|昼食|ランチ|昼)(に|は)?[、,:：\s]*/, 'lunch'],
+  [/^(夜ごはん|晩ごはん|夕食|夜)(に|は)?[、,:：\s]*/, 'dinner'], [/^(間食|おやつ)(に|は)?[、,:：\s]*/, 'snack']];
+const toHalf = (t) => String(t).replace(/[０-９．]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+function parseQty(part) {
+  let s = part.trim().replace(/(を)?(食べた|たべた|飲んだ|のんだ)$/, '').trim(), q = 1, m;
+  if ((m = s.match(/^(.+?)\s*[×xX*＊]\s*(\d+(?:\.\d+)?)$/))) { s = m[1]; q = Number(m[2]); }
+  else if ((m = s.match(/^(.+?)\s*(半分|はんぶん)$/))) { s = m[1]; q = 0.5; }
+  else if ((m = s.match(/^(.+?)\s*(\d+(?:\.\d+)?)\s*(個|枚|杯|本|人前|皿|切れ|パック|袋|缶|つ|コ|食)$/))) { s = m[1]; q = Number(m[2]); }
+  return { name: s.trim(), qty: q };
+}
+function findFood(book, name) {
+  const k = favKey(name);
+  if (!k) return null;
+  if (book.has(k)) return book.get(k);
+  // 一部だけ書いたとき：当てはまるものが1つだけなら使う
+  const hits = [...book.entries()].filter(([bk]) => k.length >= 2 && bk.includes(k));
+  return hits.length === 1 ? hits[0][1] : null;
+}
+// 全部が辞書にある食べ物なら、記録の形にして返す（1つでも知らないものがあれば null）
+function localMeals(text, date) {
+  let t = toHalf(text || '').trim();
+  if (!t || /[{}]/.test(t)) return null;
+  let slot = '';
+  for (const [re, sl] of SLOT_WORDS) { if (re.test(t)) { slot = sl; t = t.replace(re, ''); break; } }
+  const parts = t.split(/[、,，\n]|＋|\+/).map((x) => x.trim()).filter(Boolean);
+  if (!parts.length || parts.length > 8) return null;
+  const book = foodBook();
+  const out = [];
+  for (const part of parts) {
+    const { name, qty } = parseQty(part);
+    const f = findFood(book, name);
+    if (!f || !(qty > 0) || qty > 20) return null;
+    const mul = (x) => (x == null ? null : Math.round(Number(x) * qty * 10) / 10);
+    out.push({ date, type: 'meal', label: qty === 1 ? f.label : `${f.label} ×${qty}`, kcal: f.kcal == null ? null : Math.round(f.kcal * qty), p: mul(f.p), f: mul(f.f), c: mul(f.c),
+      treat: !!f.treat, src: f.src || '', slot: slot || (date === today() ? slotByTime() : '') });
+  }
+  return out;
+}
+
 /* ========== 記録一覧 ========== */
 let listLimit = 30;
 let listFilter = 'all';
@@ -1929,11 +2025,12 @@ function renderList() {
     $('#listMore').style.display = 'none';
     return;
   }
-  body.innerHTML = dates.slice(0, listLimit).map((d) => dayCardHTML(d, groups.get(d))).join('');
+  body.innerHTML = dates.slice(0, listLimit).map((d, i) => dayCardHTML(d, groups.get(d), '', openDays.has(d) || (i === 0 && !openDays.size))).join('');
   $('#listMore').style.display = dates.length > listLimit ? '' : 'none';
 }
 
-function dayCardHTML(d, g, extra = '') {
+const openDays = new Set(); // 開いている日（タブを移っても覚えておく）
+function dayCardHTML(d, g, extra = '', open = true) {
     const meals = g.entries.filter((e) => e.type === 'meal');
     const others = g.entries.filter((e) => e.type !== 'meal').sort(sortEntriesInDay);
     let rows = others.filter((e) => ['weight', 'body', 'steps'].includes(e.type)).map(listRowHTML).join('');
@@ -1944,7 +2041,7 @@ function dayCardHTML(d, g, extra = '') {
     });
     rows += others.filter((e) => !['weight', 'body', 'steps'].includes(e.type)).map(listRowHTML).join('');
     rows += g.comments.map((c) => `<div class="lrow" data-edit-comment="${esc(c.id)}"><span class="dot comment"></span><span class="txt">${esc(c.text)}</span><span class="val">コメント</span></div>`).join('');
-    return `<div class="card"><div class="day-head"><span class="d">${fmtMDW(d)}</span><span class="small muted">${d.slice(0, 4)}</span></div>${listFilter === 'all' ? daySummary(g.entries) : ''}${rows}${extra}</div>`;
+    return `<details class="card day-card" data-day="${d}" ${open ? 'open' : ''}><summary><div class="day-head"><span class="d">${fmtMDW(d)}</span><span class="small muted">${g.entries.length + g.comments.length}件</span></div>${listFilter === 'all' ? daySummary(g.entries) : ''}</summary>${rows}${extra}</details>`;
 }
 
 // 表示中の種類で日ごとにまとめる
@@ -2001,6 +2098,10 @@ function goInputOn(date) {
 }
 
 function setupList() {
+  $('#listBody').addEventListener('toggle', (ev) => {
+    const dc = ev.target.closest && ev.target.closest('details.day-card');
+    if (dc && listMode === 'list') { if (dc.open) openDays.add(dc.dataset.day); else openDays.delete(dc.dataset.day); }
+  }, true);
   $('#listBody').addEventListener('click', (ev) => {
     const a = ev.target.closest('[data-edit]');
     if (a) { openEditor(a.getAttribute('data-edit')); return; }
@@ -2077,6 +2178,7 @@ function openEditor(id, opts = {}) {
         <label class="field"><span>F</span><input type="number" inputmode="decimal" id="edF" value="${v(e.f)}"></label>
         <label class="field"><span>C</span><input type="number" inputmode="decimal" id="edC" value="${v(e.c)}"></label>
       </div>
+      <div class="qty-row"><span class="mini">量を変える</span>${[0.5, 1, 1.5, 2, 3].map((q) => `<button type="button" data-qty="${q}" class="${q === 1 ? 'on' : ''}">×${q}</button>`).join('')}</div>
       <div class="row"><label class="field"><span>時間帯</span><select id="edSlot"><option value="">—</option>${Object.entries(SLOTS).map(([k, l]) => `<option value="${k}" ${e.slot === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
         <label class="check" style="margin-top:18px"><input type="checkbox" id="edTreat" ${e.treat ? 'checked' : ''}>ご褒美ごはん</label></div>
       <label class="field"><span>どこのごはん</span><select id="edSrc"><option value="">—</option>${Object.entries(MEAL_SRC).map(([k, l]) => `<option value="${k}" ${e.src === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
@@ -2135,6 +2237,16 @@ function openEditor(id, opts = {}) {
       if (r.error) { $('#edErr').textContent = r.error; return; }
       if (saveState()) toast(r.updated ? 'いつもの運動、更新したよ' : '登録したよ！次からワンタップだよ');
     });
+  }
+  if (e.type === 'meal') {
+    const base = { kcal: e.kcal, p: e.p, f: e.f, c: e.c };
+    $$('#sheet [data-qty]').forEach((b) => b.addEventListener('click', () => {
+      const q = Number(b.dataset.qty);
+      [['#edKcal', 'kcal', 0], ['#edP', 'p', 1], ['#edF', 'f', 1], ['#edC', 'c', 1]].forEach(([sel, k, dec]) => {
+        if (base[k] != null) $(sel).value = dec ? Math.round(base[k] * q * 10) / 10 : Math.round(base[k] * q);
+      });
+      $$('#sheet [data-qty]').forEach((x) => x.classList.toggle('on', x === b));
+    }));
   }
   if (e.type === 'workout') {
     $('#wkAdd').addEventListener('click', () => $('#wkList').insertAdjacentHTML('beforeend', wkItemHTML()));
@@ -3088,6 +3200,9 @@ function setupAI() {
     if (!images.length) {
       const local = extractPayload(text);
       if (local && (local.entries.length || local.updates.length || local.deletes.length || local.wishes.length || local.wishUpdates.length)) { setPendingFromPayload(local); return; }
+      // 知っている食べ物だけなら、APIを使わずに計算する
+      const lm = localMeals(text, inputDate());
+      if (lm) { setPendingFromPayload({ entries: lm, comment: '', updates: [], deletes: [], wishes: [], wishUpdates: [], local: true }); return; }
     }
     const api = loadApi();
     if (!api.key) { toast('設定でAPIキーを入れてね'); return; }
@@ -3992,8 +4107,6 @@ function renderNow() {
     return `<button type="button" class="now-act ${a.main ? 'main' : ''} ${a.done ? 'done' : ''} ${busy ? 'busy' : ''}" data-now="${a.k}" ${a.id ? `data-id="${esc(a.id)}"` : ''}><span class="a-l">${busy ? '<span class="loading"></span>読み取り中…' : esc(a.label)}</span><span class="a-s">${busy ? 'そのまま記録するね。待たずにほかを見てもOK' : esc(a.sub)}</span></button>`;
   }).join('');
   $('#nowMini').innerHTML = `<button type="button" data-now="camera">カメラで撮る</button>${canReadClipImage() ? '<button type="button" data-now="paste">コピーした画像を貼る</button>' : ''}`;
-  const good = weekGood(t);
-  $('#nowGood').innerHTML = good.items.length ? `<div class="good-pills"><div class="gl">今週のいいこと</div>${good.items.map((x) => `<span>${esc(x)}</span>`).join('')}</div>` : '';
   $('#nowCare').innerHTML = band !== 'day' || state.entries.some((e) => e.type === 'care' && e.date === t) ? careRowHTML() : '';
   $('#nowEasy').innerHTML = `<button type="button" class="linkish easy-link" data-easy>${easy ? 'がんばらない日をやめる' : '今日はがんばらない日にする'}</button>`;
   const favs = slotFavorites();
